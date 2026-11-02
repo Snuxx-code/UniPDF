@@ -52,11 +52,15 @@ public enum PDFExporter {
                 drawLabel(continuation == 0 ? "MITSCHRIFT" : "MITSCHRIFT · FORTSETZUNG \(continuation)",
                           in: CGRect(x: 526, y: 518, width: 283, height: 16), size: 9, context: context)
                 let slideRect = CGRect(x: 32, y: 72, width: 460, height: 428)
+                let slideTransform = pageRef.getDrawingTransform(.cropBox, rect: slideRect, rotate: 0, preserveAspectRatio: true)
                 context.saveGState()
                 context.clip(to: slideRect)
-                context.concatenate(pageRef.getDrawingTransform(.cropBox, rect: slideRect, rotate: 0, preserveAspectRatio: true))
+                context.concatenate(slideTransform)
                 context.drawPDFPage(pageRef)
                 context.restoreGState()
+                // The transform accounts for rotation and does not enlarge small pages, so ask it where the slide went.
+                AnnotationRenderer.draw(notes.annotations, in: context, slideSize: page.displayedSlideSize,
+                                        target: pageRef.getBoxRect(.cropBox).applying(slideTransform))
                 context.setStrokeColor(NSColor(white: 0.85, alpha: 1).cgColor)
                 context.setLineWidth(0.5)
                 context.move(to: CGPoint(x: 509, y: 55)); context.addLine(to: CGPoint(x: 509, y: 505)); context.strokePath()

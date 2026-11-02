@@ -129,6 +129,12 @@ enum PreviewHarness {
             InkElement(tool: .arrow, color: .blue, width: 5, points: [InkPoint(x: 100, y: 410), InkPoint(x: 510, y: 150)]),
             InkElement(tool: .arrow, color: .green, width: 5, points: [InkPoint(x: 100, y: 410), InkPoint(x: 300, y: 110)])
         ]
+        let accent = AnnotationColor(InkColor.red)
+        notes.annotations = [
+            SlideAnnotation(content: .shape(.ellipse, start: CGPoint(x: 50, y: 195), end: CGPoint(x: 640, y: 275), color: accent, width: 3)),
+            SlideAnnotation(content: .text("Beispiel: Anmerkung auf der Folie", frame: CGRect(x: 65, y: 300, width: 500, height: 34),
+                                           style: SlideTextStyle(size: 24, bold: true), color: accent))
+        ]
         return StudyProject(title: "Lineare Algebra · Beispiel", pdfData: output as Data, pages: [0: notes])
     }
 }
