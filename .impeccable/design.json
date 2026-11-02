@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-02T10:20:00Z",
+  "title": "Design System: UniPDF",
+  "extensions": {
+    "colorMeta": {
+      "primary": { "role": "primary", "displayName": "Study green" },
+      "primary-dark-mode": { "role": "primary", "displayName": "Dark appearance green" }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Native serif", "purpose": "Welcome and writing-area headings" },
+      "body": { "displayName": "System text", "purpose": "Reading, notes, navigation and controls" }
+    },
+    "motion": [],
+    "shadows": [],
+    "breakpoints": [{ "name": "minimum-window", "value": "1000pt" }]
+  },
+  "components": [],
+  "narrative": {
+    "northStar": "The lecture and the student's thoughts stay together.",
+    "overview": "A native document workspace using semantic macOS surfaces, precise reading and writing regions, and green actions.",
+    "keyCharacteristics": ["Native macOS controls", "Slide-specific notes", "Consistent PDF output"],
+    "rules": [],
+    "dos": ["Keep writing space generous", "Use semantic system colors"],
+    "donts": ["Invent course content", "Animate frequent writing interactions"]
+  }
+}
