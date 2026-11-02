@@ -19,9 +19,9 @@ import Testing
 
     @Test func rejectsFutureVersionAndInvalidCoordinates() throws {
         var project = StudyProject()
-        project.version = 2
+        project.version = StudyProject.currentVersion + 1
         #expect(throws: ProjectError.self) { try StudyProject.decode(project.encoded()) }
-        project.version = 1
+        project.version = StudyProject.currentVersion
         var notes = PageNotes()
         notes.drawing = [InkElement(tool: .pen, color: .graphite, points: [InkPoint(x: -1, y: 10)])]
         project.pages[0] = notes

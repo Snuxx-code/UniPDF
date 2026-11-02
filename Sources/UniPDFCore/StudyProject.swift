@@ -1,7 +1,9 @@
 import Foundation
 
 public struct StudyProject: Codable, Sendable {
-    public var version = 1
+    /// 2 added slide annotations. Older projects still open and get saved in the current version.
+    public static let currentVersion = 2
+    public var version = currentVersion
     public var title: String
     public var pdfData: Data?
     public var pages: [Int: PageNotes]
@@ -13,12 +15,13 @@ public struct StudyProject: Codable, Sendable {
     }
 
     public static func decode(_ data: Data) throws -> StudyProject {
-        let project = try JSONDecoder().decode(Self.self, from: data)
-        guard project.version == 1 else { throw ProjectError.unsupportedVersion }
+        var project = try JSONDecoder().decode(Self.self, from: data)
+        guard (1...currentVersion).contains(project.version) else { throw ProjectError.unsupportedVersion }
         guard project.pages.keys.allSatisfy({ $0 >= 0 }),
-              project.pages.values.allSatisfy({ $0.drawing.allSatisfy(\.isValid) }) else {
+              project.pages.values.allSatisfy({ $0.drawing.allSatisfy(\.isValid) && $0.annotations.allSatisfy(\.isValid) }) else {
             throw ProjectError.invalidData
         }
+        project.version = currentVersion
         return project
     }
 
@@ -26,7 +29,7 @@ public struct StudyProject: Codable, Sendable {
 }
 
 public enum ProjectError: LocalizedError {
-    case unsupportedVersion, invalidData, invalidPDF, lockedPDF, exportFailed
+    case unsupportedVersion, invalidData, invalidPDF, lockedPDF, exportFailed, invalidImage
 
     public var errorDescription: String? {
         switch self {
@@ -35,6 +38,7 @@ public enum ProjectError: LocalizedError {
         case .invalidPDF: "Diese Datei enthält kein lesbares PDF. Wähle ein anderes PDF."
         case .lockedPDF: "Dieses PDF ist geschützt. Entsperre es zuerst in Vorschau und importiere eine ungeschützte Kopie."
         case .exportFailed: "Das Lern-PDF konnte nicht erstellt werden. Versuche es erneut."
+        case .invalidImage: "Dieses Bild kann nicht gelesen werden. Wähle ein Bild im Format PNG, JPEG, HEIC oder TIFF."
         }
     }
 }
@@ -43,10 +47,23 @@ public struct PageNotes: Codable, Sendable, Equatable {
     public var text = ""
     public var formula = ""
     public var drawing: [InkElement] = []
+    /// Placed on the slide itself, unlike `drawing`, which is a sketch in the notes column.
+    public var annotations: [SlideAnnotation] = []
     public init() {}
     public var isEmpty: Bool {
         text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-        formula.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && drawing.isEmpty
+        formula.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && drawing.isEmpty && annotations.isEmpty
+    }
+
+    private enum CodingKeys: String, CodingKey { case text, formula, drawing, annotations }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        text = try container.decode(String.self, forKey: .text)
+        formula = try container.decode(String.self, forKey: .formula)
+        drawing = try container.decode([InkElement].self, forKey: .drawing)
+        // Projects of version 1 have none.
+        annotations = try container.decodeIfPresent([SlideAnnotation].self, forKey: .annotations) ?? []
     }
 }
 

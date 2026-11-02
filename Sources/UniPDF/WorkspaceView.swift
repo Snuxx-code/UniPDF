@@ -65,11 +65,19 @@ struct WorkspaceView: View {
         } message: { Text(errorMessage ?? "") }
         .onAppear {
             if session.document == nil, let data = document.project.pdfData {
-                do { session.document = try PDFExporter.validatedDocument(data: data) }
-                catch { errorMessage = error.localizedDescription }
+                do {
+                    session.document = try PDFExporter.validatedDocument(data: data)
+                    session.adaptStyleToSlides()
+                } catch { errorMessage = error.localizedDescription }
             }
             showFormula = !notes.wrappedValue.formula.isEmpty
             showDrawing = !notes.wrappedValue.drawing.isEmpty
+        }
+        .onChange(of: session.annotationError) {
+            if let message = session.annotationError {
+                errorMessage = message
+                session.annotationError = nil
+            }
         }
         .onChange(of: session.selection) {
             showFormula = !notes.wrappedValue.formula.isEmpty
@@ -141,7 +149,8 @@ struct WorkspaceView: View {
                             get: { session.selection }, set: { if let value = $0 { session.selection = value } }
                         )) { index in
                             SlideRow(page: pdf.page(at: index), index: index,
-                                     hasNotes: !(document.project.pages[index]?.isEmpty ?? true))
+                                     hasNotes: !(document.project.pages[index]?.isEmpty ?? true),
+                                     annotations: document.project.pages[index]?.annotations ?? [])
                                 .tag(index).id(index)
                         }
                         .listStyle(.sidebar)
@@ -168,7 +177,9 @@ struct WorkspaceView: View {
                     }
                     .buttonStyle(.borderless).foregroundStyle(.secondary).padding(.horizontal, 18).frame(height: 47)
                     Divider()
-                    PDFPane(session: session)
+                    AnnotationToolbar(session: session, chooseImage: chooseImage)
+                    Divider()
+                    PDFPane(session: session, annotations: notes.annotations)
                     Divider()
                     HStack(spacing: 18) {
                         Button { session.move(-1) } label: { Image(systemName: "chevron.left") }
@@ -324,6 +335,20 @@ struct WorkspaceView: View {
         else { save(panel.runModal()) }
     }
 
+    private func chooseImage() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.image]
+        panel.title = "Bild einfügen"
+        panel.prompt = "Einfügen"
+        let insert: (NSApplication.ModalResponse) -> Void = { response in
+            guard response == .OK, let url = panel.url else { return }
+            do { session.overlay?.insertImage(try Data(contentsOf: url)) }
+            catch { errorMessage = error.localizedDescription }
+        }
+        if let window = NSApp.keyWindow { panel.beginSheetModal(for: window, completionHandler: insert) }
+        else { insert(panel.runModal()) }
+    }
+
     private func createAIPrompt() {
         do {
             let context = try AIQuestionContext.create(project: document.project,
@@ -347,6 +372,7 @@ private struct SlideRow: View {
     let page: PDFPage?
     let index: Int
     let hasNotes: Bool
+    let annotations: [SlideAnnotation]
     @State private var thumbnail: NSImage?
 
     var body: some View {
@@ -366,6 +392,9 @@ private struct SlideRow: View {
         .padding(.vertical, 7)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Folie \(index + 1)\(hasNotes ? ", mit Mitschrift" : "")")
-        .task { thumbnail = page?.thumbnail(of: CGSize(width: 240, height: 156), for: .cropBox) }
+        .task(id: annotations) {
+            guard let page else { return }
+            thumbnail = AnnotationRenderer.thumbnail(of: page, annotations: annotations, size: CGSize(width: 240, height: 156))
+        }
     }
 }

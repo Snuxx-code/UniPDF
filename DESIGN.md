@@ -33,7 +33,7 @@ Native macOS document workspace. The interface follows the physical relationship
 
 ## Colors
 
-Green identifies primary actions and selected additions. Semantic AppKit surfaces and secondary text adapt to light and dark appearances. Drawing and formula surfaces are always white with dark ink so their appearance matches the exported PDF. The four ink colors have fixed meanings only as user choices.
+Green identifies primary actions and selected additions. Semantic AppKit surfaces and secondary text adapt to light and dark appearances. Drawing and formula surfaces are always white with dark ink so their appearance matches the exported PDF. The four ink colors have fixed meanings only as user choices. Slide annotations offer the same four plus any color from the native color well. Selection marks on a slide always use the light-mode green with white handles, because slides stay white in dark appearance.
 
 ## Typography
 
@@ -41,7 +41,7 @@ The system serif introduces the welcome screen and the writing area. The system 
 
 ## Layout
 
-Minimum document window: 1000 × 680 points. Default: 1320 × 850. A collapsible 178-point sidebar holds a collapsible Dateien tree of at most 230 points above the slide list and precedes a native resizable split between the PDF and the writing pane. Each pane has a 47-point header and a 43-point status/navigation footer. PDF and editor minimum widths are 360 and 350 points. The window frame and the dragged editor width persist; the editor keeps its width when the window or sidebar changes, and the PDF takes up the difference. The note area scrolls vertically; the 800 × 500 logical drawing surface scales proportionally.
+Minimum document window: 1000 × 680 points. Default: 1320 × 850. A collapsible 178-point sidebar holds a collapsible Dateien tree of at most 230 points above the slide list and precedes a native resizable split between the PDF and the writing pane. Each pane has a 47-point header, an action row beneath it and a 43-point status/navigation footer. PDF and editor minimum widths are 360 and 350 points. The window frame and the dragged editor width persist; the editor keeps its width when the window or sidebar changes, and the PDF takes up the difference. The note area scrolls vertically; the 800 × 500 logical drawing surface scales proportionally.
 
 ## Elevation & Depth
 
@@ -49,11 +49,13 @@ Native sidebar material, native buttons and sheets. Flat document surfaces use s
 
 ## Shapes
 
-Soft corners distinguish drawing surfaces and slide thumbnails. Shapes drawn by users are geometrically precise and outlined.
+Soft corners distinguish drawing surfaces and slide thumbnails. Shapes drawn by users are geometrically precise and outlined, on slides as well as in sketches.
 
 ## Components
 
 Use native toolbar buttons, lists, text fields, menus, disclosure actions, open/save panels, and error alerts. Formula and sketch sections are optional additions to each slide. Slide labels expose whether a page contains notes. Every icon-only action has an accessibility label and a tooltip.
+
+The PDF pane's action row, level with the editor's, holds the annotation tools on the left: selection arrow, pen, text box, a split button for shapes, and image. A tool's settings or those of the selected annotation sit on the right in small controls; a delete action appears first among them. The row keeps the room of the widest settings at all times, so that the slide never changes size when a tool or selection changes. It breaks into two lines only in a narrow pane; the color swatches for text give way before that. Selected annotations show a dashed hairline frame and round handles, a line only its two end handles. Text is edited in place at its exported line breaks. Pen stays active after drawing; a shape, text box or image returns to the selection arrow with the new item selected.
 
 The toolbar's Speichern action uses the native document save command. Directly opened PDFs save back to their original path. Lern-PDF exportieren remains an explicit additional-copy action. Both PDFs and legacy projects are selectable in the native Open dialog.
 

@@ -37,6 +37,22 @@ Die bearbeitbaren Daten sind in der PDF eingebettet; es ist keine zusätzliche P
 
 Mit **⌘↑ / ⌘↓** zwischen Folien wechseln. Die Breite von PDF und Mitschrift lässt sich an der Trennlinie anpassen. UniPDF merkt sich die Breite der Mitschrift und die Fenstergröße auch über Neustarts hinweg; die Bibliothek hat ihre eigene Fenstergröße. Die Zeichenfläche unterstützt Stift, Linie, Pfeil, Rechteck und Ellipse, vier Farben und drei Strichstärken. Elemente lassen sich schrittweise entfernen und wiederherstellen.
 
+## Auf der Folie markieren
+
+Die Leiste direkt über der Folie legt Anmerkungen auf die Folie selbst, im Unterschied zur **Skizze**, die in der Mitschrift steht.
+
+- **Stift:** frei zeichnen, drei Strichstärken.
+- **Textfeld:** auf die Folie klicken und tippen. Schriftart, Größe, Fett, Kursiv und Unterstrichen gelten für das ganze Textfeld. Ein leeres Textfeld verschwindet wieder. Doppelklick bearbeitet den Text später.
+- **Formen:** Rechteck, Quadrat, Kreis, Oval und Linie aufziehen. Das Symbol wählt die zuletzt benutzte Form, der Pfeil daneben die anderen. **⇧** hält beim Rechteck und Oval die Proportionen und rastet Linien in 45°-Schritten ein.
+- **Bild:** Das Bildsymbol wählt eine Datei, **⌘V** setzt ein Bild aus der Zwischenablage ein, zum Beispiel einen Bildschirmausschnitt. Sehr große Bilder werden auf 2400 Pixel an der längsten Seite verkleinert.
+- **Farben:** vier feste Farben und eine beliebige Farbe aus dem Farbfeld. Ist die Leiste schmal, bleibt beim Text nur das Farbfeld.
+
+Mit dem Pfeil-Werkzeug wählst du eine Anmerkung aus, ziehst sie an eine andere Stelle oder änderst ihre Größe an den Griffen. Die Einstellungen in der Leiste gelten dann für die Auswahl. Pfeiltasten verschieben um einen Punkt, mit **⇧** um zehn. **⌫** oder das Papierkorb-Symbol löscht, **⌘X**, **⌘C** und **⌘V** funktionieren, **⌘Z** widerruft. **Esc** beendet ein Werkzeug oder hebt die Auswahl auf. Umrissene Formen reagieren nur auf ihre Linie, damit Text darin auswählbar bleibt; neben Anmerkungen lässt sich weiter PDF-Text markieren.
+
+Anmerkungen bleiben beim Zoomen und auf gedrehten Folien an ihrer Stelle und stehen dort aufrecht. Sie landen im Lern-PDF auf der Folie und bleiben nach dem erneuten Öffnen bearbeitbar; die Originalfolie selbst wird nicht verändert. Text bleibt im PDF durchsuchbar. Fehlt eine Schriftart auf einem anderen Mac, erscheint dort die Systemschrift. Die Kopie **Originalfolie** für den KI-Prompt zeigt die Folie ohne Anmerkungen, das Lernskript mit ihnen.
+
+Dateien mit dem Projektformat 2 lassen sich nur mit dieser oder einer neueren UniPDF-Version öffnen. Ältere Dateien öffnen weiter und werden beim Speichern umgestellt.
+
 ## Start ohne Datei
 
 Waren beim Beenden Dateien geöffnet, stellt macOS diese Tabs wieder her. Sonst öffnet UniPDF die zuletzt geöffnete Datei, auch wenn sie inzwischen umbenannt oder verschoben wurde. Gibt es sie nicht mehr oder liegt sie im Papierkorb, öffnet sich die Bibliothek. Dasselbe gilt für einen Klick auf das Dock-Symbol, wenn kein Fenster offen ist. Ein neues leeres Dokument gibt es weiter über **Ablage → Neu** oder **+** in der Tab-Leiste.
@@ -86,7 +102,7 @@ Dies ist kein vollständiges LaTeX. Brüche werden kompakt mit einem Bruchstrich
 zsh scripts/test.sh
 ```
 
-Tests prüfen zusätzlich das Ersetzen einer PDF am Originalpfad, erneutes Öffnen und Weiterbearbeiten, das Vermeiden verschachtelter Lernseiten und die Kompatibilität bestehender Projekte. Exporttests prüfen Formelnotation, gedrehte Folien und den verlustfreien Überlauf langer Mitschriften.
+Tests prüfen zusätzlich das Ersetzen einer PDF am Originalpfad, erneutes Öffnen und Weiterbearbeiten, das Vermeiden verschachtelter Lernseiten und die Kompatibilität bestehender Projekte. Exporttests prüfen Formelnotation, gedrehte Folien und den verlustfreien Überlauf langer Mitschriften. Annotationstests prüfen die Position jeder Art auf gedrehten, beschnittenen und kleinen Folien, dass Viewer und Export bei jedem Zoom dieselbe Stelle meinen, und das Wiederherstellen aus der PDF.
 
 Die App wird lokal ad hoc signiert. Eine notarisiert signierte Veröffentlichung und ein App-Store-Paket sind nicht Teil dieses Projekts.
 
