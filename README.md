@@ -35,7 +35,30 @@ Bestehende `.unipdf`-Projekte bleiben unterstützt. **⌘S** aktualisiert auch d
 
 Die bearbeitbaren Daten sind in der PDF eingebettet; es ist keine zusätzliche Projektdatei erforderlich. Andere PDF-Programme können beim erneuten Speichern Metadaten entfernen. Für die weitere Bearbeitung mit Mitschriften die Datei in UniPDF sichern.
 
-Mit **⌘↑ / ⌘↓** zwischen Folien wechseln. Die Breite von PDF und Mitschrift lässt sich an der Trennlinie anpassen. Die Zeichenfläche unterstützt Stift, Linie, Pfeil, Rechteck und Ellipse, vier Farben und drei Strichstärken. Elemente lassen sich schrittweise entfernen und wiederherstellen.
+Mit **⌘↑ / ⌘↓** zwischen Folien wechseln. Die Breite von PDF und Mitschrift lässt sich an der Trennlinie anpassen. UniPDF merkt sich die Breite der Mitschrift und die Fenstergröße auch über Neustarts hinweg; die Bibliothek hat ihre eigene Fenstergröße. Die Zeichenfläche unterstützt Stift, Linie, Pfeil, Rechteck und Ellipse, vier Farben und drei Strichstärken. Elemente lassen sich schrittweise entfernen und wiederherstellen.
+
+## Start ohne Datei
+
+Waren beim Beenden Dateien geöffnet, stellt macOS diese Tabs wieder her. Sonst öffnet UniPDF die zuletzt geöffnete Datei, auch wenn sie inzwischen umbenannt oder verschoben wurde. Gibt es sie nicht mehr oder liegt sie im Papierkorb, öffnet sich die Bibliothek. Dasselbe gilt für einen Klick auf das Dock-Symbol, wenn kein Fenster offen ist. Ein neues leeres Dokument gibt es weiter über **Ablage → Neu** oder **+** in der Tab-Leiste.
+
+## Mehrere Dateien
+
+Geöffnete Dateien liegen als Tabs in einem Fenster, unabhängig von der Tab-Einstellung des Systems. Ein Klick auf einen Tab wechselt die Datei, **+** öffnet einen neuen Tab mit der Startseite. Rechtsklick auf einen Tab bietet **Tab in ein neues Fenster bewegen**; ebenso lässt sich ein Tab aus der Leiste ziehen. **Fenster → Alle Fenster zusammenführen** holt getrennte Fenster wieder zusammen. Die Bibliothek bleibt ein eigenes Fenster.
+
+## Bibliothek
+
+**Ablage → Bibliothek** (⇧⌘L) öffnet den Dateimanager. Mit **Ordner auswählen …** gibst du UniPDF Zugriff auf einen Ordner, zum Beispiel dein Studium. Der Ordner bleibt über Neustarts hinweg verbunden. Ordner und Dateien erscheinen als Kacheln oder als Liste, Dateien mit einem Vorschaubild ihrer ersten Seite. Der Umschalter steht rechts neben dem Pfad; die Wahl bleibt erhalten. Im Viewer öffnet der Ordner-Knopf neben dem Seitenleisten-Knopf die Bibliothek.
+
+- **Navigieren:** Doppelklick geht in einen Ordner. Der Pfad oben und der Zurück-Pfeil (⌘↑) führen wieder hinauf. Pfeiltasten wählen eine Kachel aus, Return öffnet sie.
+- **Öffnen:** Doppelklick öffnet PDFs und `.unipdf`-Projekte in UniPDF, andere Dateien im passenden Programm.
+- **Ordnen:** Eine Kachel auf einen Ordner ziehen verschiebt sie, ebenso das Ziehen auf einen Eintrag im Pfad. Das Kontextmenü bietet **Umbenennen** und **Im Finder zeigen**; **Neuer Ordner** (⇧⌘N) legt den Ordner im aktuellen Ordner an.
+- **Entfernen:** **In den Papierkorb legen** (⌘⌫) fragt vorher nach; alles bleibt aus dem Papierkorb wiederherstellbar.
+
+Vorhandene Dateien werden nie überschrieben, und Änderungen bleiben auf den freigegebenen Ordner beschränkt. Geöffnete Dokumente folgen ihrer Datei beim Umbenennen und Verschieben. Symbolische Links erscheinen als Dateien und werden nicht betreten. Änderungen aus dem Finder erscheinen, sobald die App wieder aktiv wird, oder mit ⌘R. **Ordner trennen** vergisst nur den Ordner; die Dateien bleiben unverändert.
+
+In der Seitenleiste des Viewers steht über den Folien der einklappbare Abschnitt **Dateien**. Er zeigt denselben Ordner als klassischen Baum: Ein Klick klappt einen Ordner auf oder öffnet eine Datei in einem neuen Tab, die geöffnete Datei ist markiert und ihr Ordner beim Start aufgeklappt.
+
+Das Vorschaubild zeigt die tatsächliche erste Seite der Datei, bei einer gespeicherten Lern-PDF also Folie und Mitschrift zusammen.
 
 ## Eine Frage an die KI vorbereiten
 

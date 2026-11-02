@@ -23,24 +23,37 @@ enum PreviewHarness {
         let project = try demoProject()
         try project.encoded().write(to: directory.appendingPathComponent("Beispiel.unipdf"))
         try PDFExporter.export(project).write(to: directory.appendingPathComponent("Beispiel-Lernskript.pdf"))
+        let store = try demoLibrary(in: directory, pdf: PDFExporter.export(project, includingProject: false))
         for (name, document, size, appearance) in [
             ("welcome", StudyDocument(), NSSize(width: 1200, height: 780), NSAppearance.Name.aqua),
             ("workspace", StudyDocument(project: project), NSSize(width: 1320, height: 850), NSAppearance.Name.aqua),
             ("workspace-dark", StudyDocument(project: project), NSSize(width: 1000, height: 740), NSAppearance.Name.darkAqua)
         ] {
             let sourceURL = document.project.pdfData == nil ? nil : directory.appendingPathComponent("Beispiel.unipdf")
-            try capture(WorkspaceView(document: .constant(document), fileURL: sourceURL), name: name,
+            try capture(WorkspaceView(document: .constant(document), fileURL: sourceURL, fileStore: store), name: name,
                         size: size, appearance: appearance, directory: directory)
         }
         let context = try AIQuestionContext.create(project: project,
             sourceURL: directory.appendingPathComponent("Beispiel.unipdf"), slideIndex: 0)
         try capture(AIPromptPopover(context: context, copy: { _ in true }), name: "ai-prompt",
                     size: NSSize(width: 520, height: 580), appearance: .aqua, directory: directory)
+        try capture(LibraryView(store: store), name: "library", size: NSSize(width: 720, height: 560),
+                    appearance: .aqua, directory: directory, settle: 3)
+        try capture(LibraryView(store: store), name: "library-dark", size: NSSize(width: 720, height: 560),
+                    appearance: .darkAqua, directory: directory, settle: 3)
+        // A separate suite, so the list capture leaves the user's chosen view untouched.
+        let suiteName = "de.unipdf.preview"
+        if let suite = UserDefaults(suiteName: suiteName) {
+            suite.set(LibraryViewMode.list.rawValue, forKey: "libraryViewMode")
+            try capture(LibraryView(store: store).defaultAppStorage(suite), name: "library-list",
+                        size: NSSize(width: 720, height: 560), appearance: .aqua, directory: directory, settle: 3)
+            suite.removePersistentDomain(forName: suiteName)
+        }
         print("Preview artifacts: \(directory.path)")
     }
 
     private static func capture(_ view: some View, name: String, size: NSSize,
-                                appearance: NSAppearance.Name, directory: URL) throws {
+                                appearance: NSAppearance.Name, directory: URL, settle: TimeInterval = 0.6) throws {
         let host = NSHostingView(rootView: view.frame(width: size.width, height: size.height)
             .background(Color(nsColor: .windowBackgroundColor)))
         let window = NSWindow(contentRect: NSRect(origin: .zero, size: size), styleMask: [.titled, .resizable], backing: .buffered, defer: false)
@@ -49,7 +62,7 @@ enum PreviewHarness {
         window.setContentSize(size)
         host.frame = NSRect(origin: .zero, size: size)
         window.orderFrontRegardless()
-        RunLoop.main.run(until: Date().addingTimeInterval(0.6))
+        RunLoop.main.run(until: Date().addingTimeInterval(settle))
         host.layoutSubtreeIfNeeded()
         window.display()
         host.displayIfNeeded()
@@ -64,6 +77,19 @@ enum PreviewHarness {
         guard let png = bitmap.representation(using: .png, properties: [:]) else { throw ProjectError.exportFailed }
         try png.write(to: directory.appendingPathComponent(name + ".png"))
         window.orderOut(nil)
+    }
+
+    private static func demoLibrary(in directory: URL, pdf: Data) throws -> LibraryStore {
+        let root = directory.appendingPathComponent("Beispiel-Bibliothek", isDirectory: true)
+        try? FileManager.default.removeItem(at: root)
+        let semester = root.appendingPathComponent("Semester 1", isDirectory: true)
+        try FileManager.default.createDirectory(at: semester, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: root.appendingPathComponent("Semester 2", isDirectory: true), withIntermediateDirectories: true)
+        try pdf.write(to: semester.appendingPathComponent("Beispiel Vorlesung.pdf"))
+        try pdf.write(to: root.appendingPathComponent("Beispiel Vorlesung 1.pdf"))
+        try pdf.write(to: root.appendingPathComponent("Beispiel Vorlesung 2.pdf"))
+        try Data("Beispielnotiz".utf8).write(to: root.appendingPathComponent("Beispiel Notizen.txt"))
+        return LibraryStore(root: root)
     }
 
     private static func demoProject() throws -> StudyProject {

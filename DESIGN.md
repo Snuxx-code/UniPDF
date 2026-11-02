@@ -41,7 +41,7 @@ The system serif introduces the welcome screen and the writing area. The system 
 
 ## Layout
 
-Minimum document window: 1000 × 680 points. Default: 1320 × 850. A collapsible 178-point slide rail precedes a native resizable split between the PDF and the writing pane. Each pane has a 47-point header and a 43-point status/navigation footer. PDF and editor minimum widths are 360 and 350 points. The note area scrolls vertically; the 800 × 500 logical drawing surface scales proportionally.
+Minimum document window: 1000 × 680 points. Default: 1320 × 850. A collapsible 178-point sidebar holds a collapsible Dateien tree of at most 230 points above the slide list and precedes a native resizable split between the PDF and the writing pane. Each pane has a 47-point header and a 43-point status/navigation footer. PDF and editor minimum widths are 360 and 350 points. The window frame and the dragged editor width persist; the editor keeps its width when the window or sidebar changes, and the PDF takes up the difference. The note area scrolls vertically; the 800 × 500 logical drawing surface scales proportionally.
 
 ## Elevation & Depth
 
@@ -58,6 +58,12 @@ Use native toolbar buttons, lists, text fields, menus, disclosure actions, open/
 The toolbar's Speichern action uses the native document save command. Directly opened PDFs save back to their original path. Lern-PDF exportieren remains an explicit additional-copy action. Both PDFs and legacy projects are selectable in the native Open dialog.
 
 KI-Prompt sits beside Formel and Skizze in the editor action row. It copies a ready prompt and opens a native nonmodal popover with an optional question, selectable prompt preview and an explicit copy action. Copy status clears when the question changes. The popover uses existing semantic surfaces and spacing.
+
+Bibliothek is a separate window, default 720 × 560 points and at least 480 points wide so all toolbar actions stay visible. It shows one folder at a time as an adaptive grid of tiles at least 168 points wide, folders first, with a 47-point path bar above. Folders use a filled accent symbol and an item count; files use a preview of their first page with thumbnail corners and a hairline, plus their date. Previews stay white in dark appearance because they show the page as printed. Files UniPDF cannot open use secondary text. A selected tile gets a soft accent background and outline. Dragging onto a folder tile or a path entry moves; a drop target gets a soft accent background. A segmented control beside the path switches between tiles and a list of rows with a small preview and the same caption; the choice persists.
+
+Document windows use native macOS window tabs in one tab group, whatever the system's tab preference says, with the native tab menu for moving a tab to a new window. Bibliothek never joins a tab group.
+
+The viewer's toolbar places a folder button directly beside the sidebar button; it opens Bibliothek. The sidebar's Dateien section is a compact tree in caption text: one click expands a folder or opens a file, and the open file gets a soft accent background.
 
 ## Do's and Don'ts
 

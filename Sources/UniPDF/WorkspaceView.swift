@@ -6,6 +6,7 @@ import UniPDFCore
 struct WorkspaceView: View {
     @Binding var document: StudyDocument
     var fileURL: URL? = nil
+    var fileStore: LibraryStore = .shared
     @State private var session = PDFSession()
     @State private var importing = false
     @State private var importSourceWindow: NSWindow?
@@ -19,10 +20,9 @@ struct WorkspaceView: View {
     @FocusState private var notesFocused: Bool
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.openDocument) private var openDocument
+    @Environment(\.openWindow) private var openWindow
 
-    private var accent: Color {
-        colorScheme == .dark ? Color(red: 0.53, green: 0.78, blue: 0.67) : Color(red: 0.16, green: 0.40, blue: 0.34)
-    }
+    private var accent: Color { Color.studyAccent(for: colorScheme) }
 
     private var notes: Binding<PageNotes> {
         let index = session.selection
@@ -87,11 +87,18 @@ struct WorkspaceView: View {
                     .fixedSize(horizontal: false, vertical: true)
                 Text("Folien lesen, Zusammenhänge verstehen und alles an einem Ort festhalten.")
                     .font(.title3).foregroundStyle(.secondary).lineSpacing(5).frame(maxWidth: 380, alignment: .leading)
-                Button { importSourceWindow = NSApp.keyWindow; importing = true } label: {
-                    Label("Vorlesungs-PDF öffnen", systemImage: "plus").padding(.horizontal, 12).padding(.vertical, 7)
+                HStack(spacing: 12) {
+                    Button { importSourceWindow = NSApp.keyWindow; importing = true } label: {
+                        Label("Vorlesungs-PDF öffnen", systemImage: "plus").padding(.horizontal, 12).padding(.vertical, 7)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .keyboardShortcut("i", modifiers: .command)
+                    Button { openWindow(id: LibraryCommands.windowID) } label: {
+                        Label("Bibliothek", systemImage: "folder").padding(.horizontal, 8).padding(.vertical, 7)
+                    }
+                    .help("Ordner mit deinen Vorlesungen verwalten (⇧⌘L)")
                 }
-                .buttonStyle(.borderedProminent).controlSize(.large)
-                .keyboardShortcut("i", modifiers: .command)
+                .controlSize(.large)
                 Text("PDFs und vorhandene Projekte öffnest du auch mit ⌘O.")
                     .font(.callout).foregroundStyle(.secondary)
                 Spacer()
@@ -121,6 +128,8 @@ struct WorkspaceView: View {
         HStack(spacing: 0) {
             if session.showsSidebar {
                 VStack(alignment: .leading, spacing: 0) {
+                    FileTreeSection(store: fileStore, currentFile: fileURL)
+                    Divider()
                     HStack {
                         Text("Folien").font(.headline)
                         Spacer()
@@ -171,9 +180,10 @@ struct WorkspaceView: View {
                             .accessibilityLabel("Nächste Folie").keyboardShortcut(.downArrow, modifiers: .command)
                     }.buttonStyle(.borderless).frame(maxWidth: .infinity).frame(height: 43)
                 }
-                .frame(minWidth: 360, maxWidth: .infinity, maxHeight: .infinity)
+                .frame(minWidth: EditorWidthMemory.minimumPDFWidth, maxWidth: .infinity, maxHeight: .infinity)
 
-                editor.frame(minWidth: 350, idealWidth: 440, maxWidth: .infinity, maxHeight: .infinity)
+                editor.frame(minWidth: EditorWidthMemory.minimumEditorWidth, idealWidth: 440, maxWidth: .infinity, maxHeight: .infinity)
+                    .background(EditorWidthMemory())
             }
         }
     }
@@ -261,10 +271,12 @@ struct WorkspaceView: View {
     }
 
     @ToolbarContentBuilder private var toolbar: some ToolbarContent {
-        ToolbarItem(placement: .navigation) {
+        ToolbarItemGroup(placement: .navigation) {
             if session.document != nil {
                 Button { session.showsSidebar.toggle() } label: { Image(systemName: "sidebar.left") }
-                    .help("Folienübersicht ein-/ausblenden").accessibilityLabel("Folienübersicht ein- oder ausblenden")
+                    .help("Seitenleiste ein-/ausblenden").accessibilityLabel("Seitenleiste ein- oder ausblenden")
+                Button { openWindow(id: LibraryCommands.windowID) } label: { Image(systemName: "folder") }
+                    .help("Bibliothek öffnen (⇧⌘L)").accessibilityLabel("Bibliothek öffnen")
             }
         }
         ToolbarItem(placement: .principal) {

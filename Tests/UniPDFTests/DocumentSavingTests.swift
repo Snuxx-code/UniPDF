@@ -128,3 +128,15 @@ import UniPDFCore
         #expect(try StudyPDF.open(snapshot).pages.isEmpty)
     }
 }
+
+@Suite @MainActor struct EditorWidthTests {
+    @Test func dividerKeepsTheEditorWidth() {
+        #expect(EditorWidthMemory.dividerPosition(totalWidth: 1200, editorWidth: 500, dividerThickness: 1) == 699)
+    }
+
+    @Test func bothPanesKeepTheirMinimumWidth() {
+        // A remembered narrow pane from a smaller limit, and a wide one in a small window.
+        #expect(EditorWidthMemory.dividerPosition(totalWidth: 1200, editorWidth: 100, dividerThickness: 1) == 849)
+        #expect(EditorWidthMemory.dividerPosition(totalWidth: 800, editorWidth: 700, dividerThickness: 1) == 360)
+    }
+}

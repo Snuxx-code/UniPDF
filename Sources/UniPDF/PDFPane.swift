@@ -21,11 +21,12 @@ struct PDFPane: NSViewRepresentable {
         let view = PDFView()
         view.displayMode = .singlePage
         view.displayDirection = .horizontal
-        view.autoScales = true
         view.minScaleFactor = 0.15
         view.maxScaleFactor = 6
         view.backgroundColor = .windowBackgroundColor
         view.document = session.document
+        // Last: the settings above turn it off again, and the slide would no longer fit its pane.
+        view.autoScales = true
         session.view = view
         context.coordinator.session = session
         NotificationCenter.default.addObserver(context.coordinator, selector: #selector(Coordinator.pageChanged(_:)),
