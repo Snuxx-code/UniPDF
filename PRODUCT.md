@@ -16,6 +16,7 @@ Load a lecture PDF, write notes beside each slide, and export slides and notes t
 
 ## Capabilities and Constraints
 Confirmed: typed notes, freehand drawings, geometric shapes, mathematical formulas, PDF export.
+Confirmed: plain arrow keys navigate the PDF (right/down forward, left/up backward). Text inputs, file lists and selected annotations retain their normal arrow-key behavior.
 Confirmed: a button creates a prompt for asking an AI about the lecture, including the correct file path. The implementation copies the prompt locally, includes the current slide and an optional question, and creates fresh temporary PDF context copies without overwriting the lecture or automatically sending data.
 Confirmed saving behavior: saving a directly opened lecture PDF replaces that same PDF at its original path with the slides and notes. Repeated saves update the same file. Editable original slides, notes, formulas and drawings must survive reopening, without repeatedly nesting the study layout.
 Confirmed: a file manager inside the app. The user grants access to one folder and manages the folder structure beneath it in the app. Confirmed: folders and files appear as tiles in the style of Goodnotes, and files show a preview. Tiles and a list can be switched. The viewer has a button beside the sidebar button that opens the file manager, and a collapsible Dateien section above the slide list for classic list navigation.

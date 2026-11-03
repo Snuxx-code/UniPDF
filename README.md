@@ -35,7 +35,9 @@ Bestehende `.unipdf`-Projekte bleiben unterstützt. **⌘S** aktualisiert auch d
 
 Die bearbeitbaren Daten sind in der PDF eingebettet; es ist keine zusätzliche Projektdatei erforderlich. Andere PDF-Programme können beim erneuten Speichern Metadaten entfernen. Für die weitere Bearbeitung mit Mitschriften die Datei in UniPDF sichern.
 
-Mit **⌘↑ / ⌘↓** zwischen Folien wechseln. Die Breite von PDF und Mitschrift lässt sich an der Trennlinie anpassen. UniPDF merkt sich die Breite der Mitschrift und die Fenstergröße auch über Neustarts hinweg; die Bibliothek hat ihre eigene Fenstergröße. Die Zeichenfläche unterstützt Stift, Linie, Pfeil, Rechteck und Ellipse, vier Farben und drei Strichstärken. Elemente lassen sich schrittweise entfernen und wiederherstellen.
+Im PDF-Bereich wechseln **→ / ↓** zur nächsten und **← / ↑** zur vorherigen Folie. An der ersten und letzten Folie bleibt die Auswahl stehen. **⌘↑ / ⌘↓** funktionieren weiterhin als direkte Befehle. Beim Schreiben in Mitschriften, Formeln und Textfeldern bleiben die Pfeiltasten für den Textcursor zuständig. Ist eine Anmerkung ausgewählt, verschieben sie weiterhin diese Anmerkung; mit **Esc** abwählen, um wieder zwischen Folien zu wechseln. Die Pfeile in der Dateiliste navigieren weiter durch die Liste.
+
+Die Breite von PDF und Mitschrift lässt sich an der Trennlinie anpassen. UniPDF merkt sich die Breite der Mitschrift und die Fenstergröße auch über Neustarts hinweg; die Bibliothek hat ihre eigene Fenstergröße. Die Zeichenfläche unterstützt Stift, Linie, Pfeil, Rechteck und Ellipse, vier Farben und drei Strichstärken. Elemente lassen sich schrittweise entfernen und wiederherstellen.
 
 ## Auf der Folie markieren
 
