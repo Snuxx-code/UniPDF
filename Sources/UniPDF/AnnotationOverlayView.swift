@@ -4,29 +4,36 @@ import UniformTypeIdentifiers
 import UniPDFCore
 
 enum AnnotationTool: Equatable {
-    case select, pen, text, highlight
+    case select, pen, text, highlight, eraser
     case shape(SlideShape)
 }
 
-enum AnnotationKind { case stroke, text, image, highlight }
+enum AnnotationKind { case stroke, text, image, highlight, eraser }
 
 struct AnnotationStyle: Equatable {
     var color = AnnotationColor(InkColor.blue)
     var highlightColor = PDFTextHighlight.yellow
     var lineWidth = 2.0
+    /// In slide points, like the stroke width.
+    var eraserRadius = 10.0
+    /// Whether the eraser removes a whole stroke or highlight as soon as it touches it.
+    var erasesWholeStrokes = false
     var text = SlideTextStyle()
 }
 
 /// The PDF with the annotation layer on top. Siblings, because PDFView manages its own subviews.
 final class SlideCanvasView: NSView {
     let pdfView = SlidePDFView()
+    let highlights = HighlightLayerView()
     let overlay: AnnotationOverlayView
 
     init(session: PDFSession) {
         overlay = AnnotationOverlayView(session: session, pdfView: pdfView)
         super.init(frame: .zero)
         pdfView.overlay = overlay
-        for view in [pdfView, overlay] {
+        overlay.highlightLayer = highlights
+        highlights.overlay = overlay
+        for view in [pdfView, highlights, overlay] {
             view.frame = bounds
             view.autoresizingMask = [.width, .height]
             addSubview(view)
@@ -34,6 +41,27 @@ final class SlideCanvasView: NSView {
     }
 
     @available(*, unavailable) required init?(coder: NSCoder) { fatalError("Not used from a coder") }
+}
+
+/// Text highlights between the PDF and the other annotations. The layer multiplies with the slide,
+/// as a highlighter on paper does, so that dark text keeps its contrast instead of being tinted.
+final class HighlightLayerView: NSView {
+    weak var overlay: AnnotationOverlayView?
+
+    override init(frame: NSRect) {
+        super.init(frame: frame)
+        wantsLayer = true
+        clipsToBounds = true
+        compositingFilter = CIFilter(name: "CIMultiplyBlendMode")
+    }
+
+    @available(*, unavailable) required init?(coder: NSCoder) { fatalError("Not used from a coder") }
+
+    override var isFlipped: Bool { true }
+    override var isOpaque: Bool { false }
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
+
+    override func draw(_ dirtyRect: NSRect) { overlay?.drawHighlights(dirtyRect) }
 }
 
 final class SlidePDFView: PDFView {
@@ -63,6 +91,7 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
     private enum Drag {
         case draw(start: CGPoint)
         case highlight(start: CGPoint, viewStart: CGPoint)
+        case erase(last: CGPoint, erased: Bool)
         case move(original: SlideAnnotation, start: CGPoint, moved: Bool)
         case resize(original: SlideAnnotation, handle: Handle, resized: Bool)
     }
@@ -83,6 +112,11 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
     private var editor: NSTextView?
     private var editing: SlideAnnotation?
     private(set) var ownsCursor = false
+    weak var highlightLayer: HighlightLayerView?
+    /// The slide's characters while erasing, so that highlights lose whole characters.
+    private var eraserCharacters: [CGRect]?
+    /// Where the eraser outline is shown, in slide points.
+    private var eraserPoint: CGPoint?
 
     init(session: PDFSession, pdfView: PDFView) {
         self.session = session
@@ -171,6 +205,7 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
 
     func toolDidChange() {
         endEditing()
+        if session.tool != .eraser { moveEraserOutline(to: nil) }
         if case .highlight = drag {
             drag = nil
             draft = nil
@@ -305,7 +340,17 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
 
     // MARK: Drawing
 
-    override func draw(_ dirtyRect: NSRect) {
+    // The highlight layer has the same frame, so it repaints wherever this view does.
+    override var needsDisplay: Bool {
+        didSet { if needsDisplay { highlightLayer?.needsDisplay = true } }
+    }
+
+    override func setNeedsDisplay(_ invalidRect: NSRect) {
+        super.setNeedsDisplay(invalidRect)
+        highlightLayer?.setNeedsDisplay(invalidRect)
+    }
+
+    private func drawAnnotations(_ dirtyRect: NSRect, layer: AnnotationRenderer.Layer) {
         guard let geometry, let context = NSGraphicsContext.current?.cgContext else { return }
         var visible = annotations.filter { $0.id != editing?.id }
         if let draft { visible.append(draft) }
@@ -314,10 +359,63 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
         context.clip(to: geometry.rect)
         context.translateBy(x: geometry.rect.minX, y: geometry.rect.minY)
         context.scaleBy(x: geometry.scale, y: geometry.scale)
-        AnnotationRenderer.draw(visible, in: context)
+        AnnotationRenderer.draw(visible, in: context, layer: layer)
         context.restoreGState()
+    }
+
+    func drawHighlights(_ dirtyRect: NSRect) { drawAnnotations(dirtyRect, layer: .highlights) }
+
+    override func draw(_ dirtyRect: NSRect) {
+        drawAnnotations(dirtyRect, layer: .marks)
         if let editing { drawFrame(viewRect(editing.bounds)) }
         else if let selected { drawSelection(of: selected) }
+        if let eraser = eraserOutline {
+            // Dark with a light halo, so it shows on dark slides as well as white ones.
+            let circle = NSBezierPath(ovalIn: eraser)
+            NSColor.white.withAlphaComponent(0.9).setStroke()
+            circle.lineWidth = 3
+            circle.stroke()
+            NSColor.black.withAlphaComponent(0.6).setStroke()
+            circle.lineWidth = 1
+            circle.stroke()
+        }
+    }
+
+    private var eraserOutline: CGRect? {
+        guard session.tool == .eraser, let eraserPoint else { return nil }
+        let radius = session.style.eraserRadius
+        return viewRect(CGRect(x: eraserPoint.x - radius, y: eraserPoint.y - radius, width: 2 * radius, height: 2 * radius))
+    }
+
+    private func moveEraserOutline(to point: CGPoint?) {
+        if let old = eraserOutline { setNeedsDisplay(old.insetBy(dx: -3, dy: -3)) }
+        eraserPoint = point
+        if let new = eraserOutline { setNeedsDisplay(new.insetBy(dx: -3, dy: -3)) }
+    }
+
+    /// Erases along the way from one pointer position to the next, so a quick stroke leaves no gaps.
+    /// Returns whether anything changed.
+    private func erase(from start: CGPoint, to end: CGPoint) -> Bool {
+        let radius = session.style.eraserRadius
+        let steps = max(1, Int((hypot(end.x - start.x, end.y - start.y) / (radius / 2)).rounded(.up)))
+        let whole = session.style.erasesWholeStrokes
+        var changed = false
+        for step in 0...steps {
+            let t = CGFloat(step) / CGFloat(steps)
+            let center = CGPoint(x: start.x + (end.x - start.x) * t, y: start.y + (end.y - start.y) * t)
+            let erased = annotations.flatMap { annotation -> [SlideAnnotation] in
+                guard annotation.isErasable else { return [annotation] }
+                let rest = annotation.erasing(around: center, radius: radius, characters: eraserCharacters)
+                // The stroke eraser takes the whole of whatever it touches.
+                return whole && rest != [annotation] ? [] : rest
+            }
+            if erased != annotations {
+                annotations = erased
+                changed = true
+            }
+        }
+        if changed { needsDisplay = true }
+        return changed
     }
 
     private func drawSelection(of annotation: SlideAnnotation) {
@@ -409,6 +507,10 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
         guard geometry != nil else { return }
         let point = slidePoint(view)
         switch session.tool {
+        case .eraser:
+            eraserCharacters = pdfView?.document?.page(at: pageIndex).map(PDFTextHighlight.characterRects)
+            moveEraserOutline(to: point)
+            drag = .erase(last: point, erased: erase(from: point, to: point))
         case .highlight:
             guard let pdfView, let page = pdfView.document?.page(at: pageIndex) else { return }
             guard let text = page.string, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
@@ -453,6 +555,10 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
         let point = slidePoint(location)
         let shift = event.modifierFlags.contains(.shift)
         switch drag {
+        case .erase(let last, let erased):
+            moveEraserOutline(to: point)
+            let changed = erase(from: last, to: point)
+            drag = .erase(last: point, erased: erased || changed)
         case .highlight(let start, let viewStart):
             invalidateDraft()
             draft = nil
@@ -498,6 +604,10 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
         mouseDragged(with: event)
         defer { drag = nil }
         switch drag {
+        case .erase(_, let erased):
+            eraserCharacters = nil
+            // One undo step for the whole stroke of the eraser.
+            if erased { commit() }
         case .highlight:
             guard let finished = draft else { return }
             draft = nil
@@ -548,16 +658,20 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
         var cursor: NSCursor?
         if let geometry, geometry.rect.contains(view), editor == nil {
             switch session.tool {
-            case .pen, .shape: cursor = .crosshair
+            case .pen, .shape, .eraser: cursor = .crosshair
             case .text, .highlight: cursor = .iBeam
             case .select: cursor = handle(at: view) != nil ? .crosshair : annotation(at: view) != nil ? .openHand : nil
             }
         }
         ownsCursor = cursor != nil
         cursor?.set()
+        moveEraserOutline(to: geometry?.rect.contains(view) == true ? slidePoint(view) : nil)
     }
 
-    override func mouseExited(with event: NSEvent) { ownsCursor = false }
+    override func mouseExited(with event: NSEvent) {
+        ownsCursor = false
+        moveEraserOutline(to: nil)
+    }
 
     // MARK: Gestures
 

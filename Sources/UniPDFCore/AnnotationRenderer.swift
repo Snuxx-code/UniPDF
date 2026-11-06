@@ -39,9 +39,13 @@ public enum AnnotationRenderer {
     }
 
     /// Draws annotations into a context whose coordinates already are slide points with a top-left origin.
-    public static func draw(_ annotations: [SlideAnnotation], in context: CGContext) {
+    /// Which annotations to draw: the viewer draws highlights in a layer of their own,
+    /// which it blends with the slide beneath, so that they stay behind the text.
+    public enum Layer: Sendable { case all, highlights, marks }
+
+    public static func draw(_ annotations: [SlideAnnotation], in context: CGContext, layer: Layer = .all) {
         // Highlights sit beneath handwritten strokes, text boxes and inserted images.
-        for annotation in annotations {
+        for annotation in annotations where layer != .marks {
             guard case .highlight(let rects, let color) = annotation.content else { continue }
             context.saveGState()
             context.setBlendMode(.multiply)
@@ -53,7 +57,7 @@ public enum AnnotationRenderer {
             context.fillPath()
             context.restoreGState()
         }
-        for annotation in annotations {
+        for annotation in annotations where layer != .highlights {
             switch annotation.content {
             case .highlight:
                 continue
