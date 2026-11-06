@@ -213,7 +213,8 @@ extension SlideAnnotation {
     /// What is left after erasing a disc, like a real eraser: a stroke breaks into the pieces outside it,
     /// a highlight keeps the parts of each line beside it. Returns `[self]` when the disc misses.
     /// The first piece keeps the identity, so the eraser does not tear apart what it does not touch.
-    public func erasing(around center: CGPoint, radius: CGFloat) -> [SlideAnnotation] {
+    /// With `characters`, the slide's text in slide points, a highlight loses whole characters only.
+    public func erasing(around center: CGPoint, radius: CGFloat, characters: [CGRect]? = nil) -> [SlideAnnotation] {
         switch content {
         case .ink(let points, let color, let width):
             // The eraser removes everything it touches, including the edge of a wide stroke.
@@ -250,15 +251,23 @@ extension SlideAnnotation {
         case .highlight(let rects, let color):
             var touched = false
             let remaining = rects.flatMap { rect -> [CGRect] in
-                let nearest = CGPoint(x: min(max(center.x, rect.minX), rect.maxX), y: min(max(center.y, rect.minY), rect.maxY))
-                guard hypot(nearest.x - center.x, nearest.y - center.y) <= radius else { return [rect] }
-                touched = true
-                // Text runs along the longer side, also on turned slides. Lengths are checked before they
-                // become rectangles, because CGRect reports a negative width as positive.
+                guard Self.disc(center, radius, touches: rect) else { return [rect] }
+                // Text runs along the longer side, also on turned slides.
                 let horizontal = rect.width >= rect.height
                 let (low, high) = horizontal ? (rect.minX, rect.maxX) : (rect.minY, rect.maxY)
                 let middle = horizontal ? center.x : center.y
-                let spans = [(low, middle - radius - low), (middle + radius, high - middle - radius)].filter { $0.1 >= 1 }
+                var cut = (middle - radius, middle + radius)
+                // A page without a text layer has no characters to keep whole.
+                if let characters, !characters.isEmpty {
+                    // The characters of this line that the eraser touches, removed whole.
+                    let hit = characters.filter { rect.contains(CGPoint(x: $0.midX, y: $0.midY)) && Self.disc(center, radius, touches: $0) }
+                    guard let first = hit.map({ horizontal ? $0.minX : $0.minY }).min(),
+                          let last = hit.map({ horizontal ? $0.maxX : $0.maxY }).max() else { return [rect] }
+                    cut = (first, last)
+                }
+                touched = true
+                // Lengths are checked before they become rectangles, because CGRect reports a negative width as positive.
+                let spans = [(low, cut.0 - low), (cut.1, high - cut.1)].filter { $0.1 >= 1 }
                 return spans.map { start, length in
                     horizontal ? CGRect(x: start, y: rect.minY, width: length, height: rect.height)
                                : CGRect(x: rect.minX, y: start, width: rect.width, height: length)
@@ -269,6 +278,11 @@ extension SlideAnnotation {
         default:
             return [self]
         }
+    }
+
+    private static func disc(_ center: CGPoint, _ radius: CGFloat, touches rect: CGRect) -> Bool {
+        let nearest = CGPoint(x: min(max(center.x, rect.minX), rect.maxX), y: min(max(center.y, rect.minY), rect.maxY))
+        return hypot(nearest.x - center.x, nearest.y - center.y) <= radius
     }
 
     /// The part of a segment inside a disc, as fractions of the segment from 0 to 1.

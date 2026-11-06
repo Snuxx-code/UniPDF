@@ -139,6 +139,14 @@ struct AnnotationToolbar: View {
             case .highlight:
                 colors(swatches: true, highlighter: true)
             case .eraser:
+                Picker("Radiermodus", selection: Binding(get: { session.style.erasesWholeStrokes },
+                                                         set: { session.style.erasesWholeStrokes = $0 })) {
+                    Text("Präzise").tag(false)
+                    Text("Strich").tag(true)
+                }
+                // A pop-up like the size: a segmented control inside ViewThatFits ends in an AppKit constraint loop.
+                .labelsHidden().fixedSize()
+                .help("Präzise entfernt nur, was der Radiergummi berührt, bei Markierungen ganze Zeichen. Strich entfernt jeden berührten Strich und jede berührte Markierung ganz.")
                 eraserSizePicker
             case .image, nil:
                 EmptyView()

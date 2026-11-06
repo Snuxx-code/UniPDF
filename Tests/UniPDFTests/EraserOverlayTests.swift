@@ -84,4 +84,25 @@ import UniPDFCore
         #expect(result.commits == 0)
         #expect(result.annotations == [stroke])
     }
+
+    @Test func theStrokeEraserTakesWholeStrokesAndHighlights() throws {
+        let stroke = SlideAnnotation(content: .ink(points: [CGPoint(x: 100, y: 200), CGPoint(x: 700, y: 200)], color: blue, width: 2))
+        let highlight = SlideAnnotation(content: .highlight(rects: [CGRect(x: 100, y: 290, width: 400, height: 20)], color: PDFTextHighlight.yellow))
+        let untouched = SlideAnnotation(content: .ink(points: [CGPoint(x: 100, y: 50), CGPoint(x: 200, y: 50)], color: blue, width: 2))
+        let (canvas, session, page, window, result) = try setUp([stroke, highlight, untouched])
+        session.tool = .eraser
+        session.style.erasesWholeStrokes = true
+        session.style.eraserRadius = 10
+        try drag([CGPoint(x: 400, y: 150), CGPoint(x: 400, y: 320)], canvas, page, window)
+        #expect(result.annotations == [untouched])
+        #expect(result.commits == 1)
+    }
+
+    @Test func highlightsAreDrawnInTheirOwnBlendedLayer() throws {
+        let (canvas, _, _, _, _) = try setUp([])
+        #expect(canvas.subviews.firstIndex(of: canvas.highlights)! > canvas.subviews.firstIndex(of: canvas.pdfView)!)
+        #expect(canvas.subviews.firstIndex(of: canvas.highlights)! < canvas.subviews.firstIndex(of: canvas.overlay)!)
+        #expect(canvas.highlights.compositingFilter != nil)
+        #expect(canvas.highlights.hitTest(NSPoint(x: 10, y: 10)) == nil)
+    }
 }

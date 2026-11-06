@@ -1,4 +1,6 @@
-import CoreGraphics
+import AppKit
+import CoreText
+import PDFKit
 import Testing
 @testable import UniPDFCore
 
@@ -81,5 +83,68 @@ import Testing
         #expect(SlideAnnotation(content: .highlight(rects: [CGRect(x: 0, y: 0, width: 1, height: 1)], color: red)).isErasable)
         #expect(!SlideAnnotation(content: .shape(.line, start: .zero, end: CGPoint(x: 10, y: 10), color: red, width: 2)).isErasable)
         #expect(!SlideAnnotation(content: .text("A", frame: CGRect(x: 0, y: 0, width: 10, height: 10), style: SlideTextStyle(), color: red)).isErasable)
+    }
+
+    @Test func preciseErasingRemovesWholeCharacters() {
+        // Ten characters of ten points each, one line.
+        let characters = (0..<20).map { CGRect(x: CGFloat($0) * 10, y: 2, width: 10, height: 16) }
+        let highlight = SlideAnnotation(content: .highlight(rects: [CGRect(x: 0, y: 0, width: 200, height: 20)], color: red))
+        // The eraser only grazes the bottom of the character at 100–110 and ends inside it.
+        let erased = highlight.erasing(around: CGPoint(x: 103, y: 21), radius: 4, characters: characters)
+        guard case .highlight(let rects, _)? = erased.first?.content else { Issue.record("No highlight left"); return }
+        #expect(rects == [CGRect(x: 0, y: 0, width: 100, height: 20), CGRect(x: 110, y: 0, width: 90, height: 20)])
+        // Across two characters, both go whole.
+        guard case .highlight(let wider, _)? = highlight.erasing(around: CGPoint(x: 100, y: 10), radius: 3, characters: characters).first?.content else {
+            Issue.record("No highlight left"); return
+        }
+        #expect(wider == [CGRect(x: 0, y: 0, width: 90, height: 20), CGRect(x: 110, y: 0, width: 90, height: 20)])
+    }
+
+    @Test func withoutATextLayerTheHighlightIsCutWhereTouched() {
+        let highlight = SlideAnnotation(content: .highlight(rects: [CGRect(x: 0, y: 0, width: 200, height: 20)], color: red))
+        #expect(highlight.erasing(around: CGPoint(x: 100, y: 10), radius: 10, characters: [])
+                == highlight.erasing(around: CGPoint(x: 100, y: 10), radius: 10))
+    }
+
+    @Test func touchingNoCharacterLeavesTheHighlight() {
+        let characters = [CGRect(x: 0, y: 2, width: 10, height: 16), CGRect(x: 30, y: 2, width: 10, height: 16)]
+        let highlight = SlideAnnotation(content: .highlight(rects: [CGRect(x: 0, y: 0, width: 40, height: 20)], color: red))
+        #expect(highlight.erasing(around: CGPoint(x: 20, y: 10), radius: 3, characters: characters) == [highlight])
+    }
+
+    @Test func characterRectsFollowTheDisplayedSlide() throws {
+        let data = NSMutableData()
+        var box = CGRect(x: 0, y: 0, width: 640, height: 360)
+        let consumer = try #require(CGDataConsumer(data: data))
+        let context = try #require(CGContext(consumer: consumer, mediaBox: &box, nil))
+        context.beginPDFPage(nil)
+        context.textPosition = CGPoint(x: 40, y: 300)
+        CTLineDraw(CTLineCreateWithAttributedString(NSAttributedString(string: "ABC", attributes: [.font: NSFont.systemFont(ofSize: 24)])), context)
+        context.endPDFPage(); context.closePDF()
+        let page = try #require(PDFDocument(data: data as Data)?.page(at: 0))
+        let upright = PDFTextHighlight.characterRects(on: page)
+        #expect(upright.count == 3)
+        // Top-left origin: the line near the top of the page is near the top of the slide.
+        #expect(abs(upright[0].minX - 40) < 3 && upright[0].minY < 60)
+        page.rotation = 90
+        let turned = PDFTextHighlight.characterRects(on: page)
+        // A turned page shows the line running downwards along the right edge.
+        #expect(turned[0].minY < turned[2].minY && turned[0].minX > 290)
+    }
+
+    @Test func viewerLayersSplitHighlightsFromTheRest() throws {
+        func pixels(_ layer: AnnotationRenderer.Layer) throws -> (yellow: Bool, blue: Bool) {
+            let context = try #require(CGContext(data: nil, width: 100, height: 40, bitsPerComponent: 8, bytesPerRow: 0,
+                                                 space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+            let highlight = SlideAnnotation(content: .highlight(rects: [CGRect(x: 0, y: 0, width: 40, height: 40)], color: PDFTextHighlight.yellow))
+            let stroke = SlideAnnotation(content: .ink(points: [CGPoint(x: 60, y: 20), CGPoint(x: 95, y: 20)], color: AnnotationColor(red: 0, green: 0, blue: 1), width: 10))
+            AnnotationRenderer.draw([highlight, stroke], in: context, layer: layer)
+            let bytes = try #require(context.data).assumingMemoryBound(to: UInt8.self)
+            func alpha(x: Int) -> UInt8 { bytes[20 * context.bytesPerRow + x * 4 + 3] }
+            return (alpha(x: 20) > 0, alpha(x: 80) > 0)
+        }
+        #expect(try pixels(.all) == (true, true))
+        #expect(try pixels(.highlights) == (true, false))
+        #expect(try pixels(.marks) == (false, true))
     }
 }
