@@ -32,7 +32,7 @@ final class PDFSession {
     }
 
     func move(_ offset: Int) {
-        guard let document else { return }
+        guard let document, document.pageCount > 0 else { return }
         selection = min(max(selection + offset, 0), document.pageCount - 1)
     }
 }
@@ -55,6 +55,9 @@ struct PDFPane: NSViewRepresentable {
         session.view = view
         session.overlay = canvas.overlay
         context.coordinator.session = session
+        let keyboardNavigation = PDFArrowKeyNavigation(canvas: canvas, session: session)
+        context.coordinator.keyboardNavigation = keyboardNavigation
+        keyboardNavigation.start()
         NotificationCenter.default.addObserver(context.coordinator, selector: #selector(Coordinator.pageChanged(_:)),
                                                name: .PDFViewPageChanged, object: view)
         return canvas
@@ -70,21 +73,31 @@ struct PDFPane: NSViewRepresentable {
 
     static func dismantleNSView(_ canvas: SlideCanvasView, coordinator: Coordinator) {
         NotificationCenter.default.removeObserver(coordinator)
+        coordinator.keyboardNavigation?.stop()
+        coordinator.keyboardNavigation = nil
     }
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 
     final class Coordinator: NSObject {
         var session: PDFSession?
+        var keyboardNavigation: PDFArrowKeyNavigation?
         @objc func pageChanged(_ notification: Notification) {
-            guard let view = notification.object as? PDFView, let page = view.currentPage,
-                  let session, let document = view.document else { return }
-            let index = document.index(for: page)
+            guard let view = notification.object as? PDFView, view.currentPage != nil,
+                  session != nil, let document = view.document else { return }
             // PDFKit can notify during a SwiftUI update. Deliver the binding update afterwards.
-            Task { @MainActor [weak session] in
-                guard session?.document === document else { return }
-                if session?.selection != index { session?.selection = index }
+            Task { @MainActor [weak self, weak view] in
+                guard let view else { return }
+                self?.synchronizeCurrentPage(in: view, document: document)
             }
+        }
+
+        func synchronizeCurrentPage(in view: PDFView, document: PDFDocument) {
+            guard session?.document === document, view.document === document,
+                  let currentPage = view.currentPage else { return }
+            // Key repeats may have advanced again before a queued callback runs.
+            let index = document.index(for: currentPage)
+            if session?.selection != index { session?.selection = index }
         }
     }
 }

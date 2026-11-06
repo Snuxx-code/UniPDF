@@ -183,11 +183,11 @@ struct WorkspaceView: View {
                     Divider()
                     HStack(spacing: 18) {
                         Button { session.move(-1) } label: { Image(systemName: "chevron.left") }
-                            .disabled(session.selection == 0).help("Vorherige Folie (⌘↑)")
+                            .disabled(session.selection == 0).help("Vorherige Folie: ← oder ↑ im PDF-Bereich; auch ⌘↑")
                             .accessibilityLabel("Vorherige Folie").keyboardShortcut(.upArrow, modifiers: .command)
                         Text("Folie \(session.selection + 1) von \(pdf.pageCount)").font(.callout.monospacedDigit())
                         Button { session.move(1) } label: { Image(systemName: "chevron.right") }
-                            .disabled(session.selection >= pdf.pageCount - 1).help("Nächste Folie (⌘↓)")
+                            .disabled(session.selection >= pdf.pageCount - 1).help("Nächste Folie: → oder ↓ im PDF-Bereich; auch ⌘↓")
                             .accessibilityLabel("Nächste Folie").keyboardShortcut(.downArrow, modifiers: .command)
                     }.buttonStyle(.borderless).frame(maxWidth: .infinity).frame(height: 43)
                 }

@@ -22,7 +22,9 @@
 
 <img src="docs/images/workspace-light.png" alt="UniPDF mit Folienübersicht links, einer markierten Vorlesungsfolie in der Mitte und Mitschrift, Formel und Skizze rechts" width="1320">
 
-<p align="center"><sub>App-Vorschau mit eigens erstelltem Demomaterial.</sub></p>
+Im PDF-Bereich wechseln **→ / ↓** zur nächsten und **← / ↑** zur vorherigen Folie. An der ersten und letzten Folie bleibt die Auswahl stehen. **⌘↑ / ⌘↓** funktionieren weiterhin als direkte Befehle. Beim Schreiben in Mitschriften, Formeln und Textfeldern bleiben die Pfeiltasten für den Textcursor zuständig. Ist eine Anmerkung ausgewählt, verschieben sie weiterhin diese Anmerkung; mit **Esc** abwählen, um wieder zwischen Folien zu wechseln. Die Pfeile in der Dateiliste navigieren weiter durch die Liste.
+
+Die Breite von PDF und Mitschrift lässt sich an der Trennlinie anpassen. UniPDF merkt sich die Breite der Mitschrift und die Fenstergröße auch über Neustarts hinweg; die Bibliothek hat ihre eigene Fenstergröße. Die Zeichenfläche unterstützt Stift, Linie, Pfeil, Rechteck und Ellipse, vier Farben und drei Strichstärken. Elemente lassen sich schrittweise entfernen und wiederherstellen.
 
 ## Das kann UniPDF
 
