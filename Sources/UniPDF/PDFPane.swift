@@ -28,6 +28,7 @@ final class PDFSession {
     /// Sizes the defaults to the lecture's slides, which come in any size.
     func adaptStyleToSlides() {
         style.lineWidth = 2 * slideUnit
+        style.eraserRadius = 10 * slideUnit
         style.text.size = (24 * slideUnit).rounded()
     }
 

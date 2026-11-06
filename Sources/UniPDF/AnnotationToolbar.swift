@@ -15,6 +15,7 @@ struct AnnotationToolbar: View {
         case .pen, .shape: .stroke
         case .text: .text
         case .highlight: .highlight
+        case .eraser: .eraser
         case .select: session.selectedKind
         }
     }
@@ -36,10 +37,13 @@ struct AnnotationToolbar: View {
                 tools
                 settingsArea(swatches: true, alignment: .leading)
             }
+            // Otherwise the two lines sit centered, away from the pane's edge.
+            .frame(maxWidth: .infinity, alignment: .leading)
             VStack(alignment: .leading, spacing: 8) {
                 tools
                 settingsArea(swatches: false, alignment: .leading)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .buttonStyle(.borderless)
         .font(.callout)
@@ -67,6 +71,7 @@ struct AnnotationToolbar: View {
             .help("Textmarker: PDF-Text auswählen und hervorheben. Eine bestehende Textauswahl wird sofort markiert.")
             .accessibilityLabel("Textmarker")
             .accessibilityAddTraits(session.tool == .highlight ? .isSelected : [])
+            toolButton(.eraser, symbol: "eraser", label: "Radiergummi für Stift und Textmarker")
             toolButton(.text, symbol: "textbox", label: "Textfeld")
             shapeMenu
             Button(action: chooseImage) { toolLabel("photo", selected: false) }
@@ -133,6 +138,8 @@ struct AnnotationToolbar: View {
                 colors(swatches: swatches)
             case .highlight:
                 colors(swatches: true, highlighter: true)
+            case .eraser:
+                eraserSizePicker
             case .image, nil:
                 EmptyView()
             }
@@ -160,6 +167,19 @@ struct AnnotationToolbar: View {
             Text("Breit").tag(widths[2])
         }
         .labelsHidden().fixedSize().help("Strichstärke")
+    }
+
+    private var eraserSizePicker: some View {
+        let unit = session.slideUnit
+        let radii = [5, 10, 20].map { $0 * unit }
+        let current = session.style.eraserRadius
+        let nearest = radii.min { abs($0 - current) < abs($1 - current) } ?? current
+        return Picker("Radiergröße", selection: Binding(get: { nearest }, set: { session.style.eraserRadius = $0 })) {
+            Text("Klein").tag(radii[0])
+            Text("Mittel").tag(radii[1])
+            Text("Groß").tag(radii[2])
+        }
+        .labelsHidden().fixedSize().help("Größe des Radiergummis")
     }
 
     private func colors(swatches: Bool, highlighter: Bool = false) -> some View {
