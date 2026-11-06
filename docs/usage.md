@@ -21,6 +21,7 @@ Mit **⌘↑ / ⌘↓** zwischen Folien wechseln. Die Breite von PDF und Mitschr
 Die Leiste direkt über der Folie legt Anmerkungen auf die Folie selbst, im Unterschied zur **Skizze**, die in der Mitschrift steht.
 
 - **Stift:** frei zeichnen, drei Strichstärken.
+- **Textmarker:** den Marker in der Leiste über der Folie aktivieren und über PDF-Text ziehen. Die ausgewählten Wörter und Zeilen werden durchsichtig hervorgehoben. Alternativ zuerst mit dem normalen PDF-Werkzeug Text auswählen und danach auf **Textmarker** klicken. Gelb, Grün, Pink und Blau stehen direkt bereit; über das Farbfeld kannst du eine eigene Farbe wählen. Die Markerfarbe wird unabhängig von der Stiftfarbe gespeichert. Mit **Esc** zum Auswahlwerkzeug zurückkehren; eine Markierung anklicken, um ihre Farbe zu ändern oder sie mit **⌫** zu löschen. Gescannten Folien ohne auswählbaren Text fehlt die nötige Textebene; dort kannst du den Stift verwenden.
 - **Textfeld:** auf die Folie klicken und tippen. Schriftart, Größe, Fett, Kursiv und Unterstrichen gelten für das ganze Textfeld. Ein leeres Textfeld verschwindet wieder. Doppelklick bearbeitet den Text später.
 - **Formen:** Rechteck, Quadrat, Kreis, Oval und Linie aufziehen. Das Symbol wählt die zuletzt benutzte Form, der Pfeil daneben die anderen. **⇧** hält beim Rechteck und Oval die Proportionen und rastet Linien in 45°-Schritten ein.
 - **Bild:** Das Bildsymbol wählt eine Datei, **⌘V** setzt ein Bild aus der Zwischenablage ein, zum Beispiel einen Bildschirmausschnitt. Sehr große Bilder werden auf 2400 Pixel an der längsten Seite verkleinert.
@@ -30,7 +31,7 @@ Mit dem Pfeil-Werkzeug wählst du eine Anmerkung aus, ziehst sie an eine andere 
 
 Anmerkungen bleiben beim Zoomen und auf gedrehten Folien an ihrer Stelle und stehen dort aufrecht. Sie landen im Lern-PDF auf der Folie und bleiben nach dem erneuten Öffnen bearbeitbar; die Originalfolie selbst wird nicht verändert. Text bleibt im PDF durchsuchbar. Fehlt eine Schriftart auf einem anderen Mac, erscheint dort die Systemschrift. Die Kopie **Originalfolie** für den KI-Prompt zeigt die Folie ohne Anmerkungen, das Lernskript mit ihnen.
 
-Dateien mit dem Projektformat 2 lassen sich nur mit dieser oder einer neueren UniPDF-Version öffnen. Ältere Dateien öffnen weiter und werden beim Speichern umgestellt.
+Textmarkierungen bleiben beim Speichern und Exportieren sichtbar und nach dem Wiederöffnen bearbeitbar. Dateien mit dem Projektformat 3 benötigen eine UniPDF-Version mit Textmarker-Unterstützung. Ältere Dateien öffnen weiter und werden beim Speichern umgestellt.
 
 ## Start ohne Datei
 

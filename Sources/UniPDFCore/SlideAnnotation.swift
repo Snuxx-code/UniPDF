@@ -57,6 +57,7 @@ public struct SlideAnnotation: Codable, Sendable, Equatable, Identifiable {
         case shape(SlideShape, start: CGPoint, end: CGPoint, color: AnnotationColor, width: Double)
         case text(String, frame: CGRect, style: SlideTextStyle, color: AnnotationColor)
         case image(Data, frame: CGRect)
+        case highlight(rects: [CGRect], color: AnnotationColor)
     }
 
     public var id: UUID
@@ -78,6 +79,8 @@ public struct SlideAnnotation: Codable, Sendable, Equatable, Identifiable {
             return CGRect(x: min(start.x, end.x), y: min(start.y, end.y), width: abs(end.x - start.x), height: abs(end.y - start.y))
         case .text(_, let frame, _, _), .image(_, let frame):
             return frame
+        case .highlight(let rects, _):
+            return rects.reduce(CGRect.null) { $0.union($1) }
         }
     }
 
@@ -103,6 +106,8 @@ public struct SlideAnnotation: Codable, Sendable, Equatable, Identifiable {
             return valid(frame) && color.isValid && style.size.isFinite && (1...1000).contains(style.size)
         case .image(let data, let frame):
             return !data.isEmpty && valid(frame)
+        case .highlight(let rects, let color):
+            return !rects.isEmpty && rects.allSatisfy(valid) && color.isValid
         }
     }
 
@@ -118,6 +123,8 @@ public struct SlideAnnotation: Codable, Sendable, Equatable, Identifiable {
             result.content = .text(string, frame: frame.offsetBy(dx: delta.dx, dy: delta.dy), style: style, color: color)
         case .image(let data, let frame):
             result.content = .image(data, frame: frame.offsetBy(dx: delta.dx, dy: delta.dy))
+        case .highlight(let rects, let color):
+            result.content = .highlight(rects: rects.map { $0.offsetBy(dx: delta.dx, dy: delta.dy) }, color: color)
         }
         return result
     }
@@ -139,6 +146,10 @@ public struct SlideAnnotation: Codable, Sendable, Equatable, Identifiable {
             result.content = .text(string, frame: rect, style: style, color: color)
         case .image(let data, _):
             result.content = .image(data, frame: rect)
+        case .highlight(let rects, let color):
+            result.content = .highlight(rects: rects.map { CGRect(origin: map($0.origin), size: CGSize(
+                width: old.width > 0 ? $0.width / old.width * rect.width : $0.width,
+                height: old.height > 0 ? $0.height / old.height * rect.height : $0.height)) }, color: color)
         }
         return result
     }
@@ -168,7 +179,7 @@ public struct SlideAnnotation: Codable, Sendable, Equatable, Identifiable {
                 path.move(to: start)
                 path.addLine(to: end)
             }
-        case .text, .image:
+        case .text, .image, .highlight:
             return nil
         }
         return path
@@ -179,6 +190,8 @@ public struct SlideAnnotation: Codable, Sendable, Equatable, Identifiable {
         switch content {
         case .text, .image:
             return bounds.insetBy(dx: -tolerance, dy: -tolerance).contains(point)
+        case .highlight(let rects, _):
+            return rects.contains { $0.insetBy(dx: -tolerance, dy: -tolerance).contains(point) }
         case .ink(_, _, let width), .shape(_, _, _, _, let width):
             let reach = width + 2 * tolerance
             guard visualBounds.insetBy(dx: -tolerance, dy: -tolerance).contains(point), let outline else { return false }

@@ -4,14 +4,15 @@ import UniformTypeIdentifiers
 import UniPDFCore
 
 enum AnnotationTool: Equatable {
-    case select, pen, text
+    case select, pen, text, highlight
     case shape(SlideShape)
 }
 
-enum AnnotationKind { case stroke, text, image }
+enum AnnotationKind { case stroke, text, image, highlight }
 
 struct AnnotationStyle: Equatable {
     var color = AnnotationColor(InkColor.blue)
+    var highlightColor = PDFTextHighlight.yellow
     var lineWidth = 2.0
     var text = SlideTextStyle()
 }
@@ -61,6 +62,7 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
 
     private enum Drag {
         case draw(start: CGPoint)
+        case highlight(start: CGPoint, viewStart: CGPoint)
         case move(original: SlideAnnotation, start: CGPoint, moved: Bool)
         case resize(original: SlideAnnotation, handle: Handle, resized: Bool)
     }
@@ -159,6 +161,9 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
             session.style.text = style
         case .image:
             session.selectedKind = .image
+        case .highlight(_, let color):
+            session.selectedKind = .highlight
+            session.style.highlightColor = color
         }
     }
 
@@ -166,8 +171,25 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
 
     func toolDidChange() {
         endEditing()
+        if case .highlight = drag {
+            drag = nil
+            draft = nil
+            needsDisplay = true
+        }
         if session.tool != .select { select(nil) }
         window?.makeFirstResponder(self)
+    }
+
+    /// Also supports selecting text with the normal PDF tool, then pressing Textmarker.
+    @discardableResult
+    func highlightCurrentSelection() -> Bool {
+        guard let pdfView, let page = pdfView.document?.page(at: pageIndex),
+              let selection = pdfView.currentSelection,
+              let highlight = PDFTextHighlight.annotation(for: selection, on: page, color: session.style.highlightColor) else { return false }
+        annotations.append(highlight)
+        pdfView.clearSelection()
+        commit()
+        return true
     }
 
     /// Applies the bar's settings to what is selected or being edited.
@@ -185,6 +207,8 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
                 result.content = .text(string, frame: frame, style: style.text, color: style.color)
             case .image:
                 break
+            case .highlight(let rects, _):
+                result.content = .highlight(rects: rects, color: style.highlightColor)
             }
             return result
         }
@@ -350,7 +374,12 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
         let point = slidePoint(view, clamped: false)
         let tolerance = 5 / geometry.scale
         if let selected, selected.bounds.insetBy(dx: -tolerance, dy: -tolerance).contains(point) { return selected }
-        return annotations.last { $0.contains(point, tolerance: tolerance) }
+        let hits = annotations.filter { $0.contains(point, tolerance: tolerance) }
+        // Match the renderer: text, strokes and images sit above text highlights.
+        return hits.last {
+            if case .highlight = $0.content { return false }
+            return true
+        } ?? hits.last
     }
 
     override func hitTest(_ point: NSPoint) -> NSView? {
@@ -380,6 +409,14 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
         guard geometry != nil else { return }
         let point = slidePoint(view)
         switch session.tool {
+        case .highlight:
+            guard let pdfView, let page = pdfView.document?.page(at: pageIndex) else { return }
+            guard let text = page.string, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                session.annotationError = "Diese Folie enthält keinen auswählbaren PDF-Text. Für gescannte Folien kannst du den Stift verwenden."
+                return
+            }
+            pdfView.clearSelection()
+            drag = .highlight(start: pdfView.convert(convert(view, to: pdfView), to: page), viewStart: view)
         case .select:
             if let handle = handle(at: view), let selected {
                 drag = .resize(original: selected, handle: handle, resized: false)
@@ -412,9 +449,20 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
     }
 
     override func mouseDragged(with event: NSEvent) {
-        let point = slidePoint(convert(event.locationInWindow, from: nil))
+        let location = convert(event.locationInWindow, from: nil)
+        let point = slidePoint(location)
         let shift = event.modifierFlags.contains(.shift)
         switch drag {
+        case .highlight(let start, let viewStart):
+            invalidateDraft()
+            draft = nil
+            guard hypot(location.x - viewStart.x, location.y - viewStart.y) >= 2,
+                  let pdfView, let page = pdfView.document?.page(at: pageIndex) else { return }
+            let end = pdfView.convert(convert(location, to: pdfView), to: page)
+            if let selection = page.selection(from: start, to: end) {
+                draft = PDFTextHighlight.annotation(for: selection, on: page, color: session.style.highlightColor)
+            }
+            invalidateDraft()
         case .draw(let start):
             invalidateDraft()
             guard let current = draft, let geometry else { return }
@@ -450,6 +498,11 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
         mouseDragged(with: event)
         defer { drag = nil }
         switch drag {
+        case .highlight:
+            guard let finished = draft else { return }
+            draft = nil
+            annotations.append(finished)
+            commit()
         case .draw:
             guard let finished = draft else { return }
             draft = nil
@@ -496,7 +549,7 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
         if let geometry, geometry.rect.contains(view), editor == nil {
             switch session.tool {
             case .pen, .shape: cursor = .crosshair
-            case .text: cursor = .iBeam
+            case .text, .highlight: cursor = .iBeam
             case .select: cursor = handle(at: view) != nil ? .crosshair : annotation(at: view) != nil ? .openHand : nil
             }
         }

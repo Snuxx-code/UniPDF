@@ -33,7 +33,7 @@ Eine Folie und deine Gedanken stehen direkt nebeneinander. Aus deiner Mitschrift
 | Funktion | Für deinen Lernalltag |
 | --- | --- |
 | **Mitschriften pro Folie** | Getippte Notizen neben der passenden Folie; die Breite beider Bereiche ist anpassbar. |
-| **Direkt auf der Folie markieren** | Stift, Textfelder, Formen und Bilder. Anmerkungen lassen sich verschieben, skalieren und wieder bearbeiten. |
+| **Direkt auf der Folie markieren** | PDF-Text mit dem Textmarker hervorheben oder mit Stift, Textfeldern, Formen und Bildern ergänzen. Markierungen bleiben bearbeitbar. |
 | **Formeln und Skizzen** | Formeln mit Live-Vorschau und eine eigene Zeichenfläche mit Stift, Linien, Pfeilen und Formen. |
 | **Alles in einer PDF** | Folien, Anmerkungen und Mitschriften gemeinsam speichern oder als zusätzliche Lern-PDF exportieren. |
 | **Bibliothek und Tabs** | Vorlesungen in Ordnern, als Kacheln oder Liste verwalten und mehrere Dateien parallel öffnen. |
