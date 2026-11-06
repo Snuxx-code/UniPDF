@@ -108,3 +108,62 @@ struct EditorWidthMemory: NSViewRepresentable {
         }
     }
 }
+
+/// Hides the window's own title beside the toolbar's leading buttons. Tabs keep showing the file name.
+struct HiddenWindowTitle: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView { TitleView() }
+    func updateNSView(_ view: NSView, context: Context) {}
+
+    private final class TitleView: NSView {
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            window?.titleVisibility = .hidden
+        }
+    }
+}
+
+/// Reports whether the document in this window has unsaved changes, as the window's close button shows it.
+struct DocumentEditedObserver: NSViewRepresentable {
+    let onChange: (Bool) -> Void
+
+    func makeNSView(context: Context) -> NSView { ObserverView(onChange: onChange) }
+    func updateNSView(_ view: NSView, context: Context) { (view as? ObserverView)?.onChange = onChange }
+
+    private final class ObserverView: NSView {
+        var onChange: (Bool) -> Void
+        private var reported: Bool?
+        private var timer: Timer?
+
+        init(onChange: @escaping (Bool) -> Void) {
+            self.onChange = onChange
+            super.init(frame: .zero)
+        }
+
+        @available(*, unavailable)
+        required init?(coder: NSCoder) { fatalError("init(coder:) is not supported") }
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            NotificationCenter.default.removeObserver(self)
+            timer?.invalidate()
+            timer = nil
+            guard let window else { return }
+            // The edited flag is not observable. A window update catches changes at once while the app is
+            // active; the timer also catches saves and changes while it is in the background.
+            NotificationCenter.default.addObserver(self, selector: #selector(check), name: NSWindow.didUpdateNotification, object: window)
+            let timer = Timer(timeInterval: 0.5, repeats: true) { [weak self] _ in MainActor.assumeIsolated { self?.check() } }
+            RunLoop.main.add(timer, forMode: .common)
+            self.timer = timer
+            check()
+        }
+
+        @objc private func check() {
+            guard let window else { return }
+            let edited = NSDocumentController.shared.document(for: window)?.isDocumentEdited ?? window.isDocumentEdited
+            guard edited != reported else { return }
+            reported = edited
+            // The update runs inside AppKit's own cycle; SwiftUI state changes wait for it to end.
+            DispatchQueue.main.async { [weak self] in self?.onChange(edited) }
+        }
+    }
+}
