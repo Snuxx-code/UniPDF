@@ -14,6 +14,7 @@ struct AnnotationToolbar: View {
         switch session.tool {
         case .pen, .shape: .stroke
         case .text: .text
+        case .highlight: .highlight
         case .select: session.selectedKind
         }
     }
@@ -60,6 +61,12 @@ struct AnnotationToolbar: View {
         HStack(spacing: 2) {
             toolButton(.select, symbol: "cursorarrow", label: "Auswählen und verschieben")
             toolButton(.pen, symbol: "pencil.tip", label: "Stift")
+            Button { session.activateHighlighter() } label: {
+                toolLabel("highlighter", selected: session.tool == .highlight)
+            }
+            .help("Textmarker: PDF-Text auswählen und hervorheben. Eine bestehende Textauswahl wird sofort markiert.")
+            .accessibilityLabel("Textmarker")
+            .accessibilityAddTraits(session.tool == .highlight ? .isSelected : [])
             toolButton(.text, symbol: "textbox", label: "Textfeld")
             shapeMenu
             Button(action: chooseImage) { toolLabel("photo", selected: false) }
@@ -124,6 +131,8 @@ struct AnnotationToolbar: View {
             case .text:
                 fontControls
                 colors(swatches: swatches)
+            case .highlight:
+                colors(swatches: true, highlighter: true)
             case .image, nil:
                 EmptyView()
             }
@@ -153,27 +162,34 @@ struct AnnotationToolbar: View {
         .labelsHidden().fixedSize().help("Strichstärke")
     }
 
-    private func colors(swatches: Bool) -> some View {
-        HStack(spacing: 4) {
+    private func colors(swatches: Bool, highlighter: Bool = false) -> some View {
+        let palette: [(label: String, value: AnnotationColor)] = highlighter ? [
+            ("Gelb", PDFTextHighlight.yellow),
+            ("Grün", AnnotationColor(red: 0.25, green: 0.85, blue: 0.4)),
+            ("Pink", AnnotationColor(red: 1, green: 0.4, blue: 0.65)),
+            ("Blau", AnnotationColor(red: 0.25, green: 0.65, blue: 1))
+        ] : InkColor.allCases.map { ($0.label, AnnotationColor($0)) }
+        let keyPath: WritableKeyPath<AnnotationStyle, AnnotationColor> = highlighter ? \.highlightColor : \.color
+        let current = session.style[keyPath: keyPath]
+        return HStack(spacing: 4) {
             if swatches {
-                ForEach(InkColor.allCases, id: \.self) { (option: InkColor) in
-                    let value = AnnotationColor(option)
-                    Button { binding(\.color).wrappedValue = value } label: {
-                        Circle().fill(Color(nsColor: value.nsColor))
+                ForEach(palette, id: \.label) { option in
+                    Button { binding(keyPath).wrappedValue = option.value } label: {
+                        Circle().fill(Color(nsColor: option.value.nsColor))
                             .frame(width: 15, height: 15)
                             // Graphite would vanish on a dark bar.
                             .overlay(Circle().strokeBorder(.secondary.opacity(0.5), lineWidth: 0.5))
                             .padding(3)
-                            .overlay(Circle().strokeBorder(session.style.color == value ? Color.primary : .clear, lineWidth: 1))
+                            .overlay(Circle().strokeBorder(current == option.value ? Color.primary : .clear, lineWidth: 1))
                     }
                     .buttonStyle(.plain).help(option.label).accessibilityLabel(option.label)
-                    .accessibilityAddTraits(session.style.color == value ? .isSelected : [])
+                    .accessibilityAddTraits(current == option.value ? .isSelected : [])
                 }
             }
             ColorPicker("Farbe", selection: Binding(
-                get: { Color(nsColor: session.style.color.nsColor) },
-                set: { binding(\.color).wrappedValue = AnnotationColor(NSColor($0)) }
-            ))
+                get: { Color(nsColor: session.style[keyPath: keyPath].nsColor) },
+                set: { binding(keyPath).wrappedValue = AnnotationColor(NSColor($0)) }
+            ), supportsOpacity: !highlighter)
             .labelsHidden().help("Beliebige Farbe wählen")
         }
     }

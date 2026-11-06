@@ -40,8 +40,23 @@ public enum AnnotationRenderer {
 
     /// Draws annotations into a context whose coordinates already are slide points with a top-left origin.
     public static func draw(_ annotations: [SlideAnnotation], in context: CGContext) {
+        // Highlights sit beneath handwritten strokes, text boxes and inserted images.
+        for annotation in annotations {
+            guard case .highlight(let rects, let color) = annotation.content else { continue }
+            context.saveGState()
+            context.setBlendMode(.multiply)
+            context.setAlpha(0.35)
+            context.setFillColor(color.nsColor.cgColor)
+            // Fill once, so overlapping rectangles in one selection do not darken each other.
+            context.beginPath()
+            for rect in rects { context.addRect(rect) }
+            context.fillPath()
+            context.restoreGState()
+        }
         for annotation in annotations {
             switch annotation.content {
+            case .highlight:
+                continue
             case .ink(_, let color, let width), .shape(_, _, _, let color, let width):
                 guard let outline = annotation.outline else { continue }
                 context.saveGState()

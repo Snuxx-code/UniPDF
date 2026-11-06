@@ -35,6 +35,11 @@ final class PDFSession {
         guard let document, document.pageCount > 0 else { return }
         selection = min(max(selection + offset, 0), document.pageCount - 1)
     }
+
+    func activateHighlighter() {
+        tool = .highlight
+        overlay?.highlightCurrentSelection()
+    }
 }
 
 struct PDFPane: NSViewRepresentable {
