@@ -8,6 +8,10 @@ struct WorkspaceView: View {
     var fileURL: URL? = nil
     var fileStore: LibraryStore = .shared
     @State private var session = PDFSession()
+    @State private var sidebarVisibility = NavigationSplitViewVisibility.all
+    @State private var fileTree = FileTreeModel()
+    @State private var showsToolSettings = false
+    @State private var hasUnsavedChanges = false
     @State private var importing = false
     @State private var importSourceWindow: NSWindow?
     @State private var errorMessage: String?
@@ -39,10 +43,9 @@ struct WorkspaceView: View {
     var body: some View {
         Group {
             if let pdf = session.document { workspace(pdf) }
-            else { welcome }
+            else { welcome.toolbar { toolbar } }
         }
         .tint(accent)
-        .toolbar { toolbar }
         .fileImporter(isPresented: $importing, allowedContentTypes: [.pdf]) { result in
             Task {
                 do {
@@ -132,52 +135,82 @@ struct WorkspaceView: View {
         }
     }
 
-    private func workspace(_ pdf: PDFDocument) -> some View {
-        HStack(spacing: 0) {
-            if session.showsSidebar {
-                VStack(alignment: .leading, spacing: 0) {
-                    FileTreeSection(store: fileStore, currentFile: fileURL)
-                    Divider()
-                    HStack {
-                        Text("Folien").font(.headline)
-                        Spacer()
-                        Text("\(pdf.pageCount)").font(.caption.monospacedDigit()).foregroundStyle(.secondary)
-                    }.padding(16)
-                    Divider()
-                    ScrollViewReader { proxy in
-                        List(0..<pdf.pageCount, id: \.self, selection: Binding<Int?>(
-                            get: { session.selection }, set: { if let value = $0 { session.selection = value } }
-                        )) { index in
-                            SlideRow(page: pdf.page(at: index), index: index,
-                                     hasNotes: !(document.project.pages[index]?.isEmpty ?? true),
-                                     annotations: document.project.pages[index]?.annotations ?? [])
-                                .tag(index).id(index)
+    /// Native sidebar, as in the Finder: the granted folder above the slides of this lecture.
+    private func sidebar(_ pdf: PDFDocument) -> some View {
+        ScrollViewReader { proxy in
+            // No list selection: its filled highlight would cover the preview. The open slide gets a green frame instead.
+            List {
+                FileTreeSection(store: fileStore, currentFile: fileURL, model: fileTree)
+                Section {
+                    ForEach(0..<pdf.pageCount, id: \.self) { index in
+                        SlideRow(page: pdf.page(at: index), index: index, isSelected: session.selection == index,
+                                 hasNotes: !(document.project.pages[index]?.isEmpty ?? true),
+                                 annotations: document.project.pages[index]?.annotations ?? []) {
+                            session.selection = index
                         }
-                        .listStyle(.sidebar)
-                        .onChange(of: session.selection) { proxy.scrollTo(session.selection) }
+                            // The sidebar indents rows 9 points more on the leading side, for disclosure
+                            // triangles, and ignores listRowInsets. Slides have none and sit centered,
+                            // their frames in line with the section header.
+                            .padding(.leading, -15).padding(.trailing, -6)
+                            .id(index)
                     }
-                    Divider()
-                    Text("\(document.project.pages.values.filter { !$0.isEmpty }.count) von \(pdf.pageCount) mit Mitschrift")
-                        .font(.caption).foregroundStyle(.secondary).padding(14)
+                } header: {
+                    Text("Folien")
                 }
-                .frame(width: 178).background(.regularMaterial)
-                Divider()
             }
+            .listStyle(.sidebar)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                Text("\(document.project.pages.values.filter { !$0.isEmpty }.count) von \(pdf.pageCount) Folien mit Mitschrift")
+                    .font(.caption2).monospacedDigit().foregroundStyle(.tertiary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 18).padding(.vertical, 10)
+            }
+            .onChange(of: session.selection) { proxy.scrollTo(session.selection) }
+        }
+        .navigationSplitViewColumnWidth(min: 180, ideal: 220, max: 340)
+        .onAppear { fileTree.reveal(fileURL, in: fileStore); fileTree.reload(fileStore) }
+        .onChange(of: fileStore.revision) { fileTree.reload(fileStore) }
+        .onChange(of: fileURL) { fileTree.reveal(fileURL, in: fileStore); fileTree.reload(fileStore) }
+        // The library window may be closed, so the sidebar notices outside changes by itself.
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in fileTree.reload(fileStore) }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { _ in fileTree.reload(fileStore) }
+        .alert("Das hat nicht geklappt", isPresented: Binding(get: { fileTree.openError != nil }, set: { if !$0 { fileTree.openError = nil } })) {
+            Button("OK") { fileTree.openError = nil }
+        } message: { Text(fileTree.openError ?? "") }
+    }
+
+    /// Whether the active tool or the selection has settings. The arrow without a selection has none.
+    private var hasToolSettings: Bool { session.tool != .select || session.selectedAnnotation != nil }
+
+    /// The tools in the slide pane's header; beneath them, only when there are any, their settings.
+    private var slideHeader: some View {
+        VStack(spacing: 0) {
+            // 8 points: in line with the library button and the tab bar above.
+            SlideToolBar(session: session, chooseImage: chooseImage)
+                .padding(.horizontal, 8).frame(height: 47)
+            if showsToolSettings {
+                Divider()
+                ViewThatFits(in: .horizontal) {
+                    AnnotationSettingsBar(session: session)
+                    AnnotationSettingsBar(session: session, swatches: false)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 18).padding(.vertical, 8)
+            }
+        }
+        .onAppear { showsToolSettings = hasToolSettings }
+        // Not mid-gesture: the slide would shift under the pointer while it moves something.
+        .onChange(of: hasToolSettings) { if !session.isGestureActive { showsToolSettings = hasToolSettings } }
+        .onChange(of: session.isGestureActive) { if !session.isGestureActive { showsToolSettings = hasToolSettings } }
+    }
+
+    private func workspace(_ pdf: PDFDocument) -> some View {
+        NavigationSplitView(columnVisibility: $sidebarVisibility) {
+            sidebar(pdf)
+        } detail: {
             HSplitView {
                 VStack(spacing: 0) {
-                    HStack {
-                        Label("Vorlesungsfolie", systemImage: "doc.richtext").font(.subheadline.weight(.medium))
-                        Spacer()
-                        Button { session.view?.zoomOut(nil) } label: { Image(systemName: "minus.magnifyingglass") }
-                            .help("Verkleinern").accessibilityLabel("PDF verkleinern")
-                        Button { session.view?.autoScales = true } label: { Image(systemName: "arrow.up.left.and.arrow.down.right") }
-                            .help("An Fenster anpassen").accessibilityLabel("PDF an Fenster anpassen")
-                        Button { session.view?.zoomIn(nil) } label: { Image(systemName: "plus.magnifyingglass") }
-                            .help("Vergrößern").accessibilityLabel("PDF vergrößern")
-                    }
-                    .buttonStyle(.borderless).foregroundStyle(.secondary).padding(.horizontal, 18).frame(height: 47)
-                    Divider()
-                    AnnotationToolbar(session: session, chooseImage: chooseImage)
+                    slideHeader
                     Divider()
                     PDFPane(session: session, annotations: notes.annotations)
                     Divider()
@@ -196,6 +229,9 @@ struct WorkspaceView: View {
                 editor.frame(minWidth: EditorWidthMemory.minimumEditorWidth, idealWidth: 440, maxWidth: .infinity, maxHeight: .infinity)
                     .background(EditorWidthMemory())
             }
+            // On the detail column, as in the Finder.
+            .toolbar { toolbar }
+            .modifier(WithoutToolbarTitle())
         }
     }
 
@@ -281,23 +317,70 @@ struct WorkspaceView: View {
         }
     }
 
+    /// The name stands in the pill in the middle, so the title beside the library button would repeat it.
+    /// Before macOS 15 the window's title visibility does the same.
+    private struct WithoutToolbarTitle: ViewModifier {
+        func body(content: Content) -> some View {
+            if #available(macOS 15, *) { content.toolbar(removing: .title) } else { content }
+        }
+    }
+
     @ToolbarContentBuilder private var toolbar: some ToolbarContent {
-        ToolbarItemGroup(placement: .navigation) {
+        libraryItem
+        titleItem
+        saveItems
+    }
+
+    @ToolbarContentBuilder private var libraryItem: some ToolbarContent {
+        // The sidebar button comes with NavigationSplitView.
+        ToolbarItem(placement: .navigation) {
             if session.document != nil {
-                Button { session.showsSidebar.toggle() } label: { Image(systemName: "sidebar.left") }
-                    .help("Seitenleiste ein-/ausblenden").accessibilityLabel("Seitenleiste ein- oder ausblenden")
-                Button { openWindow(id: LibraryCommands.windowID) } label: { Image(systemName: "folder") }
-                    .help("Bibliothek öffnen (⇧⌘L)").accessibilityLabel("Bibliothek öffnen")
+                Button { openWindow(id: LibraryCommands.windowID) } label: { Label("Bibliothek", systemImage: "folder") }
+                    .help("Bibliothek öffnen (⇧⌘L)")
             }
         }
+    }
+
+    @ToolbarContentBuilder private var titleItem: some ToolbarContent {
         ToolbarItem(placement: .principal) {
             if session.document != nil {
-                TextField("Name der Vorlesung", text: $document.project.title)
-                    .textFieldStyle(.plain).font(.headline).multilineTextAlignment(.center)
-                    .frame(minWidth: 160, idealWidth: 300, maxWidth: 420)
-                    .accessibilityLabel("Name der Vorlesung")
+                HStack(spacing: 6) {
+                    // As wide as the name: the hidden text gives the width, the field sits on top of it.
+                    Text(document.project.title.isEmpty ? "Name der Vorlesung" : document.project.title)
+                        .font(.headline).lineLimit(1).hidden()
+                        .overlay {
+                            TextField("Name der Vorlesung", text: $document.project.title)
+                                .textFieldStyle(.plain).font(.headline)
+                                .accessibilityLabel("Name der Vorlesung")
+                        }
+                        .frame(minWidth: 40, maxWidth: 360)
+                    saveStatus
+                }
+                .padding(.leading, 10).padding(.trailing, 6)
+                .background(HiddenWindowTitle())
+                .background(DocumentEditedObserver { hasUnsavedChanges = $0 })
             } else { Text("UniPDF").font(.headline) }
         }
+    }
+
+    /// A quiet mark beside the lecture's name: a grey dot while changes are unsaved, a green check once all is saved.
+    private var saveStatus: some View {
+        Group {
+            if hasUnsavedChanges {
+                Circle().fill(.secondary.opacity(0.6)).frame(width: 7, height: 7)
+            } else {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.white, accent)
+            }
+        }
+        .frame(width: 14, height: 14)
+        .help(hasUnsavedChanges ? "Ungesicherte Änderungen – mit ⌘S sichern" : "Alles gesichert")
+        .accessibilityElement()
+        .accessibilityLabel(hasUnsavedChanges ? "Ungesicherte Änderungen" : "Alles gesichert")
+    }
+
+    @ToolbarContentBuilder private var saveItems: some ToolbarContent {
         ToolbarItem(placement: .primaryAction) {
             if session.document != nil {
                 HStack(spacing: 12) {
@@ -371,30 +454,56 @@ struct WorkspaceView: View {
 private struct SlideRow: View {
     let page: PDFPage?
     let index: Int
+    let isSelected: Bool
     let hasNotes: Bool
     let annotations: [SlideAnnotation]
+    let select: () -> Void
     @State private var thumbnail: NSImage?
+    @Environment(\.colorScheme) private var colorScheme
+
+    /// The page as displayed, so that portrait and turned pages keep their shape.
+    private var aspectRatio: CGFloat {
+        guard let size = page?.displayedSlideSize, size.width > 0, size.height > 0 else { return 16 / 9 }
+        return size.width / size.height
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            Group {
-                if let thumbnail { Image(nsImage: thumbnail).resizable().scaledToFit() }
-                else { Rectangle().fill(.quaternary) }
+        Button(action: select) { content }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Folie \(index + 1)\(hasNotes ? ", mit Mitschrift" : "")")
+            .accessibilityAddTraits(isSelected ? .isSelected : [])
+            .task(id: annotations) {
+                guard let page else { return }
+                let size = CGSize(width: 320, height: 320 / aspectRatio)
+                thumbnail = AnnotationRenderer.thumbnail(of: page, annotations: annotations, size: size)
             }
-            .frame(maxWidth: .infinity).frame(height: 78)
-            .background(.white).clipShape(RoundedRectangle(cornerRadius: 4))
-            HStack {
-                Text("Folie \(index + 1)").font(.caption)
-                Spacer()
+    }
+
+    private var content: some View {
+        let accent = Color.studyAccent(for: colorScheme)
+        return VStack(spacing: 6) {
+            Group {
+                if let thumbnail { Image(nsImage: thumbnail).resizable() }
+                else { Rectangle().fill(.white) }
+            }
+            .aspectRatio(aspectRatio, contentMode: .fit)
+            .clipShape(RoundedRectangle(cornerRadius: 4))
+            .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(.black.opacity(0.12), lineWidth: 0.5))
+            // The open slide: a narrow green frame with a little air around the preview.
+            .padding(3)
+            .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(isSelected ? accent : .clear, lineWidth: 2.5))
+            // A portrait page at full width would fill the list, so its height is capped.
+            .frame(maxWidth: .infinity, maxHeight: 150)
+            HStack(spacing: 4) {
+                Text("Folie \(index + 1)").font(.caption.monospacedDigit())
+                    .fontWeight(isSelected ? .semibold : .regular)
+                    .foregroundStyle(isSelected ? accent : .primary)
+                Spacer(minLength: 0)
                 if hasNotes { Image(systemName: "pencil.line").font(.caption2).foregroundStyle(.secondary) }
             }
         }
-        .padding(.vertical, 7)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Folie \(index + 1)\(hasNotes ? ", mit Mitschrift" : "")")
-        .task(id: annotations) {
-            guard let page else { return }
-            thumbnail = AnnotationRenderer.thumbnail(of: page, annotations: annotations, size: CGSize(width: 240, height: 156))
-        }
+        // Little air at the sides: the sidebar's own row margins already separate it from the edge.
+        .padding(.horizontal, 2).padding(.vertical, 8)
+        .contentShape(Rectangle())
     }
 }

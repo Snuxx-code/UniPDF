@@ -98,6 +98,15 @@ import UniPDFCore
         #expect(result.commits == 1)
     }
 
+    @Test func aGestureIsMarkedActiveOnlyWhileTheMouseIsDown() throws {
+        let (canvas, session, page, window, _) = try setUp([])
+        session.tool = .pen
+        canvas.overlay.mouseDown(with: try mouse(.leftMouseDown, CGPoint(x: 100, y: 100), canvas, page, window))
+        #expect(session.isGestureActive)
+        canvas.overlay.mouseUp(with: try mouse(.leftMouseUp, CGPoint(x: 200, y: 100), canvas, page, window))
+        #expect(!session.isGestureActive)
+    }
+
     @Test func highlightsAreDrawnInTheirOwnBlendedLayer() throws {
         let (canvas, _, _, _, _) = try setUp([])
         #expect(canvas.subviews.firstIndex(of: canvas.highlights)! > canvas.subviews.firstIndex(of: canvas.pdfView)!)

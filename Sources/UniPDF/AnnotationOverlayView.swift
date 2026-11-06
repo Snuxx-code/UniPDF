@@ -501,6 +501,7 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
     // MARK: Mouse
 
     override func mouseDown(with event: NSEvent) {
+        session.isGestureActive = true
         let view = convert(event.locationInWindow, from: nil)
         // Also ends text editing.
         window?.makeFirstResponder(self)
@@ -602,6 +603,7 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
     override func mouseUp(with event: NSEvent) {
         // A quick gesture may not have reported its last position.
         mouseDragged(with: event)
+        session.isGestureActive = false
         defer { drag = nil }
         switch drag {
         case .erase(_, let erased):

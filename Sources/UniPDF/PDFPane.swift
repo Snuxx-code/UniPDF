@@ -7,7 +7,6 @@ final class PDFSession {
     var document: PDFDocument?
     weak var view: PDFView?
     var selection = 0
-    var showsSidebar = true
     var tool = AnnotationTool.select { didSet { overlay?.toolDidChange() } }
     var lastShape = SlideShape.rectangle
     /// Defaults for new annotations, and what the bar shows for the selected one.
@@ -16,6 +15,8 @@ final class PDFSession {
     /// What the selected annotation is, so the bar offers the fitting settings.
     var selectedKind: AnnotationKind?
     var annotationError: String?
+    /// While the mouse is down on the slide. Layout changes wait for its end, so the slide does not move under the pointer.
+    var isGestureActive = false
     weak var overlay: AnnotationOverlayView?
 
     /// A slide with the longest side of 960 points is the base for default stroke widths and font sizes.

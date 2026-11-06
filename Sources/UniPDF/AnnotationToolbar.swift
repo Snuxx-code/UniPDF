@@ -2,10 +2,128 @@ import AppKit
 import SwiftUI
 import UniPDFCore
 
-/// The action row above the slide: tools on the left, settings of the active tool or selection on the right.
-struct AnnotationToolbar: View {
+/// The slide tools in the header of the slide pane, as capsules in the style of Preview:
+/// tools, shapes, image, then zoom.
+struct SlideToolBar: View {
     let session: PDFSession
     let chooseImage: () -> Void
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var accent: Color { Color.studyAccent(for: colorScheme) }
+
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            groups(compactZoom: false)
+            groups(compactZoom: true)
+        }
+    }
+
+    private func groups(compactZoom: Bool) -> some View {
+        HStack(spacing: 8) {
+            ToolCapsule {
+                toolButton(.select, "Auswählen und verschieben", symbol: "cursorarrow")
+                toolButton(.pen, "Stift", symbol: "pencil.tip")
+                iconButton("Textmarker", symbol: "highlighter", selected: session.tool == .highlight) { session.activateHighlighter() }
+                    .help("Textmarker: PDF-Text auswählen und hervorheben. Eine bestehende Textauswahl wird sofort markiert.")
+                toolButton(.eraser, "Radiergummi für Stift und Textmarker", symbol: "eraser")
+                toolButton(.text, "Textfeld", symbol: "textbox")
+            }
+            shapeCapsule
+            ToolCapsule {
+                iconButton("Bild einfügen", symbol: "photo", selected: false, action: chooseImage)
+            }
+            Spacer(minLength: 0)
+            if compactZoom {
+                ToolCapsule {
+                    Menu {
+                        Button("Vergrößern") { session.view?.zoomIn(nil) }
+                        Button("Verkleinern") { session.view?.zoomOut(nil) }
+                        Button("An Fenster anpassen") { session.view?.autoScales = true }
+                    } label: {
+                        Image(systemName: "plus.magnifyingglass").frame(width: 30, height: 30)
+                    }
+                    .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
+                    .help("Zoom").accessibilityLabel("Zoom")
+                }
+            } else {
+                ToolCapsule {
+                    iconButton("Verkleinern", symbol: "minus.magnifyingglass", selected: false) { session.view?.zoomOut(nil) }
+                    iconButton("An Fenster anpassen", symbol: "arrow.up.left.and.arrow.down.right", selected: false) { session.view?.autoScales = true }
+                    iconButton("Vergrößern", symbol: "plus.magnifyingglass", selected: false) { session.view?.zoomIn(nil) }
+                }
+            }
+        }
+    }
+
+    /// The last shape, and beside it a menu of all shapes, like Preview's markup button.
+    private var shapeCapsule: some View {
+        var isActive = false
+        if case .shape = session.tool { isActive = true }
+        return ToolCapsule {
+            iconButton("Form: \(session.lastShape.label)", symbol: session.lastShape.symbol, selected: isActive) {
+                pick(session.lastShape)
+            }
+            .help("Form zeichnen: \(session.lastShape.label). ⇧ beim Ziehen hält die Proportionen.")
+            Divider().frame(height: 18).padding(.horizontal, 2)
+            Menu {
+                ForEach(SlideShape.allCases, id: \.self) { shape in
+                    Button { pick(shape) } label: { Label(shape.label, systemImage: shape.symbol) }
+                }
+            } label: {
+                Image(systemName: "chevron.down").font(.system(size: 11, weight: .semibold)).frame(width: 24, height: 30)
+                    // Otherwise VoiceOver reads the symbol's name instead of what the menu does.
+                    .accessibilityLabel("Form wählen")
+            }
+            .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
+            .help("Form wählen: Rechteck, Quadrat, Kreis, Oval oder Linie")
+            .accessibilityLabel("Form wählen")
+        }
+    }
+
+    private func toolButton(_ tool: AnnotationTool, _ label: String, symbol: String) -> some View {
+        iconButton(label, symbol: symbol, selected: session.tool == tool) { session.tool = tool }
+    }
+
+    private func iconButton(_ label: String, symbol: String, selected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: 14))
+                .foregroundStyle(selected ? Color.white : Color.primary)
+                .frame(width: 30, height: 30)
+                .background(selected ? accent : .clear, in: Circle())
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .help(label)
+        .accessibilityLabel(label)
+        .accessibilityAddTraits(selected ? .isSelected : [])
+    }
+
+    private func pick(_ shape: SlideShape) {
+        session.lastShape = shape
+        session.tool = .shape(shape)
+    }
+}
+
+/// One group of tools on a capsule: glass on macOS 26, the bar material before.
+private struct ToolCapsule<Content: View>: View {
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        let row = HStack(spacing: 2) { content }.padding(.horizontal, 4).frame(height: 36)
+        if #available(macOS 26, *) {
+            row.glassEffect(.regular, in: Capsule())
+        } else {
+            row.background(.bar, in: Capsule())
+                .overlay(Capsule().strokeBorder(.separator, lineWidth: 0.5))
+        }
+    }
+}
+
+/// The settings of the active tool or of the selected annotation, in the row beneath the tools.
+struct AnnotationSettingsBar: View {
+    let session: PDFSession
+    var swatches = true
 
     private static let fontFamilies = NSFontManager.shared.availableFontFamilies.filter { !$0.hasPrefix(".") }.sorted()
     private static let fontSizes: [Double] = [10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 48, 64, 72, 96]
@@ -21,68 +139,14 @@ struct AnnotationToolbar: View {
     }
 
     var body: some View {
-        // The room for the widest settings is always kept, so that the slide does not change size when a tool does.
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: 12) {
-                tools
-                Spacer(minLength: 8)
-                settingsArea(swatches: true, alignment: .trailing)
-            }
-            HStack(spacing: 12) {
-                tools
-                Spacer(minLength: 8)
-                settingsArea(swatches: false, alignment: .trailing)
-            }
-            VStack(alignment: .leading, spacing: 8) {
-                tools
-                settingsArea(swatches: true, alignment: .leading)
-            }
-            // Otherwise the two lines sit centered, away from the pane's edge.
-            .frame(maxWidth: .infinity, alignment: .leading)
-            VStack(alignment: .leading, spacing: 8) {
-                tools
-                settingsArea(swatches: false, alignment: .leading)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .buttonStyle(.borderless)
-        .font(.callout)
-        .padding(.horizontal, 18)
-        .padding(.vertical, 8)
-    }
-
-    private func settingsArea(swatches: Bool, alignment: Alignment) -> some View {
-        ZStack(alignment: alignment) {
+        // The room for the widest settings is always kept, so that the row does not reflow when a tool changes.
+        ZStack(alignment: .leading) {
             settingsRow(.text, deletable: true, swatches: swatches).hidden()
             settingsRow(settings, deletable: session.selectedAnnotation != nil, swatches: swatches)
         }
+        .buttonStyle(.borderless)
+        .font(.callout)
         .controlSize(.small)
-    }
-
-    // MARK: Tools
-
-    private var tools: some View {
-        HStack(spacing: 2) {
-            toolButton(.select, symbol: "cursorarrow", label: "Auswählen und verschieben")
-            toolButton(.pen, symbol: "pencil.tip", label: "Stift")
-            Button { session.activateHighlighter() } label: {
-                toolLabel("highlighter", selected: session.tool == .highlight)
-            }
-            .help("Textmarker: PDF-Text auswählen und hervorheben. Eine bestehende Textauswahl wird sofort markiert.")
-            .accessibilityLabel("Textmarker")
-            .accessibilityAddTraits(session.tool == .highlight ? .isSelected : [])
-            toolButton(.eraser, symbol: "eraser", label: "Radiergummi für Stift und Textmarker")
-            toolButton(.text, symbol: "textbox", label: "Textfeld")
-            shapeMenu
-            Button(action: chooseImage) { toolLabel("photo", selected: false) }
-                .help("Bild einfügen").accessibilityLabel("Bild einfügen")
-        }
-    }
-
-    private func toolButton(_ tool: AnnotationTool, symbol: String, label: String) -> some View {
-        Button { session.tool = tool } label: { toolLabel(symbol, selected: session.tool == tool) }
-            .help(label).accessibilityLabel(label)
-            .accessibilityAddTraits(session.tool == tool ? .isSelected : [])
     }
 
     private func toolLabel(_ symbol: String, selected: Bool) -> some View {
@@ -91,32 +155,6 @@ struct AnnotationToolbar: View {
             .background(selected ? Color.accentColor.opacity(0.14) : .clear, in: RoundedRectangle(cornerRadius: 5))
             .foregroundStyle(selected ? Color.accentColor : .primary)
             .contentShape(Rectangle())
-    }
-
-    private var shapeMenu: some View {
-        var isActive = false
-        if case .shape = session.tool { isActive = true }
-        return Menu {
-            ForEach(SlideShape.allCases, id: \.self) { shape in
-                Button { pick(shape) } label: { Label(shape.label, systemImage: shape.symbol) }
-            }
-        } label: {
-            toolLabel(session.lastShape.symbol, selected: isActive)
-        } primaryAction: {
-            pick(session.lastShape)
-        }
-        .menuStyle(.borderlessButton)
-        .fixedSize()
-        // The menu ignores its label's background.
-        .background(isActive ? Color.accentColor.opacity(0.14) : .clear, in: RoundedRectangle(cornerRadius: 5))
-        .accessibilityAddTraits(isActive ? .isSelected : [])
-        .help("Form einfügen: Rechteck, Quadrat, Kreis, Oval oder Linie. ⇧ beim Ziehen hält die Proportionen.")
-        .accessibilityLabel("Form einfügen, zuletzt \(session.lastShape.label)")
-    }
-
-    private func pick(_ shape: SlideShape) {
-        session.lastShape = shape
-        session.tool = .shape(shape)
     }
 
     // MARK: Settings
