@@ -130,8 +130,16 @@ enum PreviewHarness {
             InkElement(tool: .arrow, color: .green, width: 5, points: [InkPoint(x: 100, y: 410), InkPoint(x: 300, y: 110)])
         ]
         let accent = AnnotationColor(InkColor.red)
+        // Fit the ellipse around the actual subtitle glyphs, with room at its curved ends.
+        let subtitle = NSAttributedString(string: slides[0].1, attributes: [.font: NSFont.systemFont(ofSize: 25, weight: .medium)])
+        let glyphs = CTLineGetBoundsWithOptions(CTLineCreateWithAttributedString(subtitle), .useGlyphPathBounds)
+        let textRect = CGRect(x: 65 + glyphs.minX, y: 540 - 330 - glyphs.maxY, width: glyphs.width, height: glyphs.height)
+        let padded = textRect.insetBy(dx: -8, dy: -6)
+        let ellipse = CGRect(x: padded.midX - padded.width * 0.6, y: padded.midY - padded.height,
+                             width: padded.width * 1.2, height: padded.height * 2)
         notes.annotations = [
-            SlideAnnotation(content: .shape(.ellipse, start: CGPoint(x: 50, y: 195), end: CGPoint(x: 640, y: 275), color: accent, width: 3)),
+            SlideAnnotation(content: .shape(.ellipse, start: ellipse.origin,
+                                           end: CGPoint(x: ellipse.maxX, y: ellipse.maxY), color: accent, width: 3)),
             SlideAnnotation(content: .text("Beispiel: Anmerkung auf der Folie", frame: CGRect(x: 65, y: 300, width: 500, height: 34),
                                            style: SlideTextStyle(size: 24, bold: true), color: accent))
         ]

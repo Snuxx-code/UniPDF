@@ -13,7 +13,7 @@ Alle Bilder gehören zum Projekt. Sie verwenden ausschließlich das eigens erste
 
 ## Aufnahmeverfahren
 
-Die App-Ansichten basieren auf dem Quellstand `ec9a70d`. Die bestehenden SwiftUI-Views werden mit `NSHostingView` und `cacheDisplay` aufgenommen. Die Arbeitsansichten verwenden 1320 × 1000 Punkte, die Bibliothek 720 × 560 Punkte; beide werden mit doppelter Pixeldichte gerendert.
+Die App-Ansichten basieren auf dem Quellstand `acf37a3` mit der angepassten Demomarkierung aus `PreviewHarness.swift`. Die Beispiel-Ellipse wird aus den tatsächlichen Textabmessungen mit zusätzlichem Abstand zu den Buchstaben berechnet. Die bestehenden SwiftUI-Views werden mit `NSHostingView` und `cacheDisplay` aufgenommen. Die Arbeitsansichten verwenden 1320 × 1000 Punkte, die Bibliothek 720 × 560 Punkte; beide werden mit doppelter Pixeldichte gerendert.
 
 Bildschirmaufnahmen und GPU-gestütztes PDFKit-Rendering sind in der Entwicklungsumgebung eingeschränkt. Für diese Dokumentationsbilder wurde der PDF-Bereich deshalb ausschließlich in einer temporären Aufnahmeversion durch eine CPU-gerenderte Ansicht derselben Originalfolie mit denselben Anmerkungen ersetzt (`AnnotationRenderer.thumbnail`). Die PDF-Vorschaubilder in der Bibliothek wurden aus den tatsächlichen Beispiel-PDFs vorab in den vorhandenen Thumbnail-Cache geladen, da der Quick-Look-Dienst hier keine Inhaltsvorschau liefert. Bedienelemente, Mitschrift, Formel, Skizze und Bibliothek stammen aus den vorhandenen App-Views. Die Abbildungen sind **gerenderte App-Vorschauen**, keine Aufnahmen eines laufenden Desktop-Fensters. Die Aufnahmeversion wird nicht mit der App ausgeliefert.
 
