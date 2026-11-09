@@ -27,10 +27,7 @@ public enum PDFExporter {
         for index in 0..<source.pageCount {
             guard let page = source.page(at: index), let pageRef = page.pageRef else { throw ProjectError.invalidPDF }
             let notes = project.pages[index] ?? PageNotes()
-            let content = NSMutableAttributedString(string: notes.text, attributes: [
-                .font: NSFont.systemFont(ofSize: 11.5), .foregroundColor: NSColor.black,
-                .paragraphStyle: paragraph
-            ])
+            let content = NSMutableAttributedString(attributedString: NotesMarkup.rendered(notes.text, appearance: .print(size: 11.5)))
             if !notes.formula.isEmpty {
                 content.append(NSAttributedString(string: "\n\n", attributes: [.font: NSFont.systemFont(ofSize: 11)]))
                 content.append(MathNotation.formatted(notes.formula, size: 16))

@@ -21,7 +21,7 @@ struct WorkspaceView: View {
     @State private var showFormula = false
     @State private var showDrawing = false
     @State private var fontSize = 15.0
-    @FocusState private var notesFocused: Bool
+    @State private var notesEditor = NotesEditorController()
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.openDocument) private var openDocument
     @Environment(\.openWindow) private var openWindow
@@ -73,7 +73,6 @@ struct WorkspaceView: View {
                     session.adaptStyleToSlides()
                 } catch { errorMessage = error.localizedDescription }
             }
-            showFormula = !notes.wrappedValue.formula.isEmpty
             showDrawing = !notes.wrappedValue.drawing.isEmpty
         }
         .onChange(of: session.annotationError) {
@@ -83,7 +82,6 @@ struct WorkspaceView: View {
             }
         }
         .onChange(of: session.selection) {
-            showFormula = !notes.wrappedValue.formula.isEmpty
             showDrawing = !notes.wrappedValue.drawing.isEmpty
         }
     }
@@ -246,6 +244,7 @@ struct WorkspaceView: View {
             HStack(spacing: 14) {
                 Button { showFormula.toggle() } label: { Label("Formel", systemImage: "function") }
                     .foregroundStyle(showFormula ? accent : .secondary)
+                    .help("Formelleiste: Formelblöcke, Zeichen nach Themengebiet, hoch- und tiefgestellt")
                 Button { showDrawing.toggle() } label: { Label("Skizze", systemImage: "pencil.tip.crop.circle") }
                     .foregroundStyle(showDrawing ? accent : .secondary)
                 Button { createAIPrompt() } label: { Label("KI-Prompt", systemImage: "text.bubble") }
@@ -259,6 +258,7 @@ struct WorkspaceView: View {
                         }
                     }
                 Spacer()
+                formatMenu
                 Menu {
                     ForEach([13.0, 15.0, 18.0, 21.0], id: \.self) { size in
                         Button("\(Int(size)) pt") { fontSize = size }
@@ -267,6 +267,10 @@ struct WorkspaceView: View {
                 .menuStyle(.borderlessButton).fixedSize().help("Schriftgröße der Mitschrift")
             }
             .buttonStyle(.borderless).font(.callout).padding(.horizontal, 22).padding(.vertical, 13)
+            if showFormula {
+                FormulaPalette(insert: notesEditor.insert, isInFormula: notesEditor.isInFormula)
+                    .padding(.horizontal, 16).padding(.bottom, 12)
+            }
             Divider()
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
@@ -278,24 +282,21 @@ struct WorkspaceView: View {
                                 .font(.system(size: fontSize)).foregroundStyle(.secondary)
                                 .padding(.horizontal, 5).padding(.top, 1).allowsHitTesting(false)
                         }
-                        TextEditor(text: notes.text)
-                            .font(.system(size: fontSize)).lineSpacing(5)
-                            .scrollContentBackground(.hidden)
-                            .frame(minHeight: 260)
-                            .focused($notesFocused)
-                            .accessibilityLabel("Mitschrift zu Folie \(session.selection + 1)")
+                        NotesEditor(text: notes.text, fontSize: fontSize,
+                                    accessibilityLabel: "Mitschrift zu Folie \(session.selection + 1)", controller: notesEditor)
                             .id(session.selection)
                     }
-                    if showFormula {
+                    // Formulas used to have a field of their own. They now belong in the text.
+                    if !notes.wrappedValue.formula.isEmpty {
                         sectionHeader("Formel", symbol: "function")
-                        FormulaEditor(formula: notes.formula)
+                        FormulaEditor(formula: notes.formula) { moveFormulaIntoNotes() }
                     }
                     if showDrawing {
                         sectionHeader("Skizze", symbol: "pencil.tip")
                         DrawingEditor(elements: notes.drawing).id(session.selection)
                     }
-                    if !showFormula && !showDrawing && notes.wrappedValue.formula.isEmpty && notes.wrappedValue.drawing.isEmpty {
-                        Text("Manches wird als Formel oder Skizze klarer. Ergänze sie über die Leiste oben.")
+                    if !showFormula && !showDrawing && notes.wrappedValue.drawing.isEmpty {
+                        Text(verbatim: "Formatiere wie im Chat: **fett**, _kursiv_, ~durchgestrichen~, - Stichpunkte. Formeln stehen zwischen $ … $ oder kommen über „Formel“ dazu, Skizzen über „Skizze“.")
                             .font(.callout).foregroundStyle(.secondary).lineSpacing(4)
                     }
                 }.padding(24)
@@ -308,6 +309,38 @@ struct WorkspaceView: View {
             }.font(.caption).foregroundStyle(.secondary).padding(.horizontal, 22).frame(height: 43)
         }
         .background(Color(nsColor: .textBackgroundColor))
+    }
+
+    private var formatMenu: some View {
+        Menu {
+            Button("Fett") { notesEditor.toggle(.bold) }.keyboardShortcut("b")
+            Button("Kursiv") { notesEditor.toggle(.italic) }.keyboardShortcut("i")
+            Button("Durchgestrichen") { notesEditor.toggle(.strike) }
+            Button("Code") { notesEditor.toggle(.code) }
+            Divider()
+            Button("Stichpunkte") { notesEditor.toggleList(numbered: false) }
+            Button("Nummerierte Liste") { notesEditor.toggleList(numbered: true) }
+            Divider()
+            Button("Formelblock") { notesEditor.insert(.block) }
+            Divider()
+            Text("**fett** · _kursiv_ · ~durch~ · `Code`")
+            Text("# Überschrift · - Punkt · 1. Liste · > Zitat")
+            Text("$x^{2}$ im Satz · $$ … $$ als Block")
+        } label: { Image(systemName: "bold.italic.underline") }
+        .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
+        .help("Formatierung der Mitschrift")
+        .accessibilityLabel("Formatierung")
+    }
+
+    /// Moves a formula from the old formula field into the notes, as a block.
+    private func moveFormulaIntoNotes() {
+        var value = notes.wrappedValue
+        let formula = value.formula.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !formula.isEmpty else { return }
+        let text = value.text.trimmingCharacters(in: .newlines)
+        value.text = (text.isEmpty ? "" : text + "\n\n") + "$$ " + formula + " $$"
+        value.formula = ""
+        notes.wrappedValue = value
     }
 
     private func sectionHeader(_ title: String, symbol: String) -> some View {

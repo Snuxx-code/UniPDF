@@ -5,7 +5,7 @@
 ## Benutzen
 
 1. Mit **⌘O** direkt ein Vorlesungs-PDF öffnen. Alternativ **Ablage → Neu** und **Vorlesungs-PDF öffnen** wählen (⌘I).
-2. Links eine Folie auswählen. Rechts Notizen schreiben, mit **Formel** oder **Skizze** weitere Inhalte ergänzen.
+2. Links eine Folie auswählen. Rechts Notizen schreiben und formatieren, mit **Formel** Formeln einsetzen oder mit **Skizze** zeichnen.
 3. Mit **⌘S** oder **Speichern** die geöffnete Datei aktualisieren. Neben dem Namen der Vorlesung oben zeigt ein grauer Punkt ungesicherte Änderungen, ein grüner Haken, dass alles gesichert ist. Bei einer direkt geöffneten PDF wird die ursprüngliche Vorlesungsdatei am selben Pfad durch das Lern-PDF mit Mitschriften ersetzt. Jeder weitere Speichervorgang aktualisiert dieselbe Datei. Die nativen macOS-Sicherungs- und Wiederherstellungsfunktionen verwalten Dokumentänderungen.
 4. Dieselbe PDF später wieder in UniPDF öffnen und weiterbearbeiten. Sie enthält neben den sichtbaren Seiten die Originalfolien, Notizen, Formeln und Skizzen in ihren Metadaten. UniPDF stellt daraus den bearbeitbaren Zustand wieder her; wiederholtes Speichern fügt das Layout nicht mehrfach hinzu.
 5. **Lern-PDF exportieren** (⇧⌘E) erstellt bei Bedarf eine zusätzliche Kopie an einem gewählten Ort. Lange Mitschriften werden auf Fortsetzungsseiten verteilt. Die Folie wird zur Orientierung wiederholt; die Skizze erscheint auf der ersten Seite zur Folie.
@@ -23,7 +23,7 @@ Die Werkzeuge in der Kopfzeile des Folienbereichs legen Anmerkungen auf die Foli
 - **Stift:** frei zeichnen, drei Strichstärken.
 - **Textmarker:** den Marker in der Kopfzeile des Folienbereichs aktivieren und über PDF-Text ziehen. Die ausgewählten Wörter und Zeilen werden hervorgehoben; die Farbe liegt wie bei einem echten Marker hinter der Schrift, sodass der Text dunkel und gut lesbar bleibt. Alternativ zuerst mit dem normalen PDF-Werkzeug Text auswählen und danach auf **Textmarker** klicken. Gelb, Grün, Pink und Blau stehen direkt bereit; über das Farbfeld kannst du eine eigene Farbe wählen. Die Markerfarbe wird unabhängig von der Stiftfarbe gespeichert. Mit **Esc** zum Auswahlwerkzeug zurückkehren; eine Markierung anklicken, um ihre Farbe zu ändern oder sie mit **⌫** zu löschen. Gescannten Folien ohne auswählbaren Text fehlt die nötige Textebene; dort kannst du den Stift verwenden.
 - **Radiergummi:** über Stiftstriche und Textmarkierungen ziehen. In der Zeile unter den Werkzeugen wählst du zwischen zwei Arten: **Präzise** entfernt nur, was er berührt; ein Strich zerfällt in die Teile daneben, und bei Markierungen verschwinden immer ganze Zeichen. **Strich** löscht jeden berührten Strich und jede berührte Markierung ganz. Ein Kreis zeigt seine Größe; **Klein**, **Mittel** und **Groß** stehen zur Wahl. Ein ganzer Zug lässt sich mit **⌘Z** auf einmal widerrufen. Formen, Textfelder und Bilder radiert er nicht weg; diese wählst du an und löschst sie mit **⌫**. Die Skizze in der Mitschrift hat weiter ihre eigenen Schritte zum Entfernen und Wiederherstellen.
-- **Textfeld:** auf die Folie klicken und tippen. Schriftart, Größe, Fett, Kursiv und Unterstrichen gelten für das ganze Textfeld. Ein leeres Textfeld verschwindet wieder. Doppelklick bearbeitet den Text später.
+- **Textfeld:** auf die Folie klicken und tippen. Schriftart, Größe, Fett, Kursiv und Unterstrichen gelten für das ganze Textfeld. Ein leeres Textfeld verschwindet wieder. Doppelklick bearbeitet den Text später. Mit dem **Schloss** am Anfang der Textzeile bleibt das Textwerkzeug aktiv: Jeder weitere Klick auf die Folie beginnt sofort ein neues Textfeld, ein Klick auf ein vorhandenes bearbeitet es. **Esc** wechselt zurück zum Auswählen. Die Einstellung bleibt auch nach einem Neustart erhalten.
 - **Formen:** Rechteck, Quadrat, Kreis, Oval und Linie aufziehen. Der Form-Knopf zeichnet die zuletzt benutzte Form, der Pfeil rechts daneben wählt eine andere. **⇧** hält beim Rechteck und Oval die Proportionen und rastet Linien in 45°-Schritten ein.
 - **Bild:** Das Bildsymbol wählt eine Datei, **⌘V** setzt ein Bild aus der Zwischenablage ein, zum Beispiel einen Bildschirmausschnitt. Sehr große Bilder werden auf 2400 Pixel an der längsten Seite verkleinert.
 - **Farben:** vier feste Farben und eine beliebige Farbe aus dem Farbfeld. Ist der Folienbereich schmal, bleibt beim Text nur das Farbfeld.
@@ -65,14 +65,37 @@ Der Prompt nennt den tatsächlichen Pfad der geöffneten Datei und die aktuelle 
 
 Die Funktion versendet nichts automatisch. Eine KI mit lokalem Dateizugriff kann die genannten Pfade verwenden. Bei einer KI ohne lokalen Dateizugriff die PDF-Kopien zusätzlich anhängen. Temporäre Dateien können vom Betriebssystem später entfernt werden; der Prompt ist für die zeitnahe Verwendung gedacht.
 
+## Formatierung der Mitschrift
+
+Die Mitschrift formatiert sich beim Tippen, ähnlich wie in Chat-Apps. Die Zeichen bleiben dabei blass sichtbar, im Lern-PDF verschwinden sie:
+
+- `**fett**` oder `*fett*`, `_kursiv_`, `~durchgestrichen~` oder `~~durchgestrichen~~`, `` `Code` ``
+- `# Überschrift`, `## kleinere Überschrift`
+- `- Stichpunkt` (auch `*` oder `•`) und `1. Aufzählung`. **Return** setzt die Liste fort, **Return** auf einem leeren Punkt beendet sie.
+- `> Zitat`
+
+**⌘B** und **⌘I** setzen die Zeichen um die Auswahl oder nehmen sie wieder weg. Das Menü mit dem **B I U**-Symbol enthält dieselben Befehle, Listen und eine Kurzübersicht. Die Mitschrift bleibt reiner Text: Ein KI-Prompt oder eine Kopie enthält die Zeichen so, wie du sie geschrieben hast.
+
 ## Formeln
 
-Das Formelfeld zeigt eine Live-Vorschau einer kleinen, offline verfügbaren Notation:
+Formeln stehen mitten in der Mitschrift: im Satz zwischen `$ … $`, als eigener Block zwischen `$$ … $$`. Steht der Cursor nicht in der Formel, zeigt UniPDF sie gesetzt. Ein Klick darauf öffnet wieder die Schreibweise. Während du schreibst, zeigt ein Kästchen direkt darunter die fertige Formel und ändert sich mit jedem Zeichen. Ein Dollarzeichen hinter einer Zahl wie in „5$“ bleibt normaler Text.
+
+**Formel** blendet die Formelleiste ein:
+
+- **Formelblock** fügt am Cursor einen neuen Block auf eigener Zeile ein.
+- Über das Auswahlmenü wählst du ein Themengebiet: Grundlagen, Mengenlehre, Logik, Analysis, Lineare Algebra, Stochastik, Griechisch oder Pfeile. Darunter stehen die häufigsten Zeichen und Vorlagen zum direkten Einsetzen. Das zuletzt gewählte Gebiet bleibt eingestellt.
+- **x²** und **xₙ** stellen hoch und tief. In einer Formel setzen sie `^{}` oder `_{}` am Cursor. Im normalen Text wird das Wort vor dem Cursor zur Basis einer neuen Formel: `x`, dann **x²** und `2` ergibt `$x^{2}$`.
+- **a⁄b** setzt einen Bruch.
+
+Die Notation ist eine kleine, offline verfügbare Teilmenge von LaTeX:
 
 - Potenzen und Indizes: `x^{2}`, `a_{n}`
-- Brüche und Wurzeln: `\frac{a}{b}`, `\sqrt{x}`
-- Griechische Zeichen: `\alpha`, `\beta`, `\theta`, `\pi`, `\sigma`, `\Delta`
-- Operatoren: `\sum`, `\int`, `\infty`, `\cdot`, `\times`, `\pm`, `\leq`, `\geq`, `\neq`, `\approx`
-- Unicode-Zeichen können direkt eingefügt werden. Vorlagen und eine Zeichenpalette stehen bereit.
+- Brüche, Wurzeln, Binomialkoeffizienten: `\frac{a}{b}`, `\sqrt{x}`, `\sqrt[3]{x}`, `\binom{n}{k}`
+- Zahlbereiche: `\mathbb{R}`, `\mathbb{N}`
+- Griechische Zeichen, Operatoren, Pfeile, Logik und Mengen, etwa `\alpha`, `\sum`, `\int`, `\lim`, `\Rightarrow`, `\forall`, `\in`, `\subseteq`, `\cup`, `\emptyset`
+- Funktionen wie `\sin`, `\ln`, `\det` erscheinen aufrecht. `\vec{v}`, `\bar{x}` und `\text{…}` werden ebenfalls unterstützt.
+- Unicode-Zeichen wie ∈ oder ℝ können direkt im Text stehen.
 
-Dies ist kein vollständiges LaTeX. Brüche werden kompakt mit einem Bruchstrich „⁄“ angezeigt. Unbekannte Befehle bleiben als Text erhalten. Der Export verwendet dieselbe Darstellung wie die Vorschau.
+Dies ist kein vollständiges LaTeX. Brüche werden kompakt mit einem Bruchstrich „⁄“ angezeigt. Unbekannte Befehle bleiben als Text erhalten. Der Export verwendet dieselbe Darstellung wie die Mitschrift.
+
+Ältere Projekte hatten ein eigenes Formelfeld. Enthält eine Folie noch eine solche Formel, erscheint sie unter der Mitschrift. **In die Mitschrift übernehmen** setzt sie dort als Formelblock ein.
