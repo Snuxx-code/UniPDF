@@ -70,6 +70,8 @@ struct NotesEditor: NSViewRepresentable {
 private extension NSAttributedString.Key {
     /// On a formula that shows set: its rendering. The layout hides its source.
     static let collapsedFormula = NSAttributedString.Key("UniPDFCollapsedFormula")
+    /// On the dash or asterisk of a bullet: it shows as a dot. The text keeps the character as typed.
+    static let bulletDot = NSAttributedString.Key("UniPDFBulletDot")
 }
 
 /// The set form of one formula. A class, so that two neighbouring formulas stay apart as attribute runs.
@@ -156,6 +158,14 @@ final class NotesTextView: NSTextView, NSLayoutManagerDelegate {
         for marker in NotesMarkup.markers(in: parsed) { storage.addAttribute(.foregroundColor, value: faint, range: marker) }
         for line in parsed.lines where line.kind == .bullet || line.kind == .numbered {
             storage.addAttribute(.foregroundColor, value: accent, range: line.marker)
+            if line.kind == .bullet {
+                let marker = string.substring(with: line.marker) as NSString
+                let dash = marker.rangeOfCharacter(from: CharacterSet(charactersIn: "-*"))
+                if dash.location != NSNotFound {
+                    storage.addAttribute(.bulletDot, value: true,
+                                         range: NSRange(location: line.marker.location + dash.location, length: 1))
+                }
+            }
         }
         for formula in parsed.formulas {
             let source = string.substring(with: formula.source)
@@ -257,16 +267,28 @@ final class NotesTextView: NSTextView, NSLayoutManagerDelegate {
                        font: NSFont, forGlyphRange glyphRange: NSRange) -> Int {
         guard let storage = layoutManager.textStorage else { return 0 }
         var adjusted: [NSLayoutManager.GlyphProperty]?
+        var replaced: [CGGlyph]?
         for offset in 0..<glyphRange.length {
             let index = characterIndexes[offset]
+            if index < storage.length, storage.attribute(.bulletDot, at: index, effectiveRange: nil) != nil {
+                var dot: CGGlyph = 0
+                var character: UniChar = 0x2022
+                if CTFontGetGlyphsForCharacters(font as CTFont, &character, &dot, 1) {
+                    if replaced == nil { replaced = Array(UnsafeBufferPointer(start: glyphs, count: glyphRange.length)) }
+                    replaced?[offset] = dot
+                }
+                continue
+            }
             guard index < storage.length, storage.attribute(.collapsedFormula, at: index, effectiveRange: nil) != nil,
                   let (_, range) = rendering(at: index, in: layoutManager) else { continue }
             if adjusted == nil { adjusted = Array(UnsafeBufferPointer(start: properties, count: glyphRange.length)) }
             // The first character stands for the whole formula; the rest takes no room.
             adjusted?[offset] = index == range.location ? .controlCharacter : .null
         }
-        guard let adjusted else { return 0 }
-        layoutManager.setGlyphs(glyphs, properties: adjusted, characterIndexes: characterIndexes, font: font, forGlyphRange: glyphRange)
+        guard adjusted != nil || replaced != nil else { return 0 }
+        let properties = adjusted ?? Array(UnsafeBufferPointer(start: properties, count: glyphRange.length))
+        let glyphs = replaced ?? Array(UnsafeBufferPointer(start: glyphs, count: glyphRange.length))
+        layoutManager.setGlyphs(glyphs, properties: properties, characterIndexes: characterIndexes, font: font, forGlyphRange: glyphRange)
         return glyphRange.length
     }
 

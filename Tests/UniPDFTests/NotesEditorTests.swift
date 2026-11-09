@@ -31,6 +31,23 @@ struct NotesEditorTests {
         #expect(numbered.string == "3. Drei\n4. ")
     }
 
+    @Test func bulletsShowADotButKeepTheDash() throws {
+        let view = editor("- Punkt\n* Noch einer")
+        let layoutManager = try #require(view.layoutManager)
+        let font = NSFont.systemFont(ofSize: view.fontSize) as CTFont
+        var dot: CGGlyph = 0, dash: CGGlyph = 0
+        var bullet: UniChar = 0x2022, minus: UniChar = 0x2D
+        CTFontGetGlyphsForCharacters(font, &bullet, &dot, 1)
+        CTFontGetGlyphsForCharacters(font, &minus, &dash, 1)
+        for index in [0, 8] {
+            #expect(layoutManager.cgGlyph(at: layoutManager.glyphIndexForCharacter(at: index)) == dot)
+        }
+        #expect(view.string == "- Punkt\n* Noch einer")
+        // A dash inside the text stays a dash.
+        let plain = editor("a - b")
+        #expect(try #require(plain.layoutManager).cgGlyph(at: 2) == dash)
+    }
+
     @Test func boldWrapsTheSelectionAndUnwrapsIt() {
         let view = editor("ganz wichtig")
         view.setSelectedRange(NSRange(location: 5, length: 7))

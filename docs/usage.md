@@ -71,7 +71,7 @@ Die Mitschrift formatiert sich beim Tippen, ähnlich wie in Chat-Apps. Die Zeich
 
 - `**fett**` oder `*fett*`, `_kursiv_`, `~durchgestrichen~` oder `~~durchgestrichen~~`, `` `Code` ``
 - `# Überschrift`, `## kleinere Überschrift`
-- `- Stichpunkt` (auch `*` oder `•`) und `1. Aufzählung`. **Return** setzt die Liste fort, **Return** auf einem leeren Punkt beendet sie.
+- `- Stichpunkt` (auch `*` oder `•`), der Strich erscheint als Punkt, und `1. Aufzählung`. **Return** setzt die Liste fort, **Return** auf einem leeren Punkt beendet sie.
 - `> Zitat`
 
 **⌘B** und **⌘I** setzen die Zeichen um die Auswahl oder nehmen sie wieder weg. Das Menü mit dem **B I U**-Symbol enthält dieselben Befehle, Listen und eine Kurzübersicht. Die Mitschrift bleibt reiner Text: Ein KI-Prompt oder eine Kopie enthält die Zeichen so, wie du sie geschrieben hast.
