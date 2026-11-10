@@ -9,6 +9,10 @@ final class PDFSession {
     var selection = 0
     var tool = AnnotationTool.select { didSet { overlay?.toolDidChange() } }
     var lastShape = SlideShape.rectangle
+    /// Whether the text tool stays active after a text box, so that the next click starts another one.
+    var keepsTextTool = UserDefaults.standard.bool(forKey: "keepsTextTool") {
+        didSet { UserDefaults.standard.set(keepsTextTool, forKey: "keepsTextTool") }
+    }
     /// Defaults for new annotations, and what the bar shows for the selected one.
     var style = AnnotationStyle()
     var selectedAnnotation: UUID?
@@ -36,6 +40,12 @@ final class PDFSession {
     func move(_ offset: Int) {
         guard let document, document.pageCount > 0 else { return }
         selection = min(max(selection + offset, 0), document.pageCount - 1)
+    }
+
+    func toggleTextToolLock() {
+        keepsTextTool.toggle()
+        // Locking while writing in a box: the next click already starts a new one.
+        if keepsTextTool, tool == .select, selectedKind == .text { tool = .text }
     }
 
     func activateHighlighter() {

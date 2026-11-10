@@ -26,7 +26,16 @@ struct SlideToolBar: View {
                 iconButton("Textmarker", symbol: "highlighter", selected: session.tool == .highlight) { session.activateHighlighter() }
                     .help("Textmarker: PDF-Text auswählen und hervorheben. Eine bestehende Textauswahl wird sofort markiert.")
                 toolButton(.eraser, "Radiergummi für Stift und Textmarker", symbol: "eraser")
-                toolButton(.text, "Textfeld", symbol: "textbox")
+                toolButton(.text, session.keepsTextTool ? "Textfeld (fixiert)" : "Textfeld", symbol: "textbox")
+                    .overlay(alignment: .bottomTrailing) {
+                        if session.keepsTextTool {
+                            Image(systemName: "lock.fill")
+                                .font(.system(size: 7, weight: .bold))
+                                .foregroundStyle(session.tool == .text ? AnyShapeStyle(.white) : AnyShapeStyle(.secondary))
+                                .offset(x: -4, y: -4)
+                                .accessibilityHidden(true)
+                        }
+                    }
             }
             shapeCapsule
             ToolCapsule {
@@ -124,6 +133,7 @@ private struct ToolCapsule<Content: View>: View {
 struct AnnotationSettingsBar: View {
     let session: PDFSession
     var swatches = true
+    @Environment(\.colorScheme) private var colorScheme
 
     private static let fontFamilies = NSFontManager.shared.availableFontFamilies.filter { !$0.hasPrefix(".") }.sorted()
     private static let fontSizes: [Double] = [10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 48, 64, 72, 96]
@@ -172,6 +182,7 @@ struct AnnotationSettingsBar: View {
                 lineWidthPicker
                 colors(swatches: true)
             case .text:
+                textToolLock
                 fontControls
                 colors(swatches: swatches)
             case .highlight:
@@ -258,6 +269,22 @@ struct AnnotationSettingsBar: View {
             ), supportsOpacity: !highlighter)
             .labelsHidden().help("Beliebige Farbe wählen")
         }
+    }
+
+    private var textToolLock: some View {
+        let isOn = session.keepsTextTool
+        return Button { session.toggleTextToolLock() } label: {
+            let green = Color.studyAccent(for: colorScheme)
+            Image(systemName: isOn ? "lock.fill" : "lock.open")
+                .frame(width: 24, height: 24)
+                .background(isOn ? green.opacity(0.14) : .clear, in: RoundedRectangle(cornerRadius: 5))
+                .foregroundStyle(isOn ? green : .primary)
+                .contentShape(Rectangle())
+        }
+        .help(isOn ? "Textwerkzeug bleibt aktiv: Jeder Klick auf die Folie beginnt ein neues Textfeld. Zum Lösen klicken."
+                   : "Textwerkzeug fixieren, um mehrere Textfelder nacheinander zu schreiben")
+        .accessibilityLabel("Textwerkzeug fixieren")
+        .accessibilityAddTraits(isOn ? .isSelected : [])
     }
 
     private var fontControls: some View {

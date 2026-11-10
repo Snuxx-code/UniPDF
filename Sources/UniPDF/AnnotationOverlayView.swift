@@ -541,7 +541,7 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
             draft = SlideAnnotation(content: .shape(shape, start: point, end: point, color: session.style.color, width: session.style.lineWidth))
             drag = .draw(start: point)
         case .text:
-            session.tool = .select
+            if !session.keepsTextTool { session.tool = .select }
             if let hit = annotation(at: view), case .text = hit.content {
                 select(hit.id)
                 beginEditing(hit)

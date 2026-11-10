@@ -438,6 +438,25 @@ import UniPDFCore
         #expect(string == "Eingefügter Text")
     }
 
+    @Test func aLockedTextToolStaysActiveForTheNextBox() throws {
+        for locked in [false, true] {
+            let harness = try Harness()
+            let previous = harness.session.keepsTextTool
+            defer { harness.session.keepsTextTool = previous }
+            harness.session.keepsTextTool = locked
+            harness.session.tool = .text
+            try harness.click(CGPoint(x: 100, y: 100))
+            let editor = try #require(harness.window.firstResponder as? NSTextView)
+            editor.insertText("Erstes", replacementRange: editor.selectedRange())
+            harness.update()
+            try harness.click(CGPoint(x: 400, y: 300))
+            #expect(harness.session.tool == (locked ? .text : .select))
+            // Locked, the click starts the next box right away; otherwise it only ends the first.
+            #expect((harness.window.firstResponder is NSTextView) == locked)
+            #expect(harness.committed.count == 1)
+        }
+    }
+
     @Test func unreadableImagesReportAnError() throws {
         let harness = try Harness()
         harness.canvas.overlay.insertImage(Data("kein Bild".utf8))
