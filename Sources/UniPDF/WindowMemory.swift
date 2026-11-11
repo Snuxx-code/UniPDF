@@ -82,8 +82,11 @@ struct EditorWidthMemory: NSViewRepresentable {
 
         @objc private func splitChanged(_ notification: Notification) {
             guard !isApplying else { return }
-            // Only a dragged divider names its index. Every other change is the window around it.
-            if notification.userInfo?["NSSplitViewDividerIndex"] != nil, let width = splitView?.arrangedSubviews.last?.frame.width {
+            // Only a divider dragged by hand changes the remembered width. Every other change, such as the window
+            // resizing or the notes being hidden and shown again, gets the remembered width back.
+            let dragged = [.leftMouseDragged, .leftMouseUp].contains(NSApp.currentEvent?.type)
+            if notification.userInfo?["NSSplitViewDividerIndex"] != nil, dragged, let splitView, splitView.arrangedSubviews.count >= 2,
+               let width = splitView.arrangedSubviews.last?.frame.width {
                 UserDefaults.standard.set(Double(width), forKey: EditorWidthMemory.key)
                 NotificationCenter.default.post(name: Self.widthChanged, object: self)
             } else {
@@ -97,7 +100,7 @@ struct EditorWidthMemory: NSViewRepresentable {
 
         private func apply() {
             let width = UserDefaults.standard.double(forKey: EditorWidthMemory.key)
-            guard width > 0, let splitView, let editor = splitView.arrangedSubviews.last else { return }
+            guard width > 0, let splitView, splitView.arrangedSubviews.count >= 2, let editor = splitView.arrangedSubviews.last else { return }
             let position = EditorWidthMemory.dividerPosition(totalWidth: splitView.bounds.width, editorWidth: width,
                                                              dividerThickness: splitView.dividerThickness)
             let current = editor.frame.minX - splitView.dividerThickness

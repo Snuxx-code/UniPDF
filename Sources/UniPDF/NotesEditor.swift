@@ -236,6 +236,13 @@ struct CommentContext {
     var toggle: (UUID) -> Void
 }
 
+/// The card in the notes keeps the normal pointer, apart from the text field inside it.
+final class CardHostingView: NSHostingView<CommentCard> {
+    override func resetCursorRects() {
+        addCursorRect(bounds, cursor: .arrow)
+    }
+}
+
 final class NotesTextView: NSTextView, NSLayoutManagerDelegate {
     weak var controller: NotesEditorController?
     var fontSize: CGFloat = 15
@@ -272,7 +279,7 @@ final class NotesTextView: NSTextView, NSLayoutManagerDelegate {
             return (tag.id, tagRendering, origin.x + line.minX + position.x, origin.y + line.minY + position.y)
         }
     }
-    private var card: (id: UUID, view: NSHostingView<CommentCard>)?
+    private var card: (id: UUID, view: CardHostingView)?
     private var cardHeight: CGFloat = 140
     private var layingOutCard = false
     /// Between a change of the text and its new styling, the parsed tags are out of date.
@@ -297,14 +304,14 @@ final class NotesTextView: NSTextView, NSLayoutManagerDelegate {
             setText: { text in var changed = comment; changed.text = text; comments.update(id, changed) },
             setColor: { color in var changed = comment; changed.color = color; comments.update(id, changed) },
             jump: { comments.jump(id) }, delete: { comments.delete(id) }, collapse: { comments.toggle(id) })
-        let hosting: NSHostingView<CommentCard>
+        let hosting: CardHostingView
         var isNew = false
         if let card, card.id == id {
             hosting = card.view
             hosting.rootView = root
         } else {
             card?.view.removeFromSuperview()
-            hosting = NSHostingView(rootView: root)
+            hosting = CardHostingView(rootView: root)
             addSubview(hosting)
             card = (id, hosting)
             isNew = true
@@ -324,6 +331,8 @@ final class NotesTextView: NSTextView, NSLayoutManagerDelegate {
         let last = max(min(NSMaxRange(paragraph) - 1, length - 1), tag.range.location)
         let line = layoutManager.lineFragmentUsedRect(forGlyphAt: layoutManager.glyphIndexForCharacter(at: last), effectiveRange: nil)
         hosting.frame = NSRect(x: textContainerOrigin.x + inset, y: textContainerOrigin.y + line.maxY + 9, width: width, height: height)
+        window?.invalidateCursorRects(for: self)
+        window?.invalidateCursorRects(for: hosting)
         invalidateIntrinsicContentSize()
         if isNew { DispatchQueue.main.async { [weak self] in self?.scrollToVisible(hosting.frame.insetBy(dx: 0, dy: -12)) } }
         if controller?.focusComment == id {
@@ -511,6 +520,7 @@ final class NotesTextView: NSTextView, NSLayoutManagerDelegate {
         invalidateIntrinsicContentSize()
         needsDisplay = true
         layoutCard()
+        window?.invalidateCursorRects(for: self)
     }
 
     private func isEditing(_ formula: NotesMarkup.Formula, selection: NSRange) -> Bool {
@@ -702,10 +712,52 @@ final class NotesTextView: NSTextView, NSLayoutManagerDelegate {
         super.mouseDown(with: event)
     }
 
+    /// The text cursor only where there is text: not beside or below it, not over tags, set formulas or a card.
+    var textCursorRects: [NSRect] {
+        guard let layoutManager, let textContainer else { return [] }
+        layoutManager.ensureLayout(for: textContainer)
+        let origin = textContainerOrigin
+        var lines: [NSRect] = []
+        if (string as NSString).length == 0 {
+            // An empty field still takes a click on its first line.
+            let height = AnnotationRenderer.textHeight("", style: SlideTextStyle(size: Double(fontSize)), width: 100)
+            lines.append(NSRect(x: origin.x, y: origin.y, width: bounds.width - 2 * origin.x, height: height))
+        } else {
+            layoutManager.enumerateLineFragments(forGlyphRange: layoutManager.glyphRange(for: textContainer)) { _, used, _, _, _ in
+                if used.width > 0 { lines.append(used.offsetBy(dx: origin.x, dy: origin.y)) }
+            }
+        }
+        let excluded = tagRects.map(\.rect) + drawnFormulas.map(\.rect) + (card.map { [$0.view.frame] } ?? [])
+        return lines.flatMap { line in
+            // What lies on the line comes out of it, leaving the pieces of text beside it.
+            excluded.filter { $0.intersects(line) }.sorted { $0.minX < $1.minX }.reduce(into: [line]) { pieces, cut in
+                guard let last = pieces.popLast() else { return }
+                if cut.minX > last.minX { pieces.append(NSRect(x: last.minX, y: last.minY, width: cut.minX - last.minX, height: last.height)) }
+                if cut.maxX < last.maxX { pieces.append(NSRect(x: cut.maxX, y: last.minY, width: last.maxX - cut.maxX, height: last.height)) }
+            }
+        }.filter { $0.width > 0.5 }
+    }
+
     override func resetCursorRects() {
-        super.resetCursorRects()
-        for formula in drawnFormulas { addCursorRect(formula.rect, cursor: .pointingHand) }
-        for tag in tagRects { addCursorRect(tag.rect, cursor: .pointingHand) }
+        // Not the text view's own rect over all of it: elsewhere the normal pointer stays.
+        for rect in textCursorRects { addCursorRect(rect, cursor: .iBeam) }
+    }
+
+    /// The text view also sets its cursor while the mouse moves; this keeps it to the text.
+    private func updateCursor(at point: NSPoint) {
+        (textCursorRects.contains { $0.contains(point) } ? NSCursor.iBeam : NSCursor.arrow).set()
+    }
+
+    override func cursorUpdate(with event: NSEvent) {
+        updateCursor(at: convert(event.locationInWindow, from: nil))
+    }
+
+    override func mouseMoved(with event: NSEvent) {
+        super.mouseMoved(with: event)
+        let point = convert(event.locationInWindow, from: nil)
+        // Over the card, its own views decide.
+        if let card, card.view.frame.contains(point) { return }
+        updateCursor(at: point)
     }
 
     // MARK: Size

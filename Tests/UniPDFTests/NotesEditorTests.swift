@@ -78,6 +78,22 @@ struct NotesEditorTests {
         #expect(toggled == [id])
     }
 
+    @Test func theTextCursorIsOnlyOverText() {
+        let id = UUID()
+        let view = editor("Vor \(CommentLinks.token(for: id)) nach")
+        view.comments = CommentContext(comments: [id: SlideComment(rects: [CGRect(x: 0, y: 0, width: 10, height: 10)], quote: "Stelle")],
+                                       expanded: nil, update: { _, _ in }, delete: { _ in }, jump: { _ in }, toggle: { _ in })
+        view.restyle()
+        let tag = try! #require(view.tagRects.first?.rect)
+        let text = view.textCursorRects
+        // The text before and after the tag, not the tag itself, nor the empty space below.
+        #expect(text.count == 2)
+        #expect(!text.contains { $0.intersects(tag.insetBy(dx: 1, dy: 1)) })
+        #expect(!text.contains { $0.contains(NSPoint(x: 20, y: 200)) })
+        // An empty field still offers its first line.
+        #expect(editor("").textCursorRects.count == 1)
+    }
+
     @Test func boldWrapsTheSelectionAndUnwrapsIt() {
         let view = editor("ganz wichtig")
         view.setSelectedRange(NSRange(location: 5, length: 7))
