@@ -31,7 +31,9 @@ public enum PDFExporter {
             let numbers = Dictionary(uniqueKeysWithValues: comments.enumerated().map { ($1.id, $0 + 1) })
             let content = NSMutableAttributedString(attributedString: NotesMarkup.rendered(
                 notes.text, appearance: .print(size: 11.5),
-                comments: Dictionary(uniqueKeysWithValues: comments.enumerated().map { ($1.id, ($0 + 1, $1.comment.color.strong)) })))
+                comments: Dictionary(uniqueKeysWithValues: comments.enumerated().map {
+                    ($1.id, NotesMarkup.CommentMark(number: $0 + 1, label: $1.comment.label, color: $1.comment.color))
+                })))
             if !comments.isEmpty { content.append(footnotes(comments)) }
             if !notes.formula.isEmpty {
                 content.append(NSAttributedString(string: "\n\n", attributes: [.font: NSFont.systemFont(ofSize: 11)]))
@@ -71,6 +73,8 @@ public enum PDFExporter {
                 let textBottom: CGFloat = hasDrawing ? 257 : 55
                 let textRect = CGRect(x: 526, y: textBottom, width: 283, height: 500 - textBottom)
                 let frame = CTFramesetterCreateFrame(framesetter, CFRange(location: offset, length: 0), CGPath(rect: textRect, transform: nil), nil)
+                // Beneath the text: the tags' pastel and the bars beside the comments.
+                drawCommentDecorations(frame, content: content, in: textRect, context: context)
                 context.textMatrix = .identity
                 CTFrameDraw(frame, context)
                 let visible = CTFrameGetVisibleStringRange(frame)
@@ -96,7 +100,19 @@ public enum PDFExporter {
         return output as Data
     }
 
-    /// The comments beneath the notes: number, the passage, then the comment, formatted like the notes.
+    /// Marks a comment's footnote, so that a bar in its colour runs along all of it.
+    static let barKey = NSAttributedString.Key("UniPDFCommentBar")
+
+    /// One footnote's bar; a class, so that two footnotes in the same colour stay apart.
+    final class CommentBar: NSObject {
+        let color: NSColor
+        init(_ color: NSColor) { self.color = color }
+    }
+
+    static let footnoteIndent: CGFloat = 10
+
+    /// The comments beneath the notes: each its tag, as in the app, then the comment formatted like the notes,
+    /// with a bar in the comment's colour beside all of it.
     static func footnotes(_ comments: [(id: UUID, comment: SlideComment)]) -> NSAttributedString {
         let result = NSMutableAttributedString()
         let spacing = NSMutableParagraphStyle()
@@ -105,23 +121,70 @@ public enum PDFExporter {
             .font: NSFont.systemFont(ofSize: 9, weight: .medium), .foregroundColor: NSColor.darkGray, .paragraphStyle: spacing
         ]))
         for (index, (_, comment)) in comments.enumerated() {
+            let footnote = NSMutableAttributedString()
             let head = NSMutableParagraphStyle()
-            head.paragraphSpacingBefore = 7
-            result.append(NSAttributedString(string: "\n\(index + 1)  ", attributes: [
-                .font: NSFont.systemFont(ofSize: 10, weight: .bold), .foregroundColor: comment.color.strong.nsColor, .paragraphStyle: head
-            ]))
-            let quote = comment.isArea ? "Bereich auf der Folie" : "„\(comment.quote.split(whereSeparator: \.isWhitespace).joined(separator: " "))“"
-            result.append(NSAttributedString(string: quote, attributes: [
-                .font: NSFontManager.shared.convert(NSFont.systemFont(ofSize: 10), toHaveTrait: .italicFontMask),
-                .foregroundColor: NSColor.darkGray, .paragraphStyle: head
-            ]))
+            head.paragraphSpacingBefore = 9
+            head.paragraphSpacing = 2
+            footnote.append(NotesMarkup.chip(NotesMarkup.CommentMark(number: index + 1, label: comment.label, color: comment.color), size: 9.5))
+            footnote.addAttribute(.paragraphStyle, value: head, range: NSRange(location: 0, length: footnote.length))
             let body = comment.text.trimmingCharacters(in: .whitespacesAndNewlines)
             if !body.isEmpty {
-                result.append(NSAttributedString(string: "\n", attributes: [.font: NSFont.systemFont(ofSize: 4)]))
-                result.append(NotesMarkup.rendered(body, appearance: .print(size: 11)))
+                footnote.append(NSAttributedString(string: "\n", attributes: [.font: NSFont.systemFont(ofSize: 11), .paragraphStyle: head]))
+                footnote.append(NotesMarkup.rendered(body, appearance: .print(size: 11)))
             }
+            // Every paragraph of the footnote moves in, to leave room for the bar.
+            let all = NSRange(location: 0, length: footnote.length)
+            footnote.enumerateAttribute(.paragraphStyle, in: all) { value, range, _ in
+                let paragraph = (value as? NSParagraphStyle)?.mutableCopy() as? NSMutableParagraphStyle ?? NSMutableParagraphStyle()
+                paragraph.headIndent += footnoteIndent
+                paragraph.firstLineHeadIndent += footnoteIndent
+                paragraph.tabStops = paragraph.tabStops.map { NSTextTab(textAlignment: $0.alignment, location: $0.location + footnoteIndent) }
+                footnote.addAttribute(.paragraphStyle, value: paragraph, range: range)
+            }
+            footnote.addAttribute(barKey, value: CommentBar(comment.color.strong.nsColor), range: all)
+            result.append(NSAttributedString(string: "\n", attributes: [.font: NSFont.systemFont(ofSize: 4)]))
+            result.append(footnote)
         }
         return result
+    }
+
+    /// Paints the pastel of the tags and the bars of the footnotes on one page, before its text.
+    static func drawCommentDecorations(_ frame: CTFrame, content: NSAttributedString, in rect: CGRect, context: CGContext) {
+        let lines = CTFrameGetLines(frame) as? [CTLine] ?? []
+        guard !lines.isEmpty else { return }
+        var origins = [CGPoint](repeating: .zero, count: lines.count)
+        CTFrameGetLineOrigins(frame, CFRange(location: 0, length: 0), &origins)
+        var bars: [(bar: CommentBar, top: CGFloat, bottom: CGFloat)] = []
+        for (line, origin) in zip(lines, origins) {
+            var ascent: CGFloat = 0, descent: CGFloat = 0, leading: CGFloat = 0
+            CTLineGetTypographicBounds(line, &ascent, &descent, &leading)
+            let baseline = rect.minY + origin.y
+            let range = CTLineGetStringRange(line)
+            guard range.length > 0, range.location < content.length else { continue }
+            // The bar follows every line of its footnote.
+            if let bar = content.attribute(barKey, at: range.location, effectiveRange: nil) as? CommentBar {
+                if let last = bars.last, last.bar === bar { bars[bars.count - 1].bottom = baseline - descent }
+                else { bars.append((bar, baseline + ascent, baseline - descent)) }
+            }
+            for run in CTLineGetGlyphRuns(line) as? [CTRun] ?? [] {
+                let runRange = CTRunGetStringRange(run)
+                guard runRange.location < content.length,
+                      let fill = content.attribute(NotesMarkup.chipKey, at: runRange.location, effectiveRange: nil) as? NSColor else { continue }
+                var runAscent: CGFloat = 0, runDescent: CGFloat = 0
+                let width = CTRunGetTypographicBounds(run, CFRange(location: 0, length: 0), &runAscent, &runDescent, nil)
+                let x = rect.minX + origin.x + CTLineGetOffsetForStringIndex(line, runRange.location, nil)
+                let chip = CGRect(x: x, y: baseline - runDescent - 1.5, width: width, height: runAscent + runDescent + 3)
+                context.setFillColor(fill.cgColor)
+                context.addPath(CGPath(roundedRect: chip, cornerWidth: 3.5, cornerHeight: 3.5, transform: nil))
+                context.fillPath()
+            }
+        }
+        for (bar, top, bottom) in bars {
+            let line = CGRect(x: rect.minX + 1, y: bottom, width: 2.5, height: top - bottom)
+            context.setFillColor(bar.color.cgColor)
+            context.addPath(CGPath(roundedRect: line, cornerWidth: 1.25, cornerHeight: 1.25, transform: nil))
+            context.fillPath()
+        }
     }
 
     private static func drawLabel(_ text: String, in rect: CGRect, size: CGFloat, context: CGContext) {

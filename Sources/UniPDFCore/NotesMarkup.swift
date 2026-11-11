@@ -217,9 +217,34 @@ public enum NotesMarkup {
     // MARK: Rendering
 
     /// The finished notes for the exported PDF: styled, without markers, with formulas set.
-    /// Comment tags become their number in the comment's colour; tags without a comment disappear.
+    /// How a comment's tag looks in the study PDF: its number and the beginning of the passage, as in the app.
+    public struct CommentMark: Sendable {
+        public var number: Int
+        public var label: String
+        public var color: CommentColor
+        public init(number: Int, label: String, color: CommentColor) {
+            self.number = number; self.label = label; self.color = color
+        }
+    }
+
+    /// On the text of a tag in the study PDF: the pastel the exporter paints beneath it, with rounded corners.
+    public static let chipKey = NSAttributedString.Key("UniPDFCommentChip")
+
+    /// A comment's tag as text: number and passage in the darker shade, marked for its pastel background.
+    /// Narrow spaces at both ends give the background room around the text; no space in it breaks,
+    /// so that a tag stays on one line.
+    public static func chip(_ mark: CommentMark, size: CGFloat) -> NSAttributedString {
+        let text = "\(mark.number) · \(mark.label)".replacingOccurrences(of: " ", with: "\u{00A0}")
+        return NSAttributedString(string: "\u{202F}\(text)\u{202F}", attributes: [
+            .font: NSFont.systemFont(ofSize: size, weight: .semibold),
+            .foregroundColor: mark.color.strong.nsColor,
+            chipKey: mark.color.pastel.nsColor
+        ])
+    }
+
+    /// Comment tags become tags as in the app; tags without a comment disappear.
     public static func rendered(_ text: String, appearance: Appearance,
-                                comments: [UUID: (number: Int, color: AnnotationColor)] = [:]) -> NSAttributedString {
+                                comments: [UUID: CommentMark] = [:]) -> NSAttributedString {
         let parsed = parse(text)
         let result = NSMutableAttributedString(string: text)
         style(result, parsed: parsed, appearance: appearance)
@@ -244,10 +269,12 @@ public enum NotesMarkup {
         }
         for tag in parsed.comments {
             if let comment = comments[tag.id] {
-                edits.append(.replace(tag.range, NSAttributedString(string: "\(comment.number)", attributes: [
-                    .font: NSFont.systemFont(ofSize: appearance.size * 0.7, weight: .bold),
-                    .foregroundColor: comment.color.nsColor, .baselineOffset: appearance.size * 0.35
-                ])))
+                let chip = NSMutableAttributedString(attributedString: chip(comment, size: appearance.size * 0.85))
+                // Keeps the paragraph's indent and spacing.
+                if let paragraph = result.attribute(.paragraphStyle, at: tag.range.location, effectiveRange: nil) {
+                    chip.addAttribute(.paragraphStyle, value: paragraph, range: NSRange(location: 0, length: chip.length))
+                }
+                edits.append(.replace(tag.range, chip))
             } else {
                 edits.append(.delete(tag.range))
             }
