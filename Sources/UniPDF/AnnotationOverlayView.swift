@@ -23,6 +23,22 @@ struct AnnotationStyle: Equatable {
 
 /// The PDF with the annotation layer on top. Siblings, because PDFView manages its own subviews.
 final class SlideCanvasView: NSView {
+    /// Shows a search hit on the slide: its text selected, or its text box selected.
+    func reveal(_ reveal: SearchReveal) {
+        switch reveal.source {
+        case .slide:
+            guard let page = pdfView.document?.page(at: reveal.page),
+                  NSMaxRange(reveal.range) <= (page.string as NSString?)?.length ?? 0,
+                  let selection = page.selection(for: reveal.range) else { return }
+            pdfView.go(to: selection)
+            pdfView.setCurrentSelection(selection, animate: true)
+        case .textBox(let id):
+            overlay.reveal(id)
+        case .notes:
+            break
+        }
+    }
+
     let pdfView = SlidePDFView()
     let highlights = HighlightLayerView()
     let overlay: AnnotationOverlayView
@@ -175,6 +191,13 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
     private func commit() {
         onChange?(annotations)
         needsDisplay = true
+    }
+
+    /// Selects an annotation found by the search, with the arrow, so that it can be edited right away.
+    func reveal(_ id: UUID) {
+        guard annotation(id) != nil else { return }
+        if session.tool != .select { session.tool = .select }
+        select(id)
     }
 
     private func select(_ id: UUID?) {
@@ -480,10 +503,32 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
         } ?? hits.last
     }
 
+    /// How far around a text box's edge a click grabs the box instead of its text.
+    /// Small boxes keep most of their area for the text.
+    private func borderWidth(of rect: CGRect) -> CGFloat {
+        min(6, max(rect.height, 1) * 0.2, max(rect.width, 1) * 0.2)
+    }
+
+    /// The topmost text box at a point, and whether the point is on its edge rather than on its text.
+    private func textBox(at view: CGPoint) -> (annotation: SlideAnnotation, onBorder: Bool)? {
+        for annotation in annotations.reversed() {
+            guard case .text(_, let frame, _, _) = annotation.content else { continue }
+            let rect = viewRect(frame)
+            let border = borderWidth(of: rect)
+            guard rect.insetBy(dx: -6, dy: -6).contains(view) else { continue }
+            return (annotation, !rect.insetBy(dx: border, dy: border).contains(view))
+        }
+        return nil
+    }
+
     override func hitTest(_ point: NSPoint) -> NSView? {
         guard let superview else { return nil }
         let local = convert(point, from: superview)
-        if let editor, editor.frame.contains(local) { return super.hitTest(point) }
+        // The edge of the box being written in moves it; inside, the text view takes the click.
+        if let editor, editor.frame.contains(local) {
+            let border = borderWidth(of: editor.frame)
+            if editor.frame.insetBy(dx: border, dy: border).contains(local) { return super.hitTest(point) }
+        }
         // Everything else, such as scrolling and zooming, belongs to the PDF.
         switch NSApp.currentEvent?.type {
         case .leftMouseDown:
@@ -527,6 +572,7 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
                 select(hit.id)
                 if event.clickCount == 2, case .text = hit.content {
                     beginEditing(hit)
+                    placeCaret(for: event)
                 } else {
                     drag = .move(original: hit, start: point, moved: false)
                 }
@@ -542,9 +588,16 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
             drag = .draw(start: point)
         case .text:
             if !session.keepsTextTool { session.tool = .select }
-            if let hit = annotation(at: view), case .text = hit.content {
+            if let (hit, onBorder) = textBox(at: view) {
                 select(hit.id)
-                beginEditing(hit)
+                if onBorder {
+                    // The edge grabs the box, as the arrow would.
+                    drag = .move(original: hit, start: point, moved: false)
+                    NSCursor.closedHand.set()
+                } else {
+                    beginEditing(hit)
+                    placeCaret(for: event)
+                }
             } else {
                 beginNewText(at: point)
             }
@@ -658,7 +711,10 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
     override func mouseMoved(with event: NSEvent) {
         let view = convert(event.locationInWindow, from: nil)
         var cursor: NSCursor?
-        if let geometry, geometry.rect.contains(view), editor == nil {
+        if let geometry, geometry.rect.contains(view), session.tool == .text || editor != nil,
+           let box = textBox(at: view), box.onBorder {
+            cursor = .openHand
+        } else if let geometry, geometry.rect.contains(view), editor == nil {
             switch session.tool {
             case .pen, .shape, .eraser: cursor = .crosshair
             case .text, .highlight: cursor = .iBeam
@@ -842,6 +898,15 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
         let frame = CGRect(x: min(point.x, max(size.width - width, 0)), y: max(point.y - lineHeight / 2, 0), width: width, height: lineHeight)
         select(nil)
         beginEditing(SlideAnnotation(content: .text("", frame: frame, style: style, color: session.style.color)))
+    }
+
+    /// Puts the caret where the click was, instead of selecting all; a double click selects the word.
+    private func placeCaret(for event: NSEvent) {
+        guard let editor else { return }
+        let index = editor.characterIndexForInsertion(at: editor.convert(event.locationInWindow, from: nil))
+        var range = NSRange(location: min(index, (editor.string as NSString).length), length: 0)
+        if event.clickCount == 2 { range = editor.selectionRange(forProposedRange: range, granularity: .selectByWord) }
+        editor.setSelectedRange(range)
     }
 
     private func beginEditing(_ annotation: SlideAnnotation) {

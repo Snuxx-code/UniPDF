@@ -21,6 +21,11 @@ struct NotesEditor: NSViewRepresentable {
     var fontSize: CGFloat
     var accessibilityLabel: String
     let controller: NotesEditorController
+    var page = 0
+    /// Matches of the document search, marked in the text.
+    var searchQuery = ""
+    var reveal: SearchReveal?
+    var revealed: () -> Void = {}
     @Environment(\.colorScheme) private var colorScheme
 
     func makeCoordinator() -> Coordinator { Coordinator(text: $text) }
@@ -48,7 +53,17 @@ struct NotesEditor: NSViewRepresentable {
         if view.fontSize != fontSize { view.fontSize = fontSize; changed = true }
         let accent = NSColor(Color.studyAccent(for: colorScheme))
         if view.accent != accent { view.accent = accent; changed = true }
+        if view.searchQuery != searchQuery { view.searchQuery = searchQuery; changed = true }
         if changed { view.restyle() }
+        if let reveal, reveal.page == page, reveal.source == .notes, view.lastReveal != reveal.token {
+            view.lastReveal = reveal.token
+            let revealed = revealed
+            // After SwiftUI has laid out the text, so that it can scroll to the hit.
+            DispatchQueue.main.async {
+                view.reveal(reveal.range)
+                revealed()
+            }
+        }
     }
 
     func sizeThatFits(_ proposal: ProposedViewSize, nsView: NotesTextView, context: Context) -> CGSize? {
@@ -98,6 +113,8 @@ final class NotesTextView: NSTextView, NSLayoutManagerDelegate {
     weak var controller: NotesEditorController?
     var fontSize: CGFloat = 15
     var accent: NSColor = .controlAccentColor
+    var searchQuery = ""
+    var lastReveal: UUID?
     private(set) var parsed = NotesMarkup.Parsed()
     /// The formulas showing as source, because the caret is inside them.
     private var expanded: [NSRange] = []
@@ -210,6 +227,12 @@ final class NotesTextView: NSTextView, NSLayoutManagerDelegate {
                 }
             }
         }
+        let query = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !query.isEmpty {
+            for hit in TextSearch.hits(for: query, pageTexts: [""], pages: [0: { var notes = PageNotes(); notes.text = storage.string; return notes }()]) {
+                storage.addAttribute(.backgroundColor, value: NSColor.systemYellow.withAlphaComponent(0.35), range: hit.range)
+            }
+        }
         storage.endEditing()
 
         let base = NSMutableParagraphStyle()
@@ -239,6 +262,19 @@ final class NotesTextView: NSTextView, NSLayoutManagerDelegate {
         let now = parsed.formulas.filter { isEditing($0, selection: selection) }.map(\.range)
         if now != expanded { restyle() }
         controller?.isInFormula = NotesMarkup.formula(containing: selection.location, in: parsed) != nil
+    }
+
+    /// Shows a search hit: selected, scrolled into view and briefly pulsing, without taking the focus from the search field.
+    func reveal(_ range: NSRange) {
+        guard NSMaxRange(range) <= (string as NSString).length else { return }
+        setSelectedRange(range)
+        scrollRangeToVisible(range)
+        if let layoutManager, let textContainer {
+            let rect = layoutManager.boundingRect(forGlyphRange: layoutManager.glyphRange(forCharacterRange: range, actualCharacterRange: nil),
+                                                  in: textContainer).offsetBy(dx: textContainerOrigin.x, dy: textContainerOrigin.y)
+            scrollToVisible(rect.insetBy(dx: 0, dy: -40))
+        }
+        showFindIndicator(for: range)
     }
 
     override func viewDidChangeEffectiveAppearance() {
