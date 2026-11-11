@@ -48,6 +48,36 @@ struct NotesEditorTests {
         #expect(try #require(plain.layoutManager).cgGlyph(at: 2) == dash)
     }
 
+    @Test func commentTagsAreOnePieceForTheCaretAndForDeleting() {
+        let id = UUID()
+        let token = CommentLinks.token(for: id)
+        let view = editor("Vor \(token) nach")
+        let tag = NSRange(location: 4, length: (token as NSString).length)
+        // The caret cannot stop inside.
+        view.setSelectedRange(NSRange(location: 3, length: 0))
+        view.setSelectedRange(NSRange(location: 10, length: 0))
+        #expect(view.selectedRange().location == NSMaxRange(tag))
+        // Backspace behind the tag removes all of it.
+        view.deleteBackward(nil)
+        #expect(view.string == "Vor  nach")
+    }
+
+    @Test func clickingATagTogglesItsCard() {
+        let id = UUID()
+        let view = editor("Text \(CommentLinks.token(for: id))")
+        var toggled: [UUID] = []
+        view.comments = CommentContext(comments: [id: SlideComment(rects: [CGRect(x: 0, y: 0, width: 10, height: 10)], quote: "Stelle")],
+                                       expanded: nil, update: { _, _ in }, delete: { _ in }, jump: { _ in },
+                                       toggle: { toggled.append($0) })
+        view.restyle()
+        view.display()
+        let tagRect = view.tagRects.first?.rect ?? .zero
+        #expect(tagRect.width > 20)
+        #expect(view.toggleTag(at: NSPoint(x: tagRect.midX, y: tagRect.midY)))
+        #expect(!view.toggleTag(at: NSPoint(x: tagRect.maxX + 40, y: tagRect.midY)))
+        #expect(toggled == [id])
+    }
+
     @Test func boldWrapsTheSelectionAndUnwrapsIt() {
         let view = editor("ganz wichtig")
         view.setSelectedRange(NSRange(location: 5, length: 7))

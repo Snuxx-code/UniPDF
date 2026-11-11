@@ -35,6 +35,7 @@ Eine Folie und deine Gedanken stehen direkt nebeneinander. Aus deiner Mitschrift
 | **Mitschriften pro Folie** | Getippte Notizen neben der passenden Folie, formatiert wie im Chat mit `**fett**`, `_kursiv_` und `- Stichpunkten`; die Breite beider Bereiche ist anpassbar. |
 | **Direkt auf der Folie markieren** | PDF-Text mit dem Textmarker hervorheben oder mit Stift, Textfeldern, Formen und Bildern ergänzen; der Radiergummi entfernt Teile von Strichen und Markierungen. Markierungen bleiben bearbeitbar. |
 | **Formeln und Skizzen** | Formelblöcke mitten im Text, eine Formelleiste mit Zeichen nach Themengebiet und eine eigene Zeichenfläche mit Stift, Linien, Pfeilen und Formen. |
+| **Textstellen kommentieren** | Text markieren, Rechtsklick → Kommentieren (⌥⌘M): Die Stelle wird pastellfarben hinterlegt, in der Mitschrift erscheint ein Tag, der sich zur Kommentar-Karte aufklappen lässt. Auch Bereiche ohne Text lassen sich kommentieren. |
 | **Im Dokument suchen** | ⌘F durchsucht Folientext, Mitschriften und Textfelder; die Treffer stehen nach Folien geordnet in der Seitenleiste. |
 | **Alles in einer PDF** | Folien, Anmerkungen und Mitschriften gemeinsam speichern oder als zusätzliche Lern-PDF exportieren. |
 | **Bibliothek und Tabs** | Vorlesungen in Ordnern, als Kacheln oder Liste verwalten und mehrere Dateien parallel öffnen. |

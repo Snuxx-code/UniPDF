@@ -70,7 +70,7 @@ private func allText(on page: PDFPage) throws -> PDFSelection {
         let again = try StudyPDF.open(PDFExporter.export(reopened))
         #expect(again.pages[0] == notes)
         #expect(again.pdfData == original)
-        #expect(again.version == 3)
+        #expect(again.version == StudyProject.currentVersion)
         #expect(!notes.isEmpty)
     }
 
@@ -99,7 +99,7 @@ private func allText(on page: PDFPage) throws -> PDFSelection {
         project.version = 2
         let restored = try StudyProject.decode(project.encoded())
         #expect(restored.title == project.title)
-        #expect(restored.version == 3)
+        #expect(restored.version == StudyProject.currentVersion)
     }
 }
 

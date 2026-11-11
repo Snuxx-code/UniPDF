@@ -6,6 +6,7 @@ public enum TextSearch {
         case slide
         case notes
         case textBox(UUID)
+        case comment(UUID)
     }
 
     public struct Hit: Hashable, Sendable, Identifiable {
@@ -35,6 +36,9 @@ public enum TextSearch {
             for annotation in notes.annotations {
                 guard case .text(let string, _, _, _) = annotation.content else { continue }
                 hits += find(needle, in: string, page: page, source: .textBox(annotation.id), limit: limit - hits.count)
+            }
+            for (id, comment) in CommentLinks.ordered(notes) {
+                hits += find(needle, in: comment.text, page: page, source: .comment(id), limit: limit - hits.count)
             }
             hits += find(needle, in: notes.text, page: page, source: .notes, limit: limit - hits.count)
             if hits.count >= limit { break }

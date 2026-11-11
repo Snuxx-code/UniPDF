@@ -26,6 +26,8 @@ struct SlideToolBar: View {
                 iconButton("Textmarker", symbol: "highlighter", selected: session.tool == .highlight) { session.activateHighlighter() }
                     .help("Textmarker: PDF-Text auswählen und hervorheben. Eine bestehende Textauswahl wird sofort markiert.")
                 toolButton(.eraser, "Radiergummi für Stift und Textmarker", symbol: "eraser")
+                iconButton("Kommentieren", symbol: "text.bubble", selected: session.tool == .comment) { session.activateComment() }
+                    .help("Kommentieren (⌥⌘M): Text auswählen oder über Text ziehen. Auf freier Fläche entsteht ein Bereich, ⌥ erzwingt ihn.")
                 toolButton(.text, session.keepsTextTool ? "Textfeld (fixiert)" : "Textfeld", symbol: "textbox")
                     .overlay(alignment: .bottomTrailing) {
                         if session.keepsTextTool {
@@ -144,6 +146,7 @@ struct AnnotationSettingsBar: View {
         case .text: .text
         case .highlight: .highlight
         case .eraser: .eraser
+        case .comment: .comment
         case .select: session.selectedKind
         }
     }
@@ -197,6 +200,12 @@ struct AnnotationSettingsBar: View {
                 .labelsHidden().fixedSize()
                 .help("Präzise entfernt nur, was der Radiergummi berührt, bei Markierungen ganze Zeichen. Strich entfernt jeden berührten Strich und jede berührte Markierung ganz.")
                 eraserSizePicker
+            case .comment:
+                commentColors
+                if session.tool == .comment {
+                    Text("Über Text ziehen kommentiert die Stelle, auf freier Fläche einen Bereich")
+                        .foregroundStyle(.secondary).lineLimit(1).truncationMode(.tail)
+                }
             case .image, nil:
                 EmptyView()
             }
@@ -237,6 +246,27 @@ struct AnnotationSettingsBar: View {
             Text("Groß").tag(radii[2])
         }
         .labelsHidden().fixedSize().help("Größe des Radiergummis")
+    }
+
+    /// Pastel, like the comments themselves.
+    private var commentColors: some View {
+        HStack(spacing: 2) {
+            ForEach(CommentColor.allCases, id: \.self) { color in
+                let isCurrent = session.style.commentColor == color
+                Button { binding(\.commentColor).wrappedValue = color } label: {
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color(nsColor: color.pastel.nsColor))
+                        .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color(nsColor: color.strong.nsColor).opacity(0.6), lineWidth: 1))
+                        .frame(width: 17, height: 15)
+                        .padding(3)
+                        .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(isCurrent ? Color.primary : .clear, lineWidth: 1))
+                        .contentShape(Rectangle())
+                }
+                .help(color.label)
+                .accessibilityLabel("Kommentarfarbe \(color.label)")
+                .accessibilityAddTraits(isCurrent ? .isSelected : [])
+            }
+        }
     }
 
     private func colors(swatches: Bool, highlighter: Bool = false) -> some View {

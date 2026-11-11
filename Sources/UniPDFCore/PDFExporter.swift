@@ -27,7 +27,12 @@ public enum PDFExporter {
         for index in 0..<source.pageCount {
             guard let page = source.page(at: index), let pageRef = page.pageRef else { throw ProjectError.invalidPDF }
             let notes = project.pages[index] ?? PageNotes()
-            let content = NSMutableAttributedString(attributedString: NotesMarkup.rendered(notes.text, appearance: .print(size: 11.5)))
+            let comments = CommentLinks.ordered(notes)
+            let numbers = Dictionary(uniqueKeysWithValues: comments.enumerated().map { ($1.id, $0 + 1) })
+            let content = NSMutableAttributedString(attributedString: NotesMarkup.rendered(
+                notes.text, appearance: .print(size: 11.5),
+                comments: Dictionary(uniqueKeysWithValues: comments.enumerated().map { ($1.id, ($0 + 1, $1.comment.color.strong)) })))
+            if !comments.isEmpty { content.append(footnotes(comments)) }
             if !notes.formula.isEmpty {
                 content.append(NSAttributedString(string: "\n\n", attributes: [.font: NSFont.systemFont(ofSize: 11)]))
                 content.append(MathNotation.formatted(notes.formula, size: 16))
@@ -57,7 +62,7 @@ public enum PDFExporter {
                 context.restoreGState()
                 // The transform accounts for rotation and does not enlarge small pages, so ask it where the slide went.
                 AnnotationRenderer.draw(notes.annotations, in: context, slideSize: page.displayedSlideSize,
-                                        target: pageRef.getBoxRect(.cropBox).applying(slideTransform))
+                                        target: pageRef.getBoxRect(.cropBox).applying(slideTransform), commentNumbers: numbers)
                 context.setStrokeColor(NSColor(white: 0.85, alpha: 1).cgColor)
                 context.setLineWidth(0.5)
                 context.move(to: CGPoint(x: 509, y: 55)); context.addLine(to: CGPoint(x: 509, y: 505)); context.strokePath()
@@ -89,6 +94,34 @@ public enum PDFExporter {
         context.closePDF()
         guard output.length > 0 else { throw ProjectError.exportFailed }
         return output as Data
+    }
+
+    /// The comments beneath the notes: number, the passage, then the comment, formatted like the notes.
+    static func footnotes(_ comments: [(id: UUID, comment: SlideComment)]) -> NSAttributedString {
+        let result = NSMutableAttributedString()
+        let spacing = NSMutableParagraphStyle()
+        spacing.paragraphSpacingBefore = 10
+        result.append(NSAttributedString(string: "\n\nKOMMENTARE", attributes: [
+            .font: NSFont.systemFont(ofSize: 9, weight: .medium), .foregroundColor: NSColor.darkGray, .paragraphStyle: spacing
+        ]))
+        for (index, (_, comment)) in comments.enumerated() {
+            let head = NSMutableParagraphStyle()
+            head.paragraphSpacingBefore = 7
+            result.append(NSAttributedString(string: "\n\(index + 1)  ", attributes: [
+                .font: NSFont.systemFont(ofSize: 10, weight: .bold), .foregroundColor: comment.color.strong.nsColor, .paragraphStyle: head
+            ]))
+            let quote = comment.isArea ? "Bereich auf der Folie" : "„\(comment.quote.split(whereSeparator: \.isWhitespace).joined(separator: " "))“"
+            result.append(NSAttributedString(string: quote, attributes: [
+                .font: NSFontManager.shared.convert(NSFont.systemFont(ofSize: 10), toHaveTrait: .italicFontMask),
+                .foregroundColor: NSColor.darkGray, .paragraphStyle: head
+            ]))
+            let body = comment.text.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !body.isEmpty {
+                result.append(NSAttributedString(string: "\n", attributes: [.font: NSFont.systemFont(ofSize: 4)]))
+                result.append(NotesMarkup.rendered(body, appearance: .print(size: 11)))
+            }
+        }
+        return result
     }
 
     private static func drawLabel(_ text: String, in rect: CGRect, size: CGFloat, context: CGContext) {

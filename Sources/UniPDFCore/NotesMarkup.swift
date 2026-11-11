@@ -30,7 +30,14 @@ public enum NotesMarkup {
         public var marker: NSRange
     }
 
+    /// A comment's tag, `[[kommentar:…]]`, which the editor shows as a coloured tag.
+    public struct CommentTag: Sendable, Equatable {
+        public var range: NSRange
+        public var id: UUID
+    }
+
     public struct Parsed: Sendable, Equatable {
+        public var comments: [CommentTag] = []
         public var formulas: [Formula] = []
         public var spans: [Span] = []
         public var lines: [Line] = []
@@ -69,7 +76,11 @@ public enum NotesMarkup {
         var taken: [NSRange] = []
         func isFree(_ range: NSRange) -> Bool { !taken.contains { NSIntersectionRange($0, range).length > 0 } }
 
-        for match in blockFormula.matches(in: text, range: all) {
+        for (range, id) in CommentLinks.tokens(in: text) {
+            parsed.comments.append(CommentTag(range: range, id: id))
+            taken.append(range)
+        }
+        for match in blockFormula.matches(in: text, range: all) where isFree(match.range) {
             parsed.formulas.append(Formula(range: match.range, source: match.range(at: 1), isBlock: true))
             taken.append(match.range)
         }
@@ -206,7 +217,9 @@ public enum NotesMarkup {
     // MARK: Rendering
 
     /// The finished notes for the exported PDF: styled, without markers, with formulas set.
-    public static func rendered(_ text: String, appearance: Appearance) -> NSAttributedString {
+    /// Comment tags become their number in the comment's colour; tags without a comment disappear.
+    public static func rendered(_ text: String, appearance: Appearance,
+                                comments: [UUID: (number: Int, color: AnnotationColor)] = [:]) -> NSAttributedString {
         let parsed = parse(text)
         let result = NSMutableAttributedString(string: text)
         style(result, parsed: parsed, appearance: appearance)
@@ -228,6 +241,16 @@ public enum NotesMarkup {
             let marker = string.substring(with: line.marker).trimmingCharacters(in: .whitespaces)
             let attributes = result.attributes(at: line.marker.location, effectiveRange: nil)
             edits.append(.replace(line.marker, NSAttributedString(string: marker + "\t", attributes: attributes)))
+        }
+        for tag in parsed.comments {
+            if let comment = comments[tag.id] {
+                edits.append(.replace(tag.range, NSAttributedString(string: "\(comment.number)", attributes: [
+                    .font: NSFont.systemFont(ofSize: appearance.size * 0.7, weight: .bold),
+                    .foregroundColor: comment.color.nsColor, .baselineOffset: appearance.size * 0.35
+                ])))
+            } else {
+                edits.append(.delete(tag.range))
+            }
         }
         for formula in parsed.formulas {
             let source = string.substring(with: formula.source)

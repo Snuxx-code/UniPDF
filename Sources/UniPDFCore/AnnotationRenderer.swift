@@ -28,14 +28,54 @@ public enum AnnotationRenderer {
 
     /// Draws annotations onto a slide occupying `target` of a context with a bottom-left origin,
     /// such as a PDF page or a thumbnail.
-    public static func draw(_ annotations: [SlideAnnotation], in context: CGContext, slideSize: CGSize, target: CGRect) {
+    /// With `commentNumbers`, comments carry their number, as their footnotes in the study PDF do.
+    public static func draw(_ annotations: [SlideAnnotation], in context: CGContext, slideSize: CGSize, target: CGRect,
+                            commentNumbers: [UUID: Int] = [:]) {
         guard slideSize.width > 0 else { return }
         context.saveGState()
         context.clip(to: target)
         context.translateBy(x: target.minX, y: target.maxY)
         context.scaleBy(x: target.width / slideSize.width, y: -target.height / slideSize.height)
         draw(annotations, in: context)
+        drawCommentNumbers(annotations, numbers: commentNumbers, in: context)
         context.restoreGState()
+    }
+
+    /// Rounded like the tags in the notes, but never rounder than half a line.
+    static func commentPath(_ rects: [CGRect], isArea: Bool) -> CGPath {
+        let path = CGMutablePath()
+        for rect in rects {
+            let padded = isArea ? rect : rect.insetBy(dx: -1.5, dy: -0.5)
+            let radius = min(isArea ? 8 : 4, padded.height / 2, padded.width / 2)
+            path.addRoundedRect(in: padded, cornerWidth: radius, cornerHeight: radius)
+        }
+        return path
+    }
+
+    private static func drawCommentNumbers(_ annotations: [SlideAnnotation], numbers: [UUID: Int], in context: CGContext) {
+        guard !numbers.isEmpty else { return }
+        for annotation in annotations {
+            guard case .comment(let comment) = annotation.content, let number = numbers[annotation.id],
+                  let first = comment.rects.first else { continue }
+            let size = min(max(first.height * 0.55, 7), 12)
+            let label = NSAttributedString(string: "\(number)", attributes: [
+                .font: NSFont.systemFont(ofSize: size, weight: .bold), .foregroundColor: comment.color.strong.nsColor
+            ])
+            let line = CTLineCreateWithAttributedString(label)
+            let width = CTLineGetTypographicBounds(line, nil, nil, nil)
+            let tag = CGRect(x: first.minX - 2, y: first.minY - size * 1.15 - 1, width: width + size * 0.8, height: size * 1.25)
+            context.saveGState()
+            context.setFillColor(comment.color.pastel.nsColor.cgColor)
+            context.addPath(CGPath(roundedRect: tag, cornerWidth: tag.height / 2, cornerHeight: tag.height / 2, transform: nil))
+            context.fillPath()
+            // The context is flipped; text is drawn upright.
+            context.translateBy(x: tag.minX + size * 0.4, y: tag.maxY - size * 0.3)
+            context.scaleBy(x: 1, y: -1)
+            context.textMatrix = .identity
+            context.textPosition = .zero
+            CTLineDraw(line, context)
+            context.restoreGState()
+        }
     }
 
     /// Draws annotations into a context whose coordinates already are slide points with a top-left origin.
@@ -45,6 +85,17 @@ public enum AnnotationRenderer {
 
     public static func draw(_ annotations: [SlideAnnotation], in context: CGContext, layer: Layer = .all) {
         // Highlights sit beneath handwritten strokes, text boxes and inserted images.
+        // Comments lie beneath the text like highlights; their pastel multiplies with the slide.
+        for annotation in annotations where layer != .marks {
+            guard case .comment(let comment) = annotation.content else { continue }
+            context.saveGState()
+            context.setBlendMode(.multiply)
+            context.setAlpha(comment.isArea ? 0.45 : 0.9)
+            context.setFillColor(comment.color.pastel.nsColor.cgColor)
+            context.addPath(commentPath(comment.rects, isArea: comment.isArea))
+            context.fillPath()
+            context.restoreGState()
+        }
         for annotation in annotations where layer != .marks {
             guard case .highlight(let rects, let color) = annotation.content else { continue }
             context.saveGState()
@@ -61,6 +112,13 @@ public enum AnnotationRenderer {
             switch annotation.content {
             case .highlight:
                 continue
+            case .comment(let comment):
+                context.saveGState()
+                context.setStrokeColor(comment.color.strong.nsColor.withAlphaComponent(0.8).cgColor)
+                context.setLineWidth(comment.isArea ? 1.5 : 1)
+                context.addPath(commentPath(comment.rects, isArea: comment.isArea))
+                context.strokePath()
+                context.restoreGState()
             case .ink(_, let color, let width), .shape(_, _, _, let color, let width):
                 guard let outline = annotation.outline else { continue }
                 context.saveGState()

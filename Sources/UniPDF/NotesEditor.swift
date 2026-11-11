@@ -5,9 +5,23 @@ import UniPDFCore
 /// Connects the formula palette and the format buttons with the notes editor of the current slide.
 @Observable
 final class NotesEditorController {
+    /// The editor the formula palette writes into: the notes, or a comment card that has the focus.
     weak var textView: NotesTextView?
+    /// The notes of the current slide themselves.
+    weak var notesView: NotesTextView?
     /// Whether the caret is inside a formula.
     var isInFormula = false
+    /// The comment whose card is open in the notes.
+    var expandedComment: UUID?
+    /// A card whose text should get the focus once it is open, such as a new comment's.
+    var focusComment: UUID?
+    /// Where the caret was put in the notes by hand, so that a new comment's tag lands there.
+    var notesCaret: Int?
+
+    func expand(_ id: UUID?, focus: Bool = false) {
+        expandedComment = id
+        focusComment = focus ? id : nil
+    }
 
     func insert(_ insertion: FormulaInsertion) { textView?.insert(insertion) }
     func toggle(_ style: NotesMarkup.Style) { textView?.toggle(style) }
@@ -26,6 +40,9 @@ struct NotesEditor: NSViewRepresentable {
     var searchQuery = ""
     var reveal: SearchReveal?
     var revealed: () -> Void = {}
+    /// The slide's comments, for the tags and their cards. Only the notes have them, not a comment card.
+    var comments: CommentContext?
+    var minimumHeight: CGFloat = 260
     @Environment(\.colorScheme) private var colorScheme
 
     func makeCoordinator() -> Coordinator { Coordinator(text: $text) }
@@ -38,14 +55,25 @@ struct NotesEditor: NSViewRepresentable {
         view.accent = NSColor(Color.studyAccent(for: colorScheme))
         view.string = text
         view.setAccessibilityLabel(accessibilityLabel)
+        view.minimumHeight = minimumHeight
+        view.comments = comments
         view.restyle()
-        controller.textView = view
+        if comments != nil {
+            controller.notesView = view
+            controller.notesCaret = nil
+            controller.textView = view
+        } else if controller.textView == nil {
+            controller.textView = view
+        }
         return view
     }
 
     func updateNSView(_ view: NotesTextView, context: Context) {
         context.coordinator.text = $text
-        controller.textView = view
+        if comments != nil {
+            controller.notesView = view
+            if controller.textView == nil { controller.textView = view }
+        }
         view.controller = controller
         view.setAccessibilityLabel(accessibilityLabel)
         var changed = false
@@ -54,7 +82,11 @@ struct NotesEditor: NSViewRepresentable {
         let accent = NSColor(Color.studyAccent(for: colorScheme))
         if view.accent != accent { view.accent = accent; changed = true }
         if view.searchQuery != searchQuery { view.searchQuery = searchQuery; changed = true }
+        if view.minimumHeight != minimumHeight { view.minimumHeight = minimumHeight; changed = true }
+        if view.comments?.comments != comments?.comments || view.comments?.expanded != comments?.expanded { changed = true }
+        view.comments = comments
         if changed { view.restyle() }
+        view.layoutCard()
         if let reveal, reveal.page == page, reveal.source == .notes, view.lastReveal != reveal.token {
             view.lastReveal = reveal.token
             let revealed = revealed
@@ -89,24 +121,119 @@ private extension NSAttributedString.Key {
     static let bulletDot = NSAttributedString.Key("UniPDFBulletDot")
 }
 
-/// The set form of one formula. A class, so that two neighbouring formulas stay apart as attribute runs.
-private final class FormulaRendering: NSObject {
-    let line: CTLine
+/// What the notes show in place of hidden source: a set formula or a comment's tag.
+/// A class, so that two neighbours stay apart as attribute runs.
+private class InlineRendering: NSObject {
     let width: CGFloat
     let ascent: CGFloat
     let descent: CGFloat
     let isBlock: Bool
 
+    init(width: CGFloat, ascent: CGFloat, descent: CGFloat, isBlock: Bool) {
+        self.width = width; self.ascent = ascent; self.descent = descent; self.isBlock = isBlock
+    }
+
+    /// Draws with the baseline at `y`, in the text view's flipped coordinates.
+    func draw(in context: CGContext, x: CGFloat, baseline y: CGFloat) {}
+}
+
+private final class FormulaRendering: InlineRendering {
+    let line: CTLine
+
     init(_ math: NSAttributedString, isBlock: Bool) {
         line = CTLineCreateWithAttributedString(math)
         var ascent: CGFloat = 0, descent: CGFloat = 0, leading: CGFloat = 0
-        width = CTLineGetTypographicBounds(line, &ascent, &descent, &leading)
+        let width = CTLineGetTypographicBounds(line, &ascent, &descent, &leading)
         // Superscripts lie above the font's ascent.
         let bounds = CTLineGetBoundsWithOptions(line, [.useGlyphPathBounds])
-        self.ascent = max(ascent, bounds.maxY)
-        self.descent = max(descent, -bounds.minY)
-        self.isBlock = isBlock
+        super.init(width: width, ascent: max(ascent, bounds.maxY), descent: max(descent, -bounds.minY), isBlock: isBlock)
     }
+
+    override func draw(in context: CGContext, x: CGFloat, baseline y: CGFloat) {
+        context.saveGState()
+        // Upright, so that superscripts go up: the view itself is flipped.
+        context.translateBy(x: x, y: y)
+        context.scaleBy(x: 1, y: -1)
+        context.textMatrix = .identity
+        context.textPosition = .zero
+        CTLineDraw(line, context)
+        context.restoreGState()
+    }
+}
+
+/// A comment's tag: its colour's pastel behind, the passage in the darker shade, rounded, without a border.
+private final class TagRendering: InlineRendering {
+    let id: UUID
+    let line: CTLine
+    let icon: NSImage?
+    let chevron: NSImage?
+    let fill: NSColor
+    let ink: NSColor
+    let textWidth: CGFloat
+    let iconSize: CGFloat
+    static let margin: CGFloat = 2
+    static let padding: CGFloat = 7
+
+    init(id: UUID, label: String, color: CommentColor?, size: CGFloat, dark: Bool, expanded: Bool) {
+        self.id = id
+        let strong = color?.strong.nsColor ?? .secondaryLabelColor
+        let pastel = color?.pastel.nsColor ?? NSColor.secondaryLabelColor.withAlphaComponent(0.15)
+        fill = color == nil ? pastel : dark ? strong.withAlphaComponent(0.32) : pastel
+        ink = color == nil ? .secondaryLabelColor : dark ? pastel : strong
+        let font = NSFont.systemFont(ofSize: size * 0.82, weight: .semibold)
+        line = CTLineCreateWithAttributedString(NSAttributedString(string: label, attributes: [.font: font, .foregroundColor: ink]))
+        var ascent: CGFloat = 0, descent: CGFloat = 0, leading: CGFloat = 0
+        textWidth = CTLineGetTypographicBounds(line, &ascent, &descent, &leading)
+        iconSize = size * 0.78
+        let configuration = NSImage.SymbolConfiguration(pointSize: iconSize, weight: .semibold)
+            .applying(.init(paletteColors: [ink]))
+        icon = NSImage(systemSymbolName: color == nil ? "exclamationmark.bubble" : "text.bubble.fill", accessibilityDescription: nil)?
+            .withSymbolConfiguration(configuration)
+        chevron = NSImage(systemSymbolName: expanded ? "chevron.up" : "chevron.down", accessibilityDescription: nil)?
+            .withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: size * 0.55, weight: .bold).applying(.init(paletteColors: [ink])))
+        let vertical: CGFloat = 3
+        let chevronWidth = (chevron?.size.width ?? 0) + 5
+        super.init(width: Self.margin * 2 + Self.padding * 2 + iconSize + 4 + textWidth + chevronWidth,
+                   ascent: ascent + vertical, descent: descent + vertical, isBlock: false)
+    }
+
+    /// The tag itself, without the margin around it.
+    func chip(x: CGFloat, baseline y: CGFloat) -> NSRect {
+        NSRect(x: x + Self.margin, y: y - ascent, width: width - 2 * Self.margin, height: ascent + descent)
+    }
+
+    override func draw(in context: CGContext, x: CGFloat, baseline y: CGFloat) {
+        let rect = chip(x: x, baseline: y)
+        fill.setFill()
+        NSBezierPath(roundedRect: rect, xRadius: 6, yRadius: 6).fill()
+        var cursor = rect.minX + Self.padding
+        if let icon {
+            let height = icon.size.height * iconSize / max(icon.size.width, 1)
+            icon.draw(in: NSRect(x: cursor, y: rect.midY - height / 2, width: iconSize, height: height))
+        }
+        cursor += iconSize + 4
+        context.saveGState()
+        context.translateBy(x: cursor, y: y)
+        context.scaleBy(x: 1, y: -1)
+        context.textMatrix = .identity
+        context.textPosition = .zero
+        CTLineDraw(line, context)
+        context.restoreGState()
+        if let chevron {
+            cursor += textWidth + 5
+            chevron.draw(in: NSRect(x: cursor, y: rect.midY - chevron.size.height / 2, width: chevron.size.width, height: chevron.size.height))
+        }
+    }
+}
+
+/// What a slide's comments need in the notes: the comments, the open card, and what the card can do.
+struct CommentContext {
+    var comments: [UUID: SlideComment]
+    var expanded: UUID?
+    var update: (UUID, SlideComment) -> Void
+    var delete: (UUID) -> Void
+    var jump: (UUID) -> Void
+    var toggle: (UUID) -> Void
 }
 
 final class NotesTextView: NSTextView, NSLayoutManagerDelegate {
@@ -123,7 +250,133 @@ final class NotesTextView: NSTextView, NSLayoutManagerDelegate {
     /// While a formula is being written: how it will look, shown beneath it.
     private var previews: [(formula: NotesMarkup.Formula, rendering: FormulaRendering)] = []
     private static let previewPadding: CGFloat = 6
-    private static let minimumHeight: CGFloat = 260
+    var minimumHeight: CGFloat = 260
+    var comments: CommentContext?
+    /// Where tags were drawn, so that a click on one opens its card.
+    /// Where the tags are, from the layout, for clicks and the pointer.
+    var tagRects: [(rect: NSRect, id: UUID)] {
+        guard let layoutManager, let textContainer else { return [] }
+        layoutManager.ensureLayout(for: textContainer)
+        return tagPlacements(layoutManager).map { ($0.rendering.chip(x: $0.x, baseline: $0.baseline), $0.id) }
+    }
+
+    private func tagPlacements(_ layoutManager: NSLayoutManager) -> [(id: UUID, rendering: TagRendering, x: CGFloat, baseline: CGFloat)] {
+        let length = (string as NSString).length
+        let origin = textContainerOrigin
+        return parsed.comments.compactMap { tag in
+            guard NSMaxRange(tag.range) <= length, let (rendering, range) = self.rendering(at: tag.range.location, in: layoutManager),
+                  range.location == tag.range.location, let tagRendering = rendering as? TagRendering else { return nil }
+            let glyph = layoutManager.glyphIndexForCharacter(at: range.location)
+            let line = layoutManager.lineFragmentRect(forGlyphAt: glyph, effectiveRange: nil)
+            let position = layoutManager.location(forGlyphAt: glyph)
+            return (tag.id, tagRendering, origin.x + line.minX + position.x, origin.y + line.minY + position.y)
+        }
+    }
+    private var card: (id: UUID, view: NSHostingView<CommentCard>)?
+    private var cardHeight: CGFloat = 140
+    private var layingOutCard = false
+    /// Between a change of the text and its new styling, the parsed tags are out of date.
+    private var pendingEdit = false
+    private var expandingTag = false
+
+    /// Opens, moves and sizes the card of the expanded comment beneath its tag's line.
+    func layoutCard() {
+        guard !layingOutCard else { return }
+        layingOutCard = true
+        defer { layingOutCard = false }
+        let length = (string as NSString).length
+        guard let comments, let id = comments.expanded, let tag = parsed.comments.first(where: { $0.id == id }),
+              let comment = comments.comments[id], NSMaxRange(tag.range) <= length,
+              let layoutManager, let textContainer else {
+            card?.view.removeFromSuperview()
+            card = nil
+            return
+        }
+        let root = CommentCard(
+            comment: comment, fontSize: max(fontSize - 1, 11), controller: controller,
+            setText: { text in var changed = comment; changed.text = text; comments.update(id, changed) },
+            setColor: { color in var changed = comment; changed.color = color; comments.update(id, changed) },
+            jump: { comments.jump(id) }, delete: { comments.delete(id) }, collapse: { comments.toggle(id) })
+        let hosting: NSHostingView<CommentCard>
+        var isNew = false
+        if let card, card.id == id {
+            hosting = card.view
+            hosting.rootView = root
+        } else {
+            card?.view.removeFromSuperview()
+            hosting = NSHostingView(rootView: root)
+            addSubview(hosting)
+            card = (id, hosting)
+            isNew = true
+        }
+        let inset = textContainer.lineFragmentPadding
+        let width = max(bounds.width - 2 * (textContainerOrigin.x + inset), 160)
+        // The card's height at this width; its text grows it.
+        let height = ceil(NSHostingController(rootView: root).sizeThatFits(in: NSSize(width: width, height: 10_000)).height)
+        if abs(height - cardHeight) > 0.5 {
+            cardHeight = height
+            layingOutCard = false
+            restyle()
+            return
+        }
+        layoutManager.ensureLayout(for: textContainer)
+        let paragraph = (string as NSString).paragraphRange(for: NSRange(location: tag.range.location, length: 0))
+        let last = max(min(NSMaxRange(paragraph) - 1, length - 1), tag.range.location)
+        let line = layoutManager.lineFragmentUsedRect(forGlyphAt: layoutManager.glyphIndexForCharacter(at: last), effectiveRange: nil)
+        hosting.frame = NSRect(x: textContainerOrigin.x + inset, y: textContainerOrigin.y + line.maxY + 9, width: width, height: height)
+        invalidateIntrinsicContentSize()
+        if isNew { DispatchQueue.main.async { [weak self] in self?.scrollToVisible(hosting.frame.insetBy(dx: 0, dy: -12)) } }
+        if controller?.focusComment == id {
+            controller?.focusComment = nil
+            focusCard(hosting, attempts: 20)
+        }
+    }
+
+    /// The open card belongs to the notes for VoiceOver too.
+    override func accessibilityChildren() -> [Any]? {
+        var children = super.accessibilityChildren() ?? []
+        if let card { children.append(card.view) }
+        return children
+    }
+
+    /// SwiftUI builds the card's text view a moment later; until then the focus waits.
+    private func focusCard(_ hosting: NSView, attempts: Int) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+            guard let self, hosting.superview === self else { return }
+            if let editor = Self.firstNotesView(in: hosting), let window = editor.window {
+                window.makeFirstResponder(editor)
+            } else if attempts > 0 {
+                self.focusCard(hosting, attempts: attempts - 1)
+            }
+        }
+    }
+
+    private static func firstNotesView(in view: NSView) -> NotesTextView? {
+        for subview in view.subviews {
+            if let found = subview as? NotesTextView ?? firstNotesView(in: subview) { return found }
+        }
+        return nil
+    }
+
+    /// A tag is one piece: an edit that touches part of it takes all of it.
+    override func shouldChangeText(in range: NSRange, replacementString: String?) -> Bool {
+        if !expandingTag {
+            let touched = parsed.comments.filter {
+                let overlap = NSIntersectionRange($0.range, range).length
+                return overlap > 0 && overlap < $0.range.length
+            }
+            if !touched.isEmpty {
+                let whole = touched.reduce(range) { NSUnionRange($0, $1.range) }
+                expandingTag = true
+                insertText(replacementString ?? "", replacementRange: whole)
+                expandingTag = false
+                return false
+            }
+        }
+        let allowed = super.shouldChangeText(in: range, replacementString: replacementString)
+        if allowed { pendingEdit = true }
+        return allowed
+    }
 
     static func make() -> NotesTextView {
         // TextKit 1, whose layout manager can hide the source of a formula.
@@ -134,7 +387,7 @@ final class NotesTextView: NSTextView, NSLayoutManagerDelegate {
         container.widthTracksTextView = true
         container.lineFragmentPadding = 5
         layout.addTextContainer(container)
-        let view = NotesTextView(frame: NSRect(x: 0, y: 0, width: 400, height: minimumHeight), textContainer: container)
+        let view = NotesTextView(frame: NSRect(x: 0, y: 0, width: 400, height: 260), textContainer: container)
         layout.delegate = view
         view.isRichText = false
         view.importsGraphics = false
@@ -227,6 +480,22 @@ final class NotesTextView: NSTextView, NSLayoutManagerDelegate {
                 }
             }
         }
+        let dark = effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        for tag in parsed.comments {
+            let comment = comments?.comments[tag.id]
+            let expanded = comments?.expanded == tag.id && comment != nil
+            let rendering = TagRendering(id: tag.id, label: comment?.label ?? "Kommentar fehlt", color: comment?.color,
+                                         size: fontSize, dark: dark, expanded: expanded)
+            storage.addAttribute(.collapsedFormula, value: rendering, range: tag.range)
+            if expanded {
+                // Room beneath the tag's line for its card.
+                let paragraphRange = string.paragraphRange(for: NSRange(location: tag.range.location, length: 0))
+                let paragraph = (storage.attribute(.paragraphStyle, at: paragraphRange.location, effectiveRange: nil)
+                                 as? NSParagraphStyle)?.mutableCopy() as? NSMutableParagraphStyle ?? NSMutableParagraphStyle()
+                paragraph.paragraphSpacing = cardHeight + 18
+                storage.addAttribute(.paragraphStyle, value: paragraph, range: paragraphRange)
+            }
+        }
         let query = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
         if !query.isEmpty {
             for hit in TextSearch.hits(for: query, pageTexts: [""], pages: [0: { var notes = PageNotes(); notes.text = storage.string; return notes }()]) {
@@ -241,6 +510,7 @@ final class NotesTextView: NSTextView, NSLayoutManagerDelegate {
         controller?.isInFormula = NotesMarkup.formula(containing: selection.location, in: parsed) != nil
         invalidateIntrinsicContentSize()
         needsDisplay = true
+        layoutCard()
     }
 
     private func isEditing(_ formula: NotesMarkup.Formula, selection: NSRange) -> Bool {
@@ -250,12 +520,31 @@ final class NotesTextView: NSTextView, NSLayoutManagerDelegate {
     }
 
     override func didChangeText() {
+        pendingEdit = false
         restyle()
         super.didChangeText()
     }
 
     override func setSelectedRanges(_ ranges: [NSValue], affinity: NSSelectionAffinity, stillSelecting: Bool) {
+        // The caret steps over a tag, and a selection takes it whole.
+        var ranges = ranges
+        if !pendingEdit, !parsed.comments.isEmpty {
+            let previous = selectedRange().location
+            ranges = ranges.map { value in
+                var range = value.rangeValue
+                for tag in parsed.comments {
+                    let start = tag.range.location, end = NSMaxRange(tag.range)
+                    if range.length == 0, range.location > start, range.location < end {
+                        range.location = previous <= start ? end : start
+                    } else if range.length > 0, NSIntersectionRange(range, tag.range).length > 0 {
+                        range = NSUnionRange(range, tag.range)
+                    }
+                }
+                return NSValue(range: range)
+            }
+        }
         super.setSelectedRanges(ranges, affinity: affinity, stillSelecting: stillSelecting)
+        if comments != nil, window?.firstResponder === self, !pendingEdit { controller?.notesCaret = selectedRange().location }
         // Only when the caret enters or leaves a formula; typing restyles anyway.
         guard textStorage != nil, !hasMarkedText() else { return }
         let selection = selectedRange()
@@ -290,11 +579,11 @@ final class NotesTextView: NSTextView, NSLayoutManagerDelegate {
 
     // MARK: Layout of set formulas
 
-    private func rendering(at index: Int, in layoutManager: NSLayoutManager) -> (FormulaRendering, NSRange)? {
+    private func rendering(at index: Int, in layoutManager: NSLayoutManager) -> (InlineRendering, NSRange)? {
         guard let storage = layoutManager.textStorage, index < storage.length else { return nil }
         var range = NSRange()
         guard let rendering = storage.attribute(.collapsedFormula, at: index, longestEffectiveRange: &range,
-                                                in: NSRange(location: 0, length: storage.length)) as? FormulaRendering else { return nil }
+                                                in: NSRange(location: 0, length: storage.length)) as? InlineRendering else { return nil }
         return (rendering, range)
     }
 
@@ -356,14 +645,10 @@ final class NotesTextView: NSTextView, NSLayoutManagerDelegate {
                               height: rendering.ascent + rendering.descent + 4)
             drawnFormulas.append((rect, formula))
             guard rect.intersects(dirtyRect) else { continue }
-            context.saveGState()
-            // Upright, so that superscripts go up: the view itself is flipped.
-            context.translateBy(x: x, y: baseline)
-            context.scaleBy(x: 1, y: -1)
-            context.textMatrix = .identity
-            context.textPosition = .zero
-            CTLineDraw(rendering.line, context)
-            context.restoreGState()
+            rendering.draw(in: context, x: x, baseline: baseline)
+        }
+        for placement in tagPlacements(layoutManager) {
+            placement.rendering.draw(in: context, x: placement.x, baseline: placement.baseline)
         }
         drawPreviews(in: context, layoutManager: layoutManager, length: storage.length)
     }
@@ -397,8 +682,17 @@ final class NotesTextView: NSTextView, NSLayoutManagerDelegate {
         }
     }
 
+    /// A click on a tag opens or closes its card.
+    @discardableResult
+    func toggleTag(at point: NSPoint) -> Bool {
+        guard let hit = tagRects.first(where: { $0.rect.contains(point) }) else { return false }
+        comments?.toggle(hit.id)
+        return true
+    }
+
     override func mouseDown(with event: NSEvent) {
         let point = convert(event.locationInWindow, from: nil)
+        if toggleTag(at: point) { return }
         // A click on a set formula opens its source, with the caret before the closing dollar signs.
         if let hit = drawnFormulas.first(where: { $0.rect.contains(point) }) {
             window?.makeFirstResponder(self)
@@ -411,20 +705,23 @@ final class NotesTextView: NSTextView, NSLayoutManagerDelegate {
     override func resetCursorRects() {
         super.resetCursorRects()
         for formula in drawnFormulas { addCursorRect(formula.rect, cursor: .pointingHand) }
+        for tag in tagRects { addCursorRect(tag.rect, cursor: .pointingHand) }
     }
 
     // MARK: Size
 
     func height(forWidth width: CGFloat) -> CGFloat {
-        guard let layoutManager, let textContainer else { return Self.minimumHeight }
+        guard let layoutManager, let textContainer else { return minimumHeight }
         if abs(textContainer.size.width - width) > 0.5 {
             textContainer.size = NSSize(width: max(width, 50), height: .greatestFiniteMagnitude)
         }
         layoutManager.ensureLayout(for: textContainer)
-        let used = layoutManager.usedRect(for: textContainer).height + layoutManager.extraLineFragmentRect.height
+        var used = layoutManager.usedRect(for: textContainer).height + layoutManager.extraLineFragmentRect.height
+        // A card under the last line lies below the used rect.
+        if let card { used = max(used, card.view.frame.maxY - textContainerOrigin.y + 8) }
         // A preview beneath the last line lies outside the used rect.
         let preview = previews.map { $0.rendering.ascent + $0.rendering.descent + 4 * Self.previewPadding }.max() ?? 0
-        return max(ceil(used + preview) + 8, Self.minimumHeight)
+        return max(ceil(used + preview) + 8, minimumHeight)
     }
 
     override var intrinsicContentSize: NSSize {
@@ -557,3 +854,4 @@ final class NotesTextView: NSTextView, NSLayoutManagerDelegate {
         setSelectedRange(NSRange(location: range.location + caret, length: 0))
     }
 }
+
