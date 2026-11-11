@@ -21,6 +21,8 @@ final class PDFSession {
     var annotationError: String?
     /// While the mouse is down on the slide. Layout changes wait for its end, so the slide does not move under the pointer.
     var isGestureActive = false
+    /// A search hit to show once its slide is on screen.
+    var pendingReveal: SearchReveal?
     weak var overlay: AnnotationOverlayView?
 
     /// A slide with the longest side of 960 points is the base for default stroke widths and font sizes.
@@ -86,6 +88,15 @@ struct PDFPane: NSViewRepresentable {
         if let page = session.document?.page(at: session.selection), view.currentPage !== page { view.go(to: page) }
         let binding = $annotations
         canvas.overlay.show(annotations, pageIndex: session.selection) { binding.wrappedValue = $0 }
+        // After the slide is shown: its annotations and text are the ones of the hit.
+        if let reveal = session.pendingReveal, reveal.page == session.selection, reveal.source != .notes {
+            let session = session
+            DispatchQueue.main.async { [weak canvas] in
+                guard session.pendingReveal == reveal else { return }
+                session.pendingReveal = nil
+                canvas?.reveal(reveal)
+            }
+        }
     }
 
     static func dismantleNSView(_ canvas: SlideCanvasView, coordinator: Coordinator) {

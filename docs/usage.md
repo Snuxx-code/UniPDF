@@ -65,6 +65,17 @@ Der Prompt nennt den tatsächlichen Pfad der geöffneten Datei und die aktuelle 
 
 Die Funktion versendet nichts automatisch. Eine KI mit lokalem Dateizugriff kann die genannten Pfade verwenden. Bei einer KI ohne lokalen Dateizugriff die PDF-Kopien zusätzlich anhängen. Temporäre Dateien können vom Betriebssystem später entfernt werden; der Prompt ist für die zeitnahe Verwendung gedacht.
 
+## Im Dokument suchen
+
+Die **Lupe** oben rechts oder **⌘F** öffnet die Suche oben in der Seitenleiste. Sie durchsucht das ganze Dokument: den Text der Folien, deine Mitschrift und die Textfelder auf den Folien. Groß- und Kleinschreibung sowie Akzente spielen keine Rolle, „uber“ findet also auch „Über“.
+
+- Die Treffer stehen nach Folien geordnet in der Seitenleiste, mit dem gefundenen Wort im Satz. Ein Symbol zeigt, ob der Treffer im Folientext, in der Mitschrift oder in einem Textfeld steht.
+- Auf der Folie und in der Mitschrift sind alle Treffer gelb markiert.
+- Ein Klick auf einen Treffer öffnet die Folie und wählt die Fundstelle aus. Ein Treffer in einem Textfeld wählt das Textfeld aus.
+- **Return** oder **⌘G** springt zum nächsten Treffer, **⇧⌘G** zum vorherigen. Nach dem letzten geht es wieder von vorn los.
+- Ein ausgewählter Treffer im Folientext lässt sich direkt mit dem **Textmarker** hervorheben.
+- **Esc** oder das ✕ im Suchfeld beendet die Suche, dann erscheinen wieder die Folien.
+
 ## Formatierung der Mitschrift
 
 Die Mitschrift formatiert sich beim Tippen, ähnlich wie in Chat-Apps. Die Zeichen bleiben dabei blass sichtbar, im Lern-PDF verschwinden sie:

@@ -438,6 +438,47 @@ import UniPDFCore
         #expect(string == "Eingefügter Text")
     }
 
+    @Test func theTextToolEditsInsideABoxAndMovesItByItsEdge() throws {
+        for locked in [true, false] {
+            let harness = try Harness()
+            let previous = harness.session.keepsTextTool
+            defer { harness.session.keepsTextTool = previous }
+            harness.session.keepsTextTool = locked
+            let frame = CGRect(x: 100, y: 100, width: 300, height: 40)
+            let box = SlideAnnotation(content: .text("Hallo Welt und mehr", frame: frame, style: SlideTextStyle(),
+                                                     color: AnnotationColor(InkColor.blue)))
+            harness.committed = [box]
+            harness.update()
+
+            // Inside: the caret goes where the click was, nothing new appears.
+            harness.session.tool = .text
+            try harness.click(CGPoint(x: 160, y: 120))
+            let editor = try #require(harness.window.firstResponder as? NSTextView)
+            #expect(editor.selectedRange().length == 0)
+            #expect((1..<19).contains(editor.selectedRange().location))
+            #expect(harness.committed.count == 1)
+            #expect(harness.session.tool == (locked ? .text : .select))
+
+            // On the edge: dragging moves the box.
+            harness.session.tool = .text
+            try harness.drag(from: CGPoint(x: 101, y: 120), to: CGPoint(x: 201, y: 170))
+            #expect(harness.committed.count == 1)
+            #expect(close(harness.committed[0].bounds, frame.offsetBy(dx: 100, dy: 50)))
+        }
+    }
+
+    @Test func searchSelectsAFoundTextBoxWithTheArrow() throws {
+        let harness = try Harness()
+        let box = SlideAnnotation(content: .text("Gesucht", frame: CGRect(x: 50, y: 50, width: 200, height: 30),
+                                                 style: SlideTextStyle(), color: AnnotationColor(InkColor.blue)))
+        harness.committed = [box]
+        harness.update()
+        harness.session.tool = .pen
+        harness.canvas.overlay.reveal(box.id)
+        #expect(harness.session.tool == .select)
+        #expect(harness.session.selectedAnnotation == box.id)
+    }
+
     @Test func aLockedTextToolStaysActiveForTheNextBox() throws {
         for locked in [false, true] {
             let harness = try Harness()

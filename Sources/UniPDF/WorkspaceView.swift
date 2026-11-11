@@ -22,6 +22,7 @@ struct WorkspaceView: View {
     @State private var showDrawing = false
     @State private var fontSize = 15.0
     @State private var notesEditor = NotesEditorController()
+    @State private var search = DocumentSearch()
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.openDocument) private var openDocument
     @Environment(\.openWindow) private var openWindow
@@ -81,6 +82,13 @@ struct WorkspaceView: View {
                 session.annotationError = nil
             }
         }
+        .focusedSceneValue(\.documentSearch, session.document == nil ? nil : search)
+        .onAppear {
+            search.showSidebar = { sidebarVisibility = .all }
+            search.reveal = { hit in reveal(hit) }
+        }
+        .onChange(of: search.query) { updateSearch() }
+        .onChange(of: document.project.pages) { if search.isSearching { updateSearch() } }
         .onChange(of: session.selection) {
             showDrawing = !notes.wrappedValue.drawing.isEmpty
         }
@@ -138,32 +146,40 @@ struct WorkspaceView: View {
         ScrollViewReader { proxy in
             // No list selection: its filled highlight would cover the preview. The open slide gets a green frame instead.
             List {
-                FileTreeSection(store: fileStore, currentFile: fileURL, model: fileTree)
-                Section {
-                    ForEach(0..<pdf.pageCount, id: \.self) { index in
-                        SlideRow(page: pdf.page(at: index), index: index, isSelected: session.selection == index,
-                                 hasNotes: !(document.project.pages[index]?.isEmpty ?? true),
-                                 annotations: document.project.pages[index]?.annotations ?? []) {
-                            session.selection = index
+                if search.isSearching {
+                    searchResults
+                } else {
+                    FileTreeSection(store: fileStore, currentFile: fileURL, model: fileTree)
+                    Section {
+                        ForEach(0..<pdf.pageCount, id: \.self) { index in
+                            SlideRow(page: pdf.page(at: index), index: index, isSelected: session.selection == index,
+                                     hasNotes: !(document.project.pages[index]?.isEmpty ?? true),
+                                     annotations: document.project.pages[index]?.annotations ?? []) {
+                                session.selection = index
+                            }
+                                // The sidebar indents rows 9 points more on the leading side, for disclosure
+                                // triangles, and ignores listRowInsets. Slides have none and sit centered,
+                                // their frames in line with the section header.
+                                .padding(.leading, -15).padding(.trailing, -6)
+                                .id(index)
                         }
-                            // The sidebar indents rows 9 points more on the leading side, for disclosure
-                            // triangles, and ignores listRowInsets. Slides have none and sit centered,
-                            // their frames in line with the section header.
-                            .padding(.leading, -15).padding(.trailing, -6)
-                            .id(index)
+                    } header: {
+                        Text("Folien")
                     }
-                } header: {
-                    Text("Folien")
                 }
             }
             .listStyle(.sidebar)
+            .searchable(text: $search.query, isPresented: $search.isPresented, placement: .sidebar, prompt: "Im Dokument suchen")
+            .onSubmit(of: .search) { search.step(1) }
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                Text("\(document.project.pages.values.filter { !$0.isEmpty }.count) von \(pdf.pageCount) Folien mit Mitschrift")
+                Text(search.isSearching ? searchSummary
+                     : "\(document.project.pages.values.filter { !$0.isEmpty }.count) von \(pdf.pageCount) Folien mit Mitschrift")
                     .font(.caption2).monospacedDigit().foregroundStyle(.tertiary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 18).padding(.vertical, 10)
             }
-            .onChange(of: session.selection) { proxy.scrollTo(session.selection) }
+            .onChange(of: session.selection) { if !search.isSearching { proxy.scrollTo(session.selection) } }
+            .onChange(of: search.current) { if let current = search.current { proxy.scrollTo(search.hits[current].id) } }
         }
         .navigationSplitViewColumnWidth(min: 180, ideal: 220, max: 340)
         .onAppear { fileTree.reveal(fileURL, in: fileStore); fileTree.reload(fileStore) }
@@ -175,6 +191,55 @@ struct WorkspaceView: View {
         .alert("Das hat nicht geklappt", isPresented: Binding(get: { fileTree.openError != nil }, set: { if !$0 { fileTree.openError = nil } })) {
             Button("OK") { fileTree.openError = nil }
         } message: { Text(fileTree.openError ?? "") }
+    }
+
+    // MARK: Search
+
+    /// Hits by slide, as in Preview's search.
+    @ViewBuilder private var searchResults: some View {
+        if search.hits.isEmpty {
+            Text("Keine Treffer für „\(search.query.trimmingCharacters(in: .whitespaces))“")
+                .font(.callout).foregroundStyle(.secondary)
+        }
+        let pages = Array(Set(search.hits.map(\.page))).sorted()
+        ForEach(pages, id: \.self) { page in
+            Section {
+                ForEach(Array(search.hits.enumerated()).filter { $0.element.page == page }, id: \.element.id) { index, hit in
+                    SearchResultRow(hit: hit, isCurrent: search.current == index) { search.show(index) }
+                        .padding(.leading, -9)
+                        .id(hit.id)
+                }
+            } header: {
+                Text("Folie \(page + 1)")
+            }
+        }
+    }
+
+    private var searchSummary: String {
+        let count = search.hits.count
+        let slides = Set(search.hits.map(\.page)).count
+        if count == 0 { return "Keine Treffer" }
+        let hits = count >= TextSearch.limit ? "Über \(TextSearch.limit) Treffer" : count == 1 ? "1 Treffer" : "\(count) Treffer"
+        return hits + (slides == 1 ? " auf 1 Folie" : " auf \(slides) Folien") + " · ↩ nächster"
+    }
+
+    private func updateSearch() {
+        guard let pdf = session.document else { return }
+        search.update(document: pdf, pages: document.project.pages)
+        // Every hit on the slides is marked; the current one is selected on top.
+        let selections: [PDFSelection] = search.hits.compactMap { hit in
+            guard hit.source == .slide, let page = pdf.page(at: hit.page),
+                  let selection = page.selection(for: hit.range) else { return nil }
+            selection.color = NSColor.systemYellow.withAlphaComponent(0.45)
+            return selection
+        }
+        session.view?.highlightedSelections = selections.isEmpty ? nil : selections
+        if !search.isSearching { session.view?.clearSelection() }
+    }
+
+    private func reveal(_ hit: TextSearch.Hit) {
+        session.selection = hit.page
+        session.pendingReveal = SearchReveal(page: hit.page, source: hit.source, range: hit.range)
     }
 
     /// Whether the active tool or the selection has settings. The arrow without a selection has none.
@@ -283,7 +348,9 @@ struct WorkspaceView: View {
                                 .padding(.horizontal, 5).padding(.top, 1).allowsHitTesting(false)
                         }
                         NotesEditor(text: notes.text, fontSize: fontSize,
-                                    accessibilityLabel: "Mitschrift zu Folie \(session.selection + 1)", controller: notesEditor)
+                                    accessibilityLabel: "Mitschrift zu Folie \(session.selection + 1)", controller: notesEditor,
+                                    page: session.selection, searchQuery: search.isSearching ? search.query : "",
+                                    reveal: session.pendingReveal) { session.pendingReveal = nil }
                             .id(session.selection)
                     }
                     // Formulas used to have a field of their own. They now belong in the text.
@@ -417,6 +484,8 @@ struct WorkspaceView: View {
         ToolbarItem(placement: .primaryAction) {
             if session.document != nil {
                 HStack(spacing: 12) {
+                    Button { search.open() } label: { Label("Suchen", systemImage: "magnifyingglass") }
+                        .help("Folien, Mitschrift und Textfelder durchsuchen (⌘F)")
                     Button {
                         NSApp.sendAction(#selector(NSDocument.save(_:)), to: nil, from: nil)
                     } label: { Label("Speichern", systemImage: "square.and.arrow.down") }
