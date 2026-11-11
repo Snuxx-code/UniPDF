@@ -76,15 +76,17 @@ struct CommentTests {
         page.annotations[1].content = .comment(SlideComment(rects: [CGRect(x: 50, y: 50, width: 80, height: 60)], isArea: true))
         let project = StudyProject(title: "Test", pdfData: try Self.pdf(), pages: [0: page])
         let exported = try #require(PDFDocument(data: try PDFExporter.export(project)))
-        let text = try #require(exported.page(at: 0)?.string)
+        // Tags keep their words together with non-breaking spaces.
+        let text = try #require(exported.page(at: 0)?.string).replacingOccurrences(of: "\u{00A0}", with: " ")
         #expect(!text.contains("kommentar:"))
         #expect(text.contains("KOMMENTARE"))
-        #expect(text.contains("Bereich auf der Folie"))
-        #expect(text.contains("„Satz von Bayes“"))
         #expect(text.contains("Gilt nur für diskrete Fälle"))
-        // Numbered in the order of the tags: the area first.
-        let area = try #require(text.range(of: "1 Bereich"))
-        let passage = try #require(text.range(of: "2 „Satz"))
+        // Numbered in the order of the tags, the area first, and shortened to the tag's label as in the app.
+        #expect(text.contains("1 · Bereich"))
+        #expect(text.contains("2 · Satz von Bayes"))
+        let footnotes = try #require(text.range(of: "KOMMENTARE"))
+        let area = try #require(text.range(of: "1 · Bereich", range: footnotes.upperBound..<text.endIndex))
+        let passage = try #require(text.range(of: "2 · Satz von Bayes", range: footnotes.upperBound..<text.endIndex))
         #expect(area.lowerBound < passage.lowerBound)
     }
 

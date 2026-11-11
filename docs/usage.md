@@ -14,7 +14,7 @@ Bestehende `.unipdf`-Projekte bleiben unterstützt. **⌘S** aktualisiert auch d
 
 Die bearbeitbaren Daten sind in der PDF eingebettet; es ist keine zusätzliche Projektdatei erforderlich. Andere PDF-Programme können beim erneuten Speichern Metadaten entfernen. Für die weitere Bearbeitung mit Mitschriften die Datei in UniPDF sichern.
 
-Mit **⌘↑ / ⌘↓** zwischen Folien wechseln. Die Breite von PDF und Mitschrift lässt sich an der Trennlinie anpassen. UniPDF merkt sich die Breite der Mitschrift und die Fenstergröße auch über Neustarts hinweg; die Bibliothek hat ihre eigene Fenstergröße. Die Zeichenfläche unterstützt Stift, Linie, Pfeil, Rechteck und Ellipse, vier Farben und drei Strichstärken. Elemente lassen sich schrittweise entfernen und wiederherstellen.
+Die Mitschrift lässt sich mit dem Knopf ganz rechts in der Werkzeugleiste oder mit **⌥⌘0** einklappen, dann nutzt die Folie die ganze Breite. UniPDF merkt sich das. Sie klappt von selbst wieder auf, wenn du einen Kommentar anlegst oder öffnest oder ein Suchtreffer in der Mitschrift liegt. Mit **⌘↑ / ⌘↓** zwischen Folien wechseln. Die Breite von PDF und Mitschrift lässt sich an der Trennlinie anpassen. UniPDF merkt sich die Breite der Mitschrift und die Fenstergröße auch über Neustarts hinweg; die Bibliothek hat ihre eigene Fenstergröße. Die Zeichenfläche unterstützt Stift, Linie, Pfeil, Rechteck und Ellipse, vier Farben und drei Strichstärken. Elemente lassen sich schrittweise entfernen und wiederherstellen.
 
 ## Auf der Folie markieren
 
@@ -70,14 +70,14 @@ Die Funktion versendet nichts automatisch. Eine KI mit lokalem Dateizugriff kann
 Ein Kommentar hängt an einer Stelle der Folie und steht als Tag in deiner Mitschrift.
 
 - **Anlegen:** Text auf der Folie auswählen und per Rechtsklick **Kommentieren** wählen, oder **⌥⌘M** drücken. Alternativ mit der **Sprechblase** in der Werkzeugleiste direkt über den Text ziehen. Es zählen immer ganze Wörter.
-- **Bereiche:** Beginnt der Zug mit der Sprechblase auf freier Fläche, etwa neben einer Grafik, entsteht ein Bereichskommentar. Mit **⌥** wird es immer ein Bereich, auch über Text. Auf Folien ohne Text gibt es nur Bereiche.
+- **Bereiche:** Beginnt der Zug mit der Sprechblase auf freier Fläche, etwa neben einer Grafik, entsteht ein Bereichskommentar. Mit **⌥** wird es immer ein Bereich, auch über Text. Auf Folien ohne Text gibt es nur Bereiche. Der Mauszeiger zeigt vorher, was passiert: über Text der Textcursor, auf freier Fläche und mit ⌥ ein Stift.
 - **Auf der Folie** ist die Stelle pastellfarben hinterlegt und mit einer etwas dunkleren Linie umrandet. Beim Verweilen mit der Maus erscheint der Kommentar.
 - **In der Mitschrift** erscheint ein Tag mit dem Anfang der Textstelle. Er steht dort, wo dein Cursor zuletzt war, sonst am Ende. Ein Klick auf den Tag klappt die **Karte** auf. Dort stehen das Zitat, dein Kommentar mit derselben Formatierung und denselben Formeln wie in der Mitschrift, die Farbe und das Datum.
 - **Verknüpft in beide Richtungen:** Ein Klick auf das Zitat in der Karte wählt die Stelle auf der Folie aus. Ein Klick auf die Stelle auf der Folie öffnet ihre Karte.
 - **Farben:** Neue Kommentare bekommen der Reihe nach Rosé, Pfirsich, Zitrone, Mint, Himmel und Lavendel. In der Zeile unter den Werkzeugen und in der Karte lässt sich die Farbe ändern.
 - **Löschen:** Wird der Tag aus der Mitschrift gelöscht, verschwindet auch die Markierung auf der Folie und umgekehrt, ebenso über **Löschen** in der Karte. Ein **⌘Z** holt beides zurück. Der Cursor springt über einen Tag hinweg, und **⌫** entfernt ihn immer ganz.
 - **Suche:** ⌘F findet auch den Text von Kommentaren. Ein Treffer öffnet die Karte.
-- **Lern-PDF:** Kommentierte Stellen tragen auf der Folie eine kleine Nummer. In der Mitschrift steht diese Nummer an der Stelle des Tags. Unter der Mitschrift folgen alle Kommentare als Fußnoten: Nummer, Zitat und dein Kommentar.
+- **Lern-PDF:** Kommentierte Stellen tragen auf der Folie eine kleine Nummer. In der Mitschrift steht an der Stelle des Tags derselbe Tag wie in der App, mit Nummer und dem gekürzten Anfang der Textstelle. Unter der Mitschrift folgen alle Kommentare, jeweils mit ihrem Tag. Ein senkrechter Balken in der Farbe des Kommentars läuft über die ganze Länge, auch auf Fortsetzungsseiten.
 
 Kommentare speichert UniPDF in der PDF mit, wie Mitschrift und Anmerkungen. Ältere UniPDF-Versionen können Dateien mit Kommentaren nicht mehr öffnen.
 

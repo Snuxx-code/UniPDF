@@ -23,6 +23,8 @@ struct WorkspaceView: View {
     @State private var fontSize = 15.0
     @State private var notesEditor = NotesEditorController()
     @State private var search = DocumentSearch()
+    /// Whether the notes column is folded away, so the slide takes the whole width. Kept across launches.
+    @AppStorage("notesCollapsed") private var notesCollapsed = false
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.openDocument) private var openDocument
     @Environment(\.openWindow) private var openWindow
@@ -90,7 +92,10 @@ struct WorkspaceView: View {
             search.showSidebar = { sidebarVisibility = .all }
             search.reveal = { hit in reveal(hit) }
             session.createComment = { comment in addComment(comment) }
-            session.openComment = { id in notesEditor.expand(id) }
+            session.openComment = { id in
+                notesCollapsed = false
+                notesEditor.expand(id)
+            }
         }
         .onChange(of: search.query) { updateSearch() }
         .onChange(of: document.project.pages) { if search.isSearching { updateSearch() } }
@@ -248,6 +253,10 @@ struct WorkspaceView: View {
 
     private func reveal(_ hit: TextSearch.Hit) {
         session.selection = hit.page
+        switch hit.source {
+        case .notes, .comment: notesCollapsed = false
+        case .slide, .textBox: break
+        }
         if case .comment(let id) = hit.source { notesEditor.expand(id) }
         session.pendingReveal = SearchReveal(page: hit.page, source: hit.source, range: hit.range)
     }
@@ -257,6 +266,8 @@ struct WorkspaceView: View {
     /// The comment goes on the slide and its tag into the notes in one change, which one undo takes back.
     /// The tag lands where the caret was put in the notes, otherwise on a new line at the end.
     private func addComment(_ comment: SlideAnnotation) {
+        // The new comment's card is where its text goes, so the notes come back.
+        notesCollapsed = false
         var value = notes.wrappedValue
         value.annotations.append(comment)
         let token = CommentLinks.token(for: comment.id)
@@ -349,8 +360,10 @@ struct WorkspaceView: View {
                 }
                 .frame(minWidth: EditorWidthMemory.minimumPDFWidth, maxWidth: .infinity, maxHeight: .infinity)
 
-                editor.frame(minWidth: EditorWidthMemory.minimumEditorWidth, idealWidth: 440, maxWidth: .infinity, maxHeight: .infinity)
-                    .background(EditorWidthMemory())
+                if !notesCollapsed {
+                    editor.frame(minWidth: EditorWidthMemory.minimumEditorWidth, idealWidth: 440, maxWidth: .infinity, maxHeight: .infinity)
+                        .background(EditorWidthMemory())
+                }
             }
             // On the detail column, as in the Finder.
             .toolbar { toolbar }
@@ -558,6 +571,11 @@ struct WorkspaceView: View {
                     }
                     Button { exportPDF() } label: { Label("Lern-PDF exportieren", systemImage: "square.and.arrow.up") }
                         .keyboardShortcut("e", modifiers: [.command, .shift])
+                    Button { notesCollapsed.toggle() } label: {
+                        Label(notesCollapsed ? "Mitschrift einblenden" : "Mitschrift ausblenden", systemImage: "sidebar.right")
+                    }
+                    .keyboardShortcut("0", modifiers: [.command, .option])
+                    .help(notesCollapsed ? "Mitschrift einblenden (⌥⌘0)" : "Mitschrift ausblenden, die Folie nutzt dann die ganze Breite (⌥⌘0)")
                 }
             }
         }

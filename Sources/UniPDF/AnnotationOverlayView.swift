@@ -290,6 +290,48 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
         return true
     }
 
+    /// The lines of text on the current slide, in page space, read once per slide.
+    private var textLines: (page: Int, rects: [CGRect])?
+
+    /// Whether a point of this view lies on a line of the slide's text.
+    func isOnText(_ view: CGPoint) -> Bool {
+        guard let pdfView, let page = pdfView.document?.page(at: pageIndex) else { return false }
+        if textLines?.page != pageIndex {
+            let lines = page.selection(for: NSRange(location: 0, length: page.numberOfCharacters))?.selectionsByLine() ?? []
+            textLines = (pageIndex, lines.compactMap { line in
+                guard let text = line.string, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+                return line.bounds(for: page).insetBy(dx: -2, dy: -2)
+            })
+        }
+        let point = pdfView.convert(convert(view, to: pdfView), to: page)
+        return textLines?.rects.contains { $0.contains(point) } ?? false
+    }
+
+    /// A pencil for drawing an area, dark with a light rim so that it shows on any slide.
+    static let areaCursor: NSCursor = {
+        let configuration = NSImage.SymbolConfiguration(pointSize: 15, weight: .semibold)
+        guard let symbol = NSImage(systemSymbolName: "pencil", accessibilityDescription: nil)?.withSymbolConfiguration(configuration) else {
+            return .crosshair
+        }
+        func tinted(_ color: NSColor) -> NSImage {
+            NSImage(size: symbol.size, flipped: false) { rect in
+                symbol.draw(in: rect)
+                color.set()
+                rect.fill(using: .sourceAtop)
+                return true
+            }
+        }
+        let rim = tinted(.white), body = tinted(.black)
+        let size = NSSize(width: symbol.size.width + 4, height: symbol.size.height + 4)
+        let image = NSImage(size: size, flipped: false) { _ in
+            for dx in [-1.0, 0, 1] { for dy in [-1.0, 0, 1] { rim.draw(at: NSPoint(x: 2 + dx, y: 2 + dy), from: .zero, operation: .sourceOver, fraction: 1) } }
+            body.draw(at: NSPoint(x: 2, y: 2), from: .zero, operation: .sourceOver, fraction: 1)
+            return true
+        }
+        // The pencil's tip, at its lower left.
+        return NSCursor(image: image, hotSpot: NSPoint(x: 3, y: size.height - 3))
+    }()
+
     /// A comment takes whole words, even when the drag starts or ends inside one.
     private static func wholeWords(_ selection: PDFSelection, from start: CGPoint, to end: CGPoint, on page: PDFPage) -> PDFSelection {
         guard let result = selection.copy() as? PDFSelection else { return selection }
@@ -645,13 +687,8 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
             pdfView.clearSelection()
             let start = pdfView.convert(convert(view, to: pdfView), to: page)
             // Starting on a line of text comments text; anywhere else, PDFKit would still reach for the nearest line.
-            let lines = page.selection(for: NSRange(location: 0, length: page.numberOfCharacters))?.selectionsByLine() ?? []
-            let onText = lines.contains { line in
-                guard let text = line.string, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
-                return line.bounds(for: page).insetBy(dx: -2, dy: -2).contains(start)
-            }
             drag = .comment(start: start, viewStart: view, slideStart: point,
-                            forcesArea: !onText || event.modifierFlags.contains(.option))
+                            forcesArea: !isOnText(view) || event.modifierFlags.contains(.option))
         case .select:
             if let handle = handle(at: view), let selected {
                 drag = .resize(original: selected, handle: handle, resized: false)
@@ -831,7 +868,9 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
         } else if let geometry, geometry.rect.contains(view), editor == nil {
             switch session.tool {
             case .pen, .shape, .eraser: cursor = .crosshair
-            case .text, .highlight, .comment: cursor = .iBeam
+            case .text, .highlight: cursor = .iBeam
+            // Over text it comments the passage; elsewhere, or with ⌥, it draws an area.
+            case .comment: cursor = event.modifierFlags.contains(.option) || !isOnText(view) ? Self.areaCursor : .iBeam
             case .select: cursor = handle(at: view) != nil ? .crosshair : annotation(at: view) != nil ? .openHand : nil
             }
         }
@@ -845,6 +884,15 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
         }
         if toolTip != preview { toolTip = preview }
         moveEraserOutline(to: geometry?.rect.contains(view) == true ? slidePoint(view) : nil)
+    }
+
+    /// ⌥ turns the comment tool's pointer into the pencil at once, without moving the mouse.
+    override func flagsChanged(with event: NSEvent) {
+        super.flagsChanged(with: event)
+        guard session.tool == .comment, let window, drag == nil else { return }
+        let view = convert(window.mouseLocationOutsideOfEventStream, from: nil)
+        guard geometry?.rect.contains(view) == true else { return }
+        (event.modifierFlags.contains(.option) || !isOnText(view) ? Self.areaCursor : NSCursor.iBeam).set()
     }
 
     override func mouseExited(with event: NSEvent) {
