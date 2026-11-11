@@ -1,8 +1,8 @@
 import Foundation
 
 public struct StudyProject: Codable, Sendable {
-    /// 2 added slide annotations; 3 adds text highlights. Older projects still open.
-    public static let currentVersion = 3
+    /// 2 added slide annotations; 3 text highlights; 4 comments. Older projects still open.
+    public static let currentVersion = 4
     public var version = currentVersion
     public var title: String
     public var pdfData: Data?

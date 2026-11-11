@@ -23,6 +23,10 @@ final class PDFSession {
     var isGestureActive = false
     /// A search hit to show once its slide is on screen.
     var pendingReveal: SearchReveal?
+    /// Set by the workspace: puts a new comment on the slide and its tag into the notes.
+    var createComment: ((SlideAnnotation) -> Void)?
+    /// Set by the workspace: opens a comment's card in the notes.
+    var openComment: ((UUID) -> Void)?
     weak var overlay: AnnotationOverlayView?
 
     /// A slide with the longest side of 960 points is the base for default stroke widths and font sizes.
@@ -48,6 +52,11 @@ final class PDFSession {
         keepsTextTool.toggle()
         // Locking while writing in a box: the next click already starts a new one.
         if keepsTextTool, tool == .select, selectedKind == .text { tool = .text }
+    }
+
+    /// Comments selected text at once; without a selection, the comment tool waits for a passage or an area.
+    func activateComment() {
+        if overlay?.commentCurrentSelection() != true { tool = .comment }
     }
 
     func activateHighlighter() {

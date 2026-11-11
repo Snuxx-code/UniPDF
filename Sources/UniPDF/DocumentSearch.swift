@@ -60,6 +60,7 @@ final class DocumentSearch {
 
 struct DocumentSearchCommands: Commands {
     @FocusedValue(\.documentSearch) private var search
+    @FocusedValue(\.slideSession) private var session
 
     var body: some Commands {
         CommandGroup(after: .textEditing) {
@@ -74,6 +75,11 @@ struct DocumentSearchCommands: Commands {
                     .keyboardShortcut("g", modifiers: [.command, .shift])
                     .disabled(search?.hits.isEmpty ?? true)
             }
+            Section {
+                Button("Kommentar hinzufügen") { session?.activateComment() }
+                    .keyboardShortcut("m", modifiers: [.command, .option])
+                    .disabled(session == nil)
+            }
         }
     }
 }
@@ -82,7 +88,16 @@ private struct DocumentSearchKey: FocusedValueKey {
     typealias Value = DocumentSearch
 }
 
+private struct SlideSessionKey: FocusedValueKey {
+    typealias Value = PDFSession
+}
+
 extension FocusedValues {
+    var slideSession: PDFSession? {
+        get { self[SlideSessionKey.self] }
+        set { self[SlideSessionKey.self] = newValue }
+    }
+
     var documentSearch: DocumentSearch? {
         get { self[DocumentSearchKey.self] }
         set { self[DocumentSearchKey.self] = newValue }
@@ -101,6 +116,7 @@ struct SearchResultRow: View {
         case .slide: ("doc.text", "Folientext")
         case .notes: ("square.and.pencil", "Mitschrift")
         case .textBox: ("character.textbox", "Textfeld")
+        case .comment: ("text.bubble", "Kommentar")
         }
     }
 

@@ -65,6 +65,22 @@ Der Prompt nennt den tatsächlichen Pfad der geöffneten Datei und die aktuelle 
 
 Die Funktion versendet nichts automatisch. Eine KI mit lokalem Dateizugriff kann die genannten Pfade verwenden. Bei einer KI ohne lokalen Dateizugriff die PDF-Kopien zusätzlich anhängen. Temporäre Dateien können vom Betriebssystem später entfernt werden; der Prompt ist für die zeitnahe Verwendung gedacht.
 
+## Textstellen kommentieren
+
+Ein Kommentar hängt an einer Stelle der Folie und steht als Tag in deiner Mitschrift.
+
+- **Anlegen:** Text auf der Folie auswählen und per Rechtsklick **Kommentieren** wählen, oder **⌥⌘M** drücken. Alternativ mit der **Sprechblase** in der Werkzeugleiste direkt über den Text ziehen. Es zählen immer ganze Wörter.
+- **Bereiche:** Beginnt der Zug mit der Sprechblase auf freier Fläche, etwa neben einer Grafik, entsteht ein Bereichskommentar. Mit **⌥** wird es immer ein Bereich, auch über Text. Auf Folien ohne Text gibt es nur Bereiche.
+- **Auf der Folie** ist die Stelle pastellfarben hinterlegt und mit einer etwas dunkleren Linie umrandet. Beim Verweilen mit der Maus erscheint der Kommentar.
+- **In der Mitschrift** erscheint ein Tag mit dem Anfang der Textstelle. Er steht dort, wo dein Cursor zuletzt war, sonst am Ende. Ein Klick auf den Tag klappt die **Karte** auf. Dort stehen das Zitat, dein Kommentar mit derselben Formatierung und denselben Formeln wie in der Mitschrift, die Farbe und das Datum.
+- **Verknüpft in beide Richtungen:** Ein Klick auf das Zitat in der Karte wählt die Stelle auf der Folie aus. Ein Klick auf die Stelle auf der Folie öffnet ihre Karte.
+- **Farben:** Neue Kommentare bekommen der Reihe nach Rosé, Pfirsich, Zitrone, Mint, Himmel und Lavendel. In der Zeile unter den Werkzeugen und in der Karte lässt sich die Farbe ändern.
+- **Löschen:** Wird der Tag aus der Mitschrift gelöscht, verschwindet auch die Markierung auf der Folie und umgekehrt, ebenso über **Löschen** in der Karte. Ein **⌘Z** holt beides zurück. Der Cursor springt über einen Tag hinweg, und **⌫** entfernt ihn immer ganz.
+- **Suche:** ⌘F findet auch den Text von Kommentaren. Ein Treffer öffnet die Karte.
+- **Lern-PDF:** Kommentierte Stellen tragen auf der Folie eine kleine Nummer. In der Mitschrift steht diese Nummer an der Stelle des Tags. Unter der Mitschrift folgen alle Kommentare als Fußnoten: Nummer, Zitat und dein Kommentar.
+
+Kommentare speichert UniPDF in der PDF mit, wie Mitschrift und Anmerkungen. Ältere UniPDF-Versionen können Dateien mit Kommentaren nicht mehr öffnen.
+
 ## Im Dokument suchen
 
 Die **Lupe** oben rechts oder **⌘F** öffnet die Suche oben in der Seitenleiste. Sie durchsucht das ganze Dokument: den Text der Folien, deine Mitschrift und die Textfelder auf den Folien. Groß- und Kleinschreibung sowie Akzente spielen keine Rolle, „uber“ findet also auch „Über“.

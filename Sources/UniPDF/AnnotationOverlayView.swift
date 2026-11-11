@@ -4,11 +4,11 @@ import UniformTypeIdentifiers
 import UniPDFCore
 
 enum AnnotationTool: Equatable {
-    case select, pen, text, highlight, eraser
+    case select, pen, text, highlight, eraser, comment
     case shape(SlideShape)
 }
 
-enum AnnotationKind { case stroke, text, image, highlight, eraser }
+enum AnnotationKind { case stroke, text, image, highlight, eraser, comment }
 
 struct AnnotationStyle: Equatable {
     var color = AnnotationColor(InkColor.blue)
@@ -19,6 +19,8 @@ struct AnnotationStyle: Equatable {
     /// Whether the eraser removes a whole stroke or highlight as soon as it touches it.
     var erasesWholeStrokes = false
     var text = SlideTextStyle()
+    /// For the next comment; each new one takes the following colour.
+    var commentColor = CommentColor.rose
 }
 
 /// The PDF with the annotation layer on top. Siblings, because PDFView manages its own subviews.
@@ -32,7 +34,7 @@ final class SlideCanvasView: NSView {
                   let selection = page.selection(for: reveal.range) else { return }
             pdfView.go(to: selection)
             pdfView.setCurrentSelection(selection, animate: true)
-        case .textBox(let id):
+        case .textBox(let id), .comment(let id):
             overlay.reveal(id)
         case .notes:
             break
@@ -94,6 +96,26 @@ final class SlidePDFView: PDFView {
 
     // After a click on the slide this view is focused. A screenshot should still land on the slide.
     @objc func paste(_ sender: Any?) { overlay?.paste(sender) }
+
+    /// Selected text can be commented or highlighted from its context menu.
+    override func menu(for event: NSEvent) -> NSMenu? {
+        let menu = super.menu(for: event) ?? NSMenu()
+        guard let text = currentSelection?.string, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return menu }
+        let comment = NSMenuItem(title: "Kommentieren", action: #selector(commentSelection(_:)), keyEquivalent: "m")
+        comment.keyEquivalentModifierMask = [.command, .option]
+        comment.image = NSImage(systemSymbolName: "text.bubble", accessibilityDescription: nil)
+        comment.target = self
+        let highlight = NSMenuItem(title: "Mit Textmarker hervorheben", action: #selector(highlightSelection(_:)), keyEquivalent: "")
+        highlight.image = NSImage(systemSymbolName: "highlighter", accessibilityDescription: nil)
+        highlight.target = self
+        menu.insertItem(comment, at: 0)
+        menu.insertItem(highlight, at: 1)
+        menu.insertItem(.separator(), at: 2)
+        return menu
+    }
+
+    @objc private func commentSelection(_ sender: Any?) { overlay?.commentCurrentSelection() }
+    @objc private func highlightSelection(_ sender: Any?) { overlay?.highlightCurrentSelection() }
 }
 
 /// Draws the annotations of the current slide and handles the tools. Anything the tools do not
@@ -107,6 +129,8 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
     private enum Drag {
         case draw(start: CGPoint)
         case highlight(start: CGPoint, viewStart: CGPoint)
+        /// Over text it comments the passage, elsewhere or with ⌥ the area.
+        case comment(start: CGPoint, viewStart: CGPoint, slideStart: CGPoint, forcesArea: Bool)
         case erase(last: CGPoint, erased: Bool)
         case move(original: SlideAnnotation, start: CGPoint, moved: Bool)
         case resize(original: SlideAnnotation, handle: Handle, resized: Bool)
@@ -221,6 +245,9 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
         case .highlight(_, let color):
             session.selectedKind = .highlight
             session.style.highlightColor = color
+        case .comment(let comment):
+            session.selectedKind = .comment
+            session.style.commentColor = comment.color
         }
     }
 
@@ -229,10 +256,13 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
     func toolDidChange() {
         endEditing()
         if session.tool != .eraser { moveEraserOutline(to: nil) }
-        if case .highlight = drag {
+        switch drag {
+        case .highlight, .comment:
             drag = nil
             draft = nil
             needsDisplay = true
+        default:
+            break
         }
         if session.tool != .select { select(nil) }
         window?.makeFirstResponder(self)
@@ -248,6 +278,46 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
         pdfView.clearSelection()
         commit()
         return true
+    }
+
+    /// The selected text of the slide becomes a comment. Without a selection, the comment tool takes over.
+    @discardableResult
+    func commentCurrentSelection() -> Bool {
+        guard let pdfView, let page = pdfView.document?.page(at: pageIndex), let selection = pdfView.currentSelection,
+              let comment = commentAnnotation(for: selection, on: page) else { return false }
+        pdfView.clearSelection()
+        createComment(comment)
+        return true
+    }
+
+    /// A comment takes whole words, even when the drag starts or ends inside one.
+    private static func wholeWords(_ selection: PDFSelection, from start: CGPoint, to end: CGPoint, on page: PDFPage) -> PDFSelection {
+        guard let result = selection.copy() as? PDFSelection else { return selection }
+        for point in [start, end] {
+            if let word = page.selectionForWord(at: point), let text = word.string,
+               !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                result.add(word)
+            }
+        }
+        return result
+    }
+
+    private func commentAnnotation(for selection: PDFSelection, on page: PDFPage) -> SlideAnnotation? {
+        guard let marked = PDFTextHighlight.annotation(for: selection, on: page),
+              case .highlight(let rects, _) = marked.content else { return nil }
+        let quote = (selection.string ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        return SlideAnnotation(content: .comment(SlideComment(rects: rects, quote: quote, color: session.style.commentColor)))
+    }
+
+    private func areaComment(from start: CGPoint, to end: CGPoint) -> SlideAnnotation {
+        let rect = CGRect(x: min(start.x, end.x), y: min(start.y, end.y), width: abs(end.x - start.x), height: abs(end.y - start.y))
+        return SlideAnnotation(content: .comment(SlideComment(rects: [rect], isArea: true, color: session.style.commentColor)))
+    }
+
+    /// The workspace adds the comment and its tag in the notes in one step, so that one undo takes both away.
+    private func createComment(_ comment: SlideAnnotation) {
+        session.style.commentColor = session.style.commentColor.next
+        session.createComment?(comment)
     }
 
     /// Applies the bar's settings to what is selected or being edited.
@@ -267,6 +337,9 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
                 break
             case .highlight(let rects, _):
                 result.content = .highlight(rects: rects, color: style.highlightColor)
+            case .comment(var comment):
+                comment.color = style.commentColor
+                result.content = .comment(comment)
             }
             return result
         }
@@ -471,6 +544,8 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
     // MARK: Hit testing
 
     private func handles(of annotation: SlideAnnotation) -> [(Handle, CGPoint)] {
+        // A passage stays where its text is; only an area can be moved and resized.
+        if case .comment(let comment) = annotation.content, !comment.isArea { return [] }
         if case .shape(.line, let start, let end, _, _) = annotation.content { return [(.start, start), (.end, end)] }
         let box = annotation.bounds
         return [
@@ -565,12 +640,27 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
             }
             pdfView.clearSelection()
             drag = .highlight(start: pdfView.convert(convert(view, to: pdfView), to: page), viewStart: view)
+        case .comment:
+            guard let pdfView, let page = pdfView.document?.page(at: pageIndex) else { return }
+            pdfView.clearSelection()
+            let start = pdfView.convert(convert(view, to: pdfView), to: page)
+            // Starting on a line of text comments text; anywhere else, PDFKit would still reach for the nearest line.
+            let lines = page.selection(for: NSRange(location: 0, length: page.numberOfCharacters))?.selectionsByLine() ?? []
+            let onText = lines.contains { line in
+                guard let text = line.string, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
+                return line.bounds(for: page).insetBy(dx: -2, dy: -2).contains(start)
+            }
+            drag = .comment(start: start, viewStart: view, slideStart: point,
+                            forcesArea: !onText || event.modifierFlags.contains(.option))
         case .select:
             if let handle = handle(at: view), let selected {
                 drag = .resize(original: selected, handle: handle, resized: false)
             } else if let hit = annotation(at: view) {
                 select(hit.id)
-                if event.clickCount == 2, case .text = hit.content {
+                if case .comment(let comment) = hit.content {
+                    session.openComment?(hit.id)
+                    if comment.isArea { drag = .move(original: hit, start: point, moved: false) }
+                } else if event.clickCount == 2, case .text = hit.content {
                     beginEditing(hit)
                     placeCaret(for: event)
                 } else {
@@ -613,6 +703,20 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
             moveEraserOutline(to: point)
             let changed = erase(from: last, to: point)
             drag = .erase(last: point, erased: erased || changed)
+        case .comment(let start, let viewStart, let slideStart, let forcesArea):
+            invalidateDraft()
+            draft = nil
+            guard hypot(location.x - viewStart.x, location.y - viewStart.y) >= 2,
+                  let pdfView, let page = pdfView.document?.page(at: pageIndex) else { return }
+            let end = pdfView.convert(convert(location, to: pdfView), to: page)
+            // Text under the drag makes it a passage; an empty stretch of slide makes it an area.
+            if !forcesArea, let selection = page.selection(from: start, to: end),
+               let passage = commentAnnotation(for: Self.wholeWords(selection, from: start, to: end, on: page), on: page) {
+                draft = passage
+            } else {
+                draft = areaComment(from: slideStart, to: point)
+            }
+            invalidateDraft()
         case .highlight(let start, let viewStart):
             invalidateDraft()
             draft = nil
@@ -668,6 +772,16 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
             draft = nil
             annotations.append(finished)
             commit()
+        case .comment:
+            guard let finished = draft else { return }
+            draft = nil
+            needsDisplay = true
+            if case .comment(let comment) = finished.content, comment.isArea {
+                // A click or a flat stroke comments nothing; an area needs some room.
+                let scale = geometry?.scale ?? 1
+                guard finished.bounds.width * scale >= 10, finished.bounds.height * scale >= 10 else { return }
+            }
+            createComment(finished)
         case .draw:
             guard let finished = draft else { return }
             draft = nil
@@ -717,12 +831,19 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
         } else if let geometry, geometry.rect.contains(view), editor == nil {
             switch session.tool {
             case .pen, .shape, .eraser: cursor = .crosshair
-            case .text, .highlight: cursor = .iBeam
+            case .text, .highlight, .comment: cursor = .iBeam
             case .select: cursor = handle(at: view) != nil ? .crosshair : annotation(at: view) != nil ? .openHand : nil
             }
         }
         ownsCursor = cursor != nil
         cursor?.set()
+        // A comment shows what it says when the pointer rests on it.
+        var preview: String?
+        if editor == nil, let hit = annotation(at: view), case .comment(let comment) = hit.content {
+            let text = comment.text.trimmingCharacters(in: .whitespacesAndNewlines)
+            preview = text.isEmpty ? "Kommentar ohne Text – klicken, um ihn zu öffnen" : text
+        }
+        if toolTip != preview { toolTip = preview }
         moveEraserOutline(to: geometry?.rect.contains(view) == true ? slidePoint(view) : nil)
     }
 
@@ -870,7 +991,8 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
     func paste(from board: NSPasteboard) {
         if let data = board.data(forType: Self.pasteboardType), let copy = try? JSONDecoder().decode(SlideAnnotation.self, from: data), copy.isValid {
             let moved = copy.moved(by: clamped(CGVector(dx: 16, dy: 16), for: copy))
-            place(SlideAnnotation(content: moved.content))
+            if case .comment = moved.content { session.createComment?(SlideAnnotation(content: moved.content)) }
+            else { place(SlideAnnotation(content: moved.content)) }
         } else if let files = board.readObjects(forClasses: [NSURL.self], options: [.urlReadingContentsConformToTypes: [UTType.image.identifier]]) as? [URL],
                   let file = files.first, let data = try? Data(contentsOf: file) {
             insertImage(data)

@@ -467,6 +467,39 @@ import UniPDFCore
         }
     }
 
+    @Test func theCommentToolCommentsAnAreaWhereThereIsNoText() throws {
+        let harness = try Harness()
+        var created: [SlideAnnotation] = []
+        harness.session.createComment = { created.append($0) }
+        harness.session.tool = .comment
+        // The test slide has no text, so the drag becomes an area.
+        try harness.drag(from: CGPoint(x: 100, y: 100), to: CGPoint(x: 300, y: 200))
+        let comment = try #require(created.first)
+        guard case .comment(let content) = comment.content else { Issue.record("Not a comment"); return }
+        #expect(content.isArea)
+        #expect(close(comment.bounds, CGRect(x: 100, y: 100, width: 200, height: 100)))
+        // Each new comment takes the next colour.
+        #expect(harness.session.style.commentColor == content.color.next)
+        // A click without a drag comments nothing.
+        try harness.click(CGPoint(x: 500, y: 300))
+        #expect(created.count == 1)
+    }
+
+    @Test func clickingACommentOpensItsCardAndOnlyAreasMove() throws {
+        let harness = try Harness()
+        let passage = SlideAnnotation(content: .comment(SlideComment(rects: [CGRect(x: 100, y: 100, width: 200, height: 20)], quote: "Text")))
+        let area = SlideAnnotation(content: .comment(SlideComment(rects: [CGRect(x: 100, y: 250, width: 200, height: 80)], isArea: true)))
+        harness.committed = [passage, area]
+        harness.update()
+        var opened: [UUID] = []
+        harness.session.openComment = { opened.append($0) }
+        try harness.drag(from: CGPoint(x: 150, y: 110), to: CGPoint(x: 250, y: 160))
+        try harness.drag(from: CGPoint(x: 150, y: 290), to: CGPoint(x: 200, y: 300))
+        #expect(opened == [passage.id, area.id])
+        #expect(harness.committed[0].bounds == passage.bounds)
+        #expect(close(harness.committed[1].bounds, area.bounds.offsetBy(dx: 50, dy: 10)))
+    }
+
     @Test func searchSelectsAFoundTextBoxWithTheArrow() throws {
         let harness = try Harness()
         let box = SlideAnnotation(content: .text("Gesucht", frame: CGRect(x: 50, y: 50, width: 200, height: 30),

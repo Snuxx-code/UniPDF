@@ -33,7 +33,9 @@ struct WorkspaceView: View {
         let index = session.selection
         return Binding(
             get: { document.project.pages[index] ?? PageNotes() },
-            set: { value in
+            set: { new in
+                // A deleted tag takes its comment off the slide, a deleted comment its tag out of the notes.
+                let value = CommentLinks.reconcile(new, previous: document.project.pages[index] ?? PageNotes())
                 if value.isEmpty { document.project.pages.removeValue(forKey: index) }
                 else { document.project.pages[index] = value }
                 exportedURL = nil
@@ -83,13 +85,20 @@ struct WorkspaceView: View {
             }
         }
         .focusedSceneValue(\.documentSearch, session.document == nil ? nil : search)
+        .focusedSceneValue(\.slideSession, session.document == nil ? nil : session)
         .onAppear {
             search.showSidebar = { sidebarVisibility = .all }
             search.reveal = { hit in reveal(hit) }
+            session.createComment = { comment in addComment(comment) }
+            session.openComment = { id in notesEditor.expand(id) }
         }
         .onChange(of: search.query) { updateSearch() }
         .onChange(of: document.project.pages) { if search.isSearching { updateSearch() } }
         .onChange(of: session.selection) {
+            // A card stays open only on its own slide, such as one a search hit opened.
+            if let id = notesEditor.expandedComment, !notes.wrappedValue.annotations.contains(where: { $0.id == id }) {
+                notesEditor.expand(nil)
+            }
             showDrawing = !notes.wrappedValue.drawing.isEmpty
         }
     }
@@ -239,7 +248,58 @@ struct WorkspaceView: View {
 
     private func reveal(_ hit: TextSearch.Hit) {
         session.selection = hit.page
+        if case .comment(let id) = hit.source { notesEditor.expand(id) }
         session.pendingReveal = SearchReveal(page: hit.page, source: hit.source, range: hit.range)
+    }
+
+    // MARK: Comments
+
+    /// The comment goes on the slide and its tag into the notes in one change, which one undo takes back.
+    /// The tag lands where the caret was put in the notes, otherwise on a new line at the end.
+    private func addComment(_ comment: SlideAnnotation) {
+        var value = notes.wrappedValue
+        value.annotations.append(comment)
+        let token = CommentLinks.token(for: comment.id)
+        let text = value.text as NSString
+        if let caret = notesEditor.notesCaret, caret <= text.length {
+            let before = caret > 0 ? text.substring(with: NSRange(location: caret - 1, length: 1)) : "\n"
+            let after = caret < text.length ? text.substring(with: NSRange(location: caret, length: 1)) : "\n"
+            let insertion = (before.rangeOfCharacter(from: .whitespacesAndNewlines) == nil ? " " : "") + token
+                + (after.rangeOfCharacter(from: .whitespacesAndNewlines) == nil ? " " : "")
+            value.text = text.replacingCharacters(in: NSRange(location: caret, length: 0), with: insertion)
+            notesEditor.notesCaret = caret + (insertion as NSString).length
+        } else {
+            let trimmed = value.text.trimmingCharacters(in: .newlines)
+            value.text = trimmed.isEmpty ? token : trimmed + "\n" + token
+        }
+        notes.wrappedValue = value
+        notesEditor.expand(comment.id, focus: true)
+    }
+
+    private var commentContext: CommentContext {
+        let notes = notes
+        let page = session.selection
+        let session = session
+        let editor = notesEditor
+        return CommentContext(
+            comments: Dictionary(uniqueKeysWithValues: CommentLinks.comments(in: notes.wrappedValue).map { ($0.id, $0.comment) }),
+            expanded: notesEditor.expandedComment,
+            update: { id, comment in
+                var value = notes.wrappedValue
+                guard let index = value.annotations.firstIndex(where: { $0.id == id }) else { return }
+                value.annotations[index].content = .comment(comment)
+                notes.wrappedValue = value
+            },
+            delete: { id in
+                var value = notes.wrappedValue
+                value.annotations.removeAll { $0.id == id }
+                editor.expand(nil)
+                if session.selectedAnnotation == id { session.selectedAnnotation = nil; session.selectedKind = nil }
+                notes.wrappedValue = value
+            },
+            jump: { id in session.pendingReveal = SearchReveal(page: page, source: .comment(id), range: NSRange()) },
+            toggle: { id in editor.expand(editor.expandedComment == id ? nil : id) }
+        )
     }
 
     /// Whether the active tool or the selection has settings. The arrow without a selection has none.
@@ -350,7 +410,8 @@ struct WorkspaceView: View {
                         NotesEditor(text: notes.text, fontSize: fontSize,
                                     accessibilityLabel: "Mitschrift zu Folie \(session.selection + 1)", controller: notesEditor,
                                     page: session.selection, searchQuery: search.isSearching ? search.query : "",
-                                    reveal: session.pendingReveal) { session.pendingReveal = nil }
+                                    reveal: session.pendingReveal, revealed: { session.pendingReveal = nil },
+                                    comments: commentContext)
                             .id(session.selection)
                     }
                     // Formulas used to have a field of their own. They now belong in the text.

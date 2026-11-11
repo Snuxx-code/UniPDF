@@ -58,6 +58,8 @@ public struct SlideAnnotation: Codable, Sendable, Equatable, Identifiable {
         case text(String, frame: CGRect, style: SlideTextStyle, color: AnnotationColor)
         case image(Data, frame: CGRect)
         case highlight(rects: [CGRect], color: AnnotationColor)
+        /// Linked to a tag in the notes of the same slide.
+        case comment(SlideComment)
     }
 
     public var id: UUID
@@ -81,6 +83,8 @@ public struct SlideAnnotation: Codable, Sendable, Equatable, Identifiable {
             return frame
         case .highlight(let rects, _):
             return rects.reduce(CGRect.null) { $0.union($1) }
+        case .comment(let comment):
+            return comment.rects.reduce(CGRect.null) { $0.union($1) }
         }
     }
 
@@ -108,6 +112,8 @@ public struct SlideAnnotation: Codable, Sendable, Equatable, Identifiable {
             return !data.isEmpty && valid(frame)
         case .highlight(let rects, let color):
             return !rects.isEmpty && rects.allSatisfy(valid) && color.isValid
+        case .comment(let comment):
+            return !comment.rects.isEmpty && comment.rects.allSatisfy(valid)
         }
     }
 
@@ -125,6 +131,9 @@ public struct SlideAnnotation: Codable, Sendable, Equatable, Identifiable {
             result.content = .image(data, frame: frame.offsetBy(dx: delta.dx, dy: delta.dy))
         case .highlight(let rects, let color):
             result.content = .highlight(rects: rects.map { $0.offsetBy(dx: delta.dx, dy: delta.dy) }, color: color)
+        case .comment(var comment):
+            comment.rects = comment.rects.map { $0.offsetBy(dx: delta.dx, dy: delta.dy) }
+            result.content = .comment(comment)
         }
         return result
     }
@@ -150,6 +159,11 @@ public struct SlideAnnotation: Codable, Sendable, Equatable, Identifiable {
             result.content = .highlight(rects: rects.map { CGRect(origin: map($0.origin), size: CGSize(
                 width: old.width > 0 ? $0.width / old.width * rect.width : $0.width,
                 height: old.height > 0 ? $0.height / old.height * rect.height : $0.height)) }, color: color)
+        case .comment(var comment):
+            comment.rects = comment.rects.map { CGRect(origin: map($0.origin), size: CGSize(
+                width: old.width > 0 ? $0.width / old.width * rect.width : $0.width,
+                height: old.height > 0 ? $0.height / old.height * rect.height : $0.height)) }
+            result.content = .comment(comment)
         }
         return result
     }
@@ -179,7 +193,7 @@ public struct SlideAnnotation: Codable, Sendable, Equatable, Identifiable {
                 path.move(to: start)
                 path.addLine(to: end)
             }
-        case .text, .image, .highlight:
+        case .text, .image, .highlight, .comment:
             return nil
         }
         return path
@@ -192,6 +206,8 @@ public struct SlideAnnotation: Codable, Sendable, Equatable, Identifiable {
             return bounds.insetBy(dx: -tolerance, dy: -tolerance).contains(point)
         case .highlight(let rects, _):
             return rects.contains { $0.insetBy(dx: -tolerance, dy: -tolerance).contains(point) }
+        case .comment(let comment):
+            return comment.rects.contains { $0.insetBy(dx: -tolerance, dy: -tolerance).contains(point) }
         case .ink(_, _, let width), .shape(_, _, _, _, let width):
             let reach = width + 2 * tolerance
             guard visualBounds.insetBy(dx: -tolerance, dy: -tolerance).contains(point), let outline else { return false }
