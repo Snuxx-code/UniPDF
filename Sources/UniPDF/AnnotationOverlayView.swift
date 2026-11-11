@@ -874,6 +874,8 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
             case .select: cursor = handle(at: view) != nil ? .crosshair : annotation(at: view) != nil ? .openHand : nil
             }
         }
+        // Leaving the slide hands back the normal pointer, instead of keeping the tool's.
+        if cursor == nil, ownsCursor { NSCursor.arrow.set() }
         ownsCursor = cursor != nil
         cursor?.set()
         // A comment shows what it says when the pointer rests on it.
@@ -896,6 +898,7 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
     }
 
     override func mouseExited(with event: NSEvent) {
+        if ownsCursor { NSCursor.arrow.set() }
         ownsCursor = false
         moveEraserOutline(to: nil)
     }
