@@ -467,6 +467,39 @@ import UniPDFCore
         }
     }
 
+    @Test func scrollingDrawsOnTheSlideUnderThePointer() throws {
+        let harness = try Harness()
+        var stored: [Int: [SlideAnnotation]] = [:]
+        harness.session.pageAnnotations = { stored[$0] ?? [] }
+        harness.session.setPageAnnotations = { stored[$0] = $1 }
+        let previous = harness.session.scrollsContinuously
+        defer { harness.session.scrollsContinuously = previous }
+        harness.session.scrollsContinuously = true
+        let view = harness.canvas.pdfView
+        view.displayMode = .singlePageContinuous
+        view.displayDirection = .vertical
+        view.autoScales = true
+        view.layoutDocumentView()
+        let second = try #require(view.document?.page(at: 1))
+        view.go(to: second)
+        view.layoutDocumentView()
+        try #require(view.visiblePages.contains { $0 === second })
+        let rect = view.convert(second.bounds(for: .cropBox), from: second)
+        func event(_ type: NSEvent.EventType, _ point: CGPoint) throws -> NSEvent {
+            try #require(NSEvent.mouseEvent(with: type, location: view.convert(point, to: nil), modifierFlags: [], timestamp: 0,
+                                            windowNumber: harness.window.windowNumber, context: nil, eventNumber: 0, clickCount: 1, pressure: 1))
+        }
+        harness.session.tool = .pen
+        let overlay = harness.canvas.overlay
+        overlay.mouseDown(with: try event(.leftMouseDown, CGPoint(x: rect.midX - 60, y: rect.midY)))
+        overlay.mouseDragged(with: try event(.leftMouseDragged, CGPoint(x: rect.midX, y: rect.midY + 20)))
+        overlay.mouseUp(with: try event(.leftMouseUp, CGPoint(x: rect.midX + 60, y: rect.midY)))
+        // The second slide became the current one, and the stroke belongs to it.
+        #expect(harness.session.selection == 1)
+        #expect(stored[1]?.count == 1)
+        #expect(harness.committed.isEmpty)
+    }
+
     @Test func theCommentToolCommentsAnAreaWhereThereIsNoText() throws {
         let harness = try Harness()
         var created: [SlideAnnotation] = []
