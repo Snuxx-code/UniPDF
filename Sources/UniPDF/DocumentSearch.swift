@@ -63,6 +63,12 @@ struct DocumentSearchCommands: Commands {
     @FocusedValue(\.slideSession) private var session
 
     var body: some Commands {
+        CommandGroup(after: .toolbar) {
+            Toggle("Fortlaufend scrollen", isOn: Binding(get: { session?.scrollsContinuously ?? false },
+                                                         set: { session?.scrollsContinuously = $0 }))
+                .keyboardShortcut("j", modifiers: [.command, .option])
+                .disabled(session == nil)
+        }
         CommandGroup(after: .textEditing) {
             Section {
                 Button("Im Dokument suchen …") { search?.open() }

@@ -293,12 +293,13 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
     /// The lines of text on the current slide, in page space, read once per slide.
     private var textLines: (page: Int, rects: [CGRect])?
 
-    /// Whether a point of this view lies on a line of the slide's text.
+    /// Whether a point of this view lies on a line of the text of the slide under it.
     func isOnText(_ view: CGPoint) -> Bool {
-        guard let pdfView, let page = pdfView.document?.page(at: pageIndex) else { return false }
-        if textLines?.page != pageIndex {
+        let index = page(at: view) ?? pageIndex
+        guard let pdfView, let page = pdfView.document?.page(at: index) else { return false }
+        if textLines?.page != index {
             let lines = page.selection(for: NSRange(location: 0, length: page.numberOfCharacters))?.selectionsByLine() ?? []
-            textLines = (pageIndex, lines.compactMap { line in
+            textLines = (index, lines.compactMap { line in
                 guard let text = line.string, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
                 return line.bounds(for: page).insetBy(dx: -2, dy: -2)
             })
@@ -434,18 +435,65 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
     private var slideSize: CGSize? { pdfView?.document?.page(at: pageIndex)?.displayedSlideSize }
 
     /// Where the slide is in this view, and how many view points one slide point takes.
-    private var geometry: (rect: CGRect, scale: CGFloat)? {
-        guard let pdfView, let page = pdfView.document?.page(at: pageIndex), pdfView.currentPage === page else { return nil }
+    private var geometry: (rect: CGRect, scale: CGFloat)? { geometry(of: pageIndex) }
+
+    /// Where a slide is in this view. One slide at a time, only the current one is; scrolling, every visible one.
+    private func geometry(of index: Int) -> (rect: CGRect, scale: CGFloat)? {
+        guard let pdfView, let page = pdfView.document?.page(at: index) else { return nil }
+        if isContinuous {
+            guard pdfView.visiblePages.contains(where: { $0 === page }) else { return nil }
+        } else {
+            guard pdfView.currentPage === page else { return nil }
+        }
         let rect = convert(pdfView.convert(page.bounds(for: pdfView.displayBox), from: page), from: pdfView)
         let width = page.displayedSlideSize.width
         guard width > 0, rect.width > 0 else { return nil }
         return (rect, rect.width / width)
     }
 
+    /// The setting decides; the PDF view confirms that it already scrolls that way.
+    private var isContinuous: Bool { session.scrollsContinuously && pdfView?.displayMode == .singlePageContinuous }
+
+    /// The slides on screen: the current one, or while scrolling all that can be seen.
+    private var visiblePageIndices: [Int] {
+        guard isContinuous, let pdfView, let document = pdfView.document else { return [pageIndex] }
+        return pdfView.visiblePages.map { document.index(for: $0) }
+    }
+
+    /// The slide under a point of this view.
+    private func page(at view: CGPoint) -> Int? {
+        visiblePageIndices.first { geometry(of: $0)?.rect.contains(view) == true }
+    }
+
+    /// The annotations of a slide: the current one's as they are being edited here, any other's from the document.
+    private func annotations(on index: Int) -> [SlideAnnotation] {
+        index == pageIndex ? annotations : session.pageAnnotations?(index) ?? []
+    }
+
+    /// While scrolling, a click on another slide makes it the current one, without moving the view.
+    private func switchPage(to index: Int) {
+        endEditing()
+        drag = nil
+        draft = nil
+        select(nil)
+        pageIndex = index
+        annotations = session.pageAnnotations?(index) ?? []
+        let session = session
+        onChange = { session.setPageAnnotations?(index, $0) }
+        textLines = nil
+        session.selectionFollowsView = true
+        session.selection = index
+        needsDisplay = true
+    }
+
     private func viewRect(_ slide: CGRect) -> CGRect {
         guard let geometry else { return .zero }
-        return CGRect(x: geometry.rect.minX + slide.minX * geometry.scale, y: geometry.rect.minY + slide.minY * geometry.scale,
-                      width: slide.width * geometry.scale, height: slide.height * geometry.scale)
+        return Self.viewRect(slide, in: geometry)
+    }
+
+    private static func viewRect(_ slide: CGRect, in geometry: (rect: CGRect, scale: CGFloat)) -> CGRect {
+        CGRect(x: geometry.rect.minX + slide.minX * geometry.scale, y: geometry.rect.minY + slide.minY * geometry.scale,
+               width: slide.width * geometry.scale, height: slide.height * geometry.scale)
     }
 
     private func slidePoint(_ view: CGPoint, clamped: Bool = true) -> CGPoint {
@@ -489,16 +537,25 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
     }
 
     private func drawAnnotations(_ dirtyRect: NSRect, layer: AnnotationRenderer.Layer) {
-        guard let geometry, let context = NSGraphicsContext.current?.cgContext else { return }
-        var visible = annotations.filter { $0.id != editing?.id }
-        if let draft { visible.append(draft) }
-        visible.removeAll { !viewRect($0.visualBounds).insetBy(dx: -2, dy: -2).intersects(dirtyRect) }
-        context.saveGState()
-        context.clip(to: geometry.rect)
-        context.translateBy(x: geometry.rect.minX, y: geometry.rect.minY)
-        context.scaleBy(x: geometry.scale, y: geometry.scale)
-        AnnotationRenderer.draw(visible, in: context, layer: layer)
-        context.restoreGState()
+        guard let context = NSGraphicsContext.current?.cgContext else { return }
+        // Every slide on screen shows its annotations; only the current one is being edited.
+        for index in visiblePageIndices {
+            guard let geometry = geometry(of: index), geometry.rect.intersects(dirtyRect) else { continue }
+            var visible: [SlideAnnotation]
+            if index == pageIndex {
+                visible = annotations.filter { $0.id != editing?.id }
+                if let draft { visible.append(draft) }
+            } else {
+                visible = annotations(on: index)
+            }
+            visible.removeAll { !Self.viewRect($0.visualBounds, in: geometry).insetBy(dx: -2, dy: -2).intersects(dirtyRect) }
+            context.saveGState()
+            context.clip(to: geometry.rect)
+            context.translateBy(x: geometry.rect.minX, y: geometry.rect.minY)
+            context.scaleBy(x: geometry.scale, y: geometry.scale)
+            AnnotationRenderer.draw(visible, in: context, layer: layer)
+            context.restoreGState()
+        }
     }
 
     func drawHighlights(_ dirtyRect: NSRect) { drawAnnotations(dirtyRect, layer: .highlights) }
@@ -649,6 +706,12 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
         // Everything else, such as scrolling and zooming, belongs to the PDF.
         switch NSApp.currentEvent?.type {
         case .leftMouseDown:
+            // Another slide on screen: the tools work there too, the arrow only on its annotations.
+            if let other = page(at: local), other != pageIndex, let geometry = geometry(of: other) {
+                if session.tool != .select { return self }
+                let point = CGPoint(x: (local.x - geometry.rect.minX) / geometry.scale, y: (local.y - geometry.rect.minY) / geometry.scale)
+                return annotations(on: other).contains { $0.contains(point, tolerance: 5 / geometry.scale) } ? self : nil
+            }
             guard let geometry else { return nil }
             if session.tool != .select { return geometry.rect.contains(local) ? self : nil }
             if session.selectedAnnotation != nil { return pdfView?.hitTest(point) is NSScroller ? nil : self }
@@ -665,6 +728,7 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
     override func mouseDown(with event: NSEvent) {
         session.isGestureActive = true
         let view = convert(event.locationInWindow, from: nil)
+        if let other = page(at: view), other != pageIndex { switchPage(to: other) }
         // Also ends text editing.
         window?.makeFirstResponder(self)
         guard geometry != nil else { return }
@@ -862,16 +926,17 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
     override func mouseMoved(with event: NSEvent) {
         let view = convert(event.locationInWindow, from: nil)
         var cursor: NSCursor?
-        if let geometry, geometry.rect.contains(view), session.tool == .text || editor != nil,
+        let onSlide = page(at: view)
+        if onSlide == pageIndex, session.tool == .text || editor != nil,
            let box = textBox(at: view), box.onBorder {
             cursor = .openHand
-        } else if let geometry, geometry.rect.contains(view), editor == nil {
+        } else if let onSlide, editor == nil {
             switch session.tool {
             case .pen, .shape, .eraser: cursor = .crosshair
             case .text, .highlight: cursor = .iBeam
             // Over text it comments the passage; elsewhere, or with ⌥, it draws an area.
             case .comment: cursor = event.modifierFlags.contains(.option) || !isOnText(view) ? Self.areaCursor : .iBeam
-            case .select: cursor = handle(at: view) != nil ? .crosshair : annotation(at: view) != nil ? .openHand : nil
+            case .select: cursor = onSlide != pageIndex ? nil : handle(at: view) != nil ? .crosshair : annotation(at: view) != nil ? .openHand : nil
             }
         }
         // Leaving the slide hands back the normal pointer, instead of keeping the tool's.
@@ -885,7 +950,7 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
             preview = text.isEmpty ? "Kommentar ohne Text – klicken, um ihn zu öffnen" : text
         }
         if toolTip != preview { toolTip = preview }
-        moveEraserOutline(to: geometry?.rect.contains(view) == true ? slidePoint(view) : nil)
+        moveEraserOutline(to: onSlide == pageIndex ? slidePoint(view) : nil)
     }
 
     /// ⌥ turns the comment tool's pointer into the pencil at once, without moving the mouse.
@@ -893,7 +958,7 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
         super.flagsChanged(with: event)
         guard session.tool == .comment, let window, drag == nil else { return }
         let view = convert(window.mouseLocationOutsideOfEventStream, from: nil)
-        guard geometry?.rect.contains(view) == true else { return }
+        guard page(at: view) != nil else { return }
         (event.modifierFlags.contains(.option) || !isOnText(view) ? Self.areaCursor : NSCursor.iBeam).set()
     }
 

@@ -31,9 +31,11 @@ struct WorkspaceView: View {
 
     private var accent: Color { Color.studyAccent(for: colorScheme) }
 
-    private var notes: Binding<PageNotes> {
-        let index = session.selection
-        return Binding(
+    private var notes: Binding<PageNotes> { notes(for: session.selection) }
+
+    /// The notes of one slide. While scrolling, annotations change on slides beside the current one too.
+    private func notes(for index: Int) -> Binding<PageNotes> {
+        Binding(
             get: { document.project.pages[index] ?? PageNotes() },
             set: { new in
                 // A deleted tag takes its comment off the slide, a deleted comment its tag out of the notes.
@@ -92,6 +94,8 @@ struct WorkspaceView: View {
             search.showSidebar = { sidebarVisibility = .all }
             search.reveal = { hit in reveal(hit) }
             session.createComment = { comment in addComment(comment) }
+            session.pageAnnotations = { index in document.project.pages[index]?.annotations ?? [] }
+            session.setPageAnnotations = { index, annotations in notes(for: index).wrappedValue.annotations = annotations }
             session.openComment = { id in
                 notesCollapsed = false
                 notesEditor.expand(id)

@@ -23,6 +23,16 @@ final class PDFSession {
     var isGestureActive = false
     /// A search hit to show once its slide is on screen.
     var pendingReveal: SearchReveal?
+    /// Whether the slides scroll by as one long document instead of one slide at a time. Kept across launches.
+    var scrollsContinuously = UserDefaults.standard.bool(forKey: "scrollsContinuously") {
+        didSet { UserDefaults.standard.set(scrollsContinuously, forKey: "scrollsContinuously") }
+    }
+    /// Set when the view itself made another slide current, by scrolling or by a click on it,
+    /// so that the view does not jump to the slide's top.
+    @ObservationIgnored var selectionFollowsView = false
+    /// Set by the workspace: the annotations of any slide, for the slides around the current one while scrolling.
+    @ObservationIgnored var pageAnnotations: ((Int) -> [SlideAnnotation])?
+    @ObservationIgnored var setPageAnnotations: ((Int, [SlideAnnotation]) -> Void)?
     /// Set by the workspace: puts a new comment on the slide and its tag into the notes.
     var createComment: ((SlideAnnotation) -> Void)?
     /// Set by the workspace: opens a comment's card in the notes.
@@ -94,7 +104,28 @@ struct PDFPane: NSViewRepresentable {
     func updateNSView(_ canvas: SlideCanvasView, context: Context) {
         let view = canvas.pdfView
         if view.document !== session.document { view.document = session.document }
-        if let page = session.document?.page(at: session.selection), view.currentPage !== page { view.go(to: page) }
+        let continuous = session.scrollsContinuously
+        let mode: PDFDisplayMode = continuous ? .singlePageContinuous : .singlePage
+        if view.displayMode != mode {
+            let page = session.document?.page(at: session.selection)
+            view.displayMode = mode
+            view.displayDirection = continuous ? .vertical : .horizontal
+            view.autoScales = true
+            if let page { view.go(to: page) }
+            canvas.overlay.pageGeometryDidChange()
+        }
+        let followsView = session.selectionFollowsView
+        session.selectionFollowsView = false
+        if let page = session.document?.page(at: session.selection), view.currentPage !== page {
+            if !continuous {
+                view.go(to: page)
+            } else if context.coordinator.shownSelection != session.selection {
+                // While scrolling, only a slide chosen elsewhere, such as in the sidebar, is scrolled to.
+                // One the view made current itself, by scrolling or a click on it, stays where it is.
+                if !(followsView && view.visiblePages.contains(where: { $0 === page })) { view.go(to: page) }
+            }
+        }
+        context.coordinator.shownSelection = session.selection
         let binding = $annotations
         canvas.overlay.show(annotations, pageIndex: session.selection) { binding.wrappedValue = $0 }
         // After the slide is shown: its annotations and text are the ones of the hit.
@@ -118,6 +149,8 @@ struct PDFPane: NSViewRepresentable {
 
     final class Coordinator: NSObject {
         var session: PDFSession?
+        /// The slide the view was last brought to, so that later updates do not move it again.
+        var shownSelection: Int?
         var keyboardNavigation: PDFArrowKeyNavigation?
         @objc func pageChanged(_ notification: Notification) {
             guard let view = notification.object as? PDFView, view.currentPage != nil,
@@ -134,7 +167,10 @@ struct PDFPane: NSViewRepresentable {
                   let currentPage = view.currentPage else { return }
             // Key repeats may have advanced again before a queued callback runs.
             let index = document.index(for: currentPage)
-            if session?.selection != index { session?.selection = index }
+            if session?.selection != index {
+                session?.selectionFollowsView = true
+                session?.selection = index
+            }
         }
     }
 }

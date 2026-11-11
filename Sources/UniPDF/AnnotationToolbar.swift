@@ -44,6 +44,16 @@ struct SlideToolBar: View {
                 iconButton("Bild einfügen", symbol: "photo", selected: false, action: chooseImage)
             }
             Spacer(minLength: 0)
+            ToolCapsule {
+                iconButton("Einzelseite", symbol: "rectangle", selected: !session.scrollsContinuously) {
+                    session.scrollsContinuously = false
+                }
+                .help("Einzelseite: eine Folie nach der anderen")
+                iconButton("Fortlaufend scrollen", symbol: "rectangle.split.1x2", selected: session.scrollsContinuously) {
+                    session.scrollsContinuously = true
+                }
+                .help("Fortlaufend: alle Folien untereinander durchscrollen")
+            }
             if compactZoom {
                 ToolCapsule {
                     Menu {
