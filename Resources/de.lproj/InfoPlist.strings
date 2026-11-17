@@ -1,0 +1,3 @@
+/* The keys are the English document type names in Info.plist. */
+"UniPDF Project" = "UniPDF-Projekt";
+"Lecture PDF" = "Vorlesungs-PDF";

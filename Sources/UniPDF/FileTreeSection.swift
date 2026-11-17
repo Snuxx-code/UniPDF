@@ -48,17 +48,17 @@ struct FileTreeSection: View {
             if let library = store.library {
                 let entries = model.children[library.root] ?? []
                 if entries.isEmpty {
-                    Text("Dieser Ordner ist leer.").foregroundStyle(.secondary)
+                    Text("This folder is empty.").foregroundStyle(.secondary)
                 } else {
                     ForEach(entries) { FileTreeNode(entry: $0, section: self) }
                 }
             } else {
-                Button { store.chooseRoot() } label: { Label("Ordner auswählen …", systemImage: "folder.badge.plus") }
+                Button { store.chooseRoot() } label: { Label("Choose Folder …", systemImage: "folder.badge.plus") }
                     .buttonStyle(.plain)
-                    .help("Gib UniPDF Zugriff auf einen Ordner, zum Beispiel dein Studium.")
+                    .help("Give UniPDF access to a folder, such as the one for your studies.")
             }
         } header: {
-            Text("Dateien")
+            Text("Files")
         }
     }
 

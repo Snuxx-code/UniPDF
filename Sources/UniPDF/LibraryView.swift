@@ -44,21 +44,21 @@ struct LibraryView: View {
         .toolbar { toolbar }
         .alert(promptTitle, isPresented: Binding(get: { namePrompt != nil }, set: { if !$0 { namePrompt = nil } })) {
             TextField("Name", text: $name)
-            Button("Abbrechen", role: .cancel) {}
+            Button("Cancel", role: .cancel) {}
             Button(promptAction) { submitName() }
         }
-        .confirmationDialog("„\(pendingTrash?.name ?? "")“ in den Papierkorb legen?",
+        .confirmationDialog("Move “\(pendingTrash?.name ?? "")” to the Trash?",
                             isPresented: Binding(get: { pendingTrash != nil }, set: { if !$0 { pendingTrash = nil } })) {
-            Button("In den Papierkorb legen", role: .destructive) {
+            Button("Move to Trash", role: .destructive) {
                 if let entry = pendingTrash { Task { await store.trash(entry) } }
             }
-            Button("Abbrechen", role: .cancel) {}
+            Button("Cancel", role: .cancel) {}
         } message: {
             Text(pendingTrash?.isDirectory == true
-                 ? "Der Ordner und sein gesamter Inhalt lassen sich aus dem Papierkorb wiederherstellen."
-                 : "Die Datei lässt sich aus dem Papierkorb wiederherstellen.")
+                 ? String(localized: "The folder and everything in it can be restored from the Trash.")
+                 : String(localized: "The file can be restored from the Trash."))
         }
-        .alert("Das hat nicht geklappt", isPresented: Binding(get: { store.errorMessage != nil }, set: { if !$0 { store.errorMessage = nil } })) {
+        .alert("That didn’t work", isPresented: Binding(get: { store.errorMessage != nil }, set: { if !$0 { store.errorMessage = nil } })) {
             Button("OK") { store.errorMessage = nil }
         } message: { Text(store.errorMessage ?? "") }
         // Files change in the Finder and when a document window saves.
@@ -68,11 +68,11 @@ struct LibraryView: View {
 
     private var emptyState: some View {
         ContentUnavailableView {
-            Label("Noch kein Ordner", systemImage: "folder")
+            Label("No Folder Yet", systemImage: "folder")
         } description: {
-            Text("Gib UniPDF Zugriff auf einen Ordner, zum Beispiel dein Studium. Darin kannst du dann Unterordner und PDFs direkt hier ordnen.")
+            Text("Give UniPDF access to a folder, such as the one for your studies. You can then organize its subfolders and PDFs right here.")
         } actions: {
-            Button("Ordner auswählen …") { store.chooseRoot() }.buttonStyle(.borderedProminent)
+            Button("Choose Folder …") { store.chooseRoot() }.buttonStyle(.borderedProminent)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -83,11 +83,11 @@ struct LibraryView: View {
             Divider()
             if store.entries.isEmpty {
                 ContentUnavailableView {
-                    Label("Dieser Ordner ist leer", systemImage: "folder")
+                    Label("This Folder Is Empty", systemImage: "folder")
                 } description: {
-                    Text("Lege hier einen Unterordner an oder ziehe in der Bibliothek Dateien auf diesen Ordner.")
+                    Text("Create a subfolder here, or drag files onto this folder in the library.")
                 } actions: {
-                    Button("Neuer Ordner …") { askForNewFolder() }
+                    Button("New Folder …") { askForNewFolder() }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if viewMode == .tiles {
@@ -101,12 +101,12 @@ struct LibraryView: View {
     private var pathBar: some View {
         HStack(spacing: 12) {
             path
-            Picker("Darstellung", selection: $viewMode) {
-                Label("Kacheln", systemImage: "square.grid.2x2").tag(LibraryViewMode.tiles)
-                Label("Liste", systemImage: "list.bullet").tag(LibraryViewMode.list)
+            Picker("View", selection: $viewMode) {
+                Label("Tiles", systemImage: "square.grid.2x2").tag(LibraryViewMode.tiles)
+                Label("List", systemImage: "list.bullet").tag(LibraryViewMode.list)
             }
             .pickerStyle(.segmented).labelStyle(.iconOnly).labelsHidden().fixedSize()
-            .help("Zwischen Kacheln und Liste wechseln")
+            .help("Switch between tiles and list")
             .padding(.trailing, 16)
         }
         .frame(height: 47)
@@ -175,18 +175,18 @@ struct LibraryView: View {
     }
 
     @ViewBuilder private func entryMenu(_ entry: LibraryEntry) -> some View {
-        Button("Öffnen") { open(entry) }
-        Button("Im Finder zeigen") { NSWorkspace.shared.activateFileViewerSelecting([entry.url]) }
+        Button("Open") { open(entry) }
+        Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([entry.url]) }
         Divider()
-        Button("Umbenennen …") { name = entry.name; namePrompt = .rename(entry) }
+        Button("Rename …") { name = entry.name; namePrompt = .rename(entry) }
         Divider()
-        Button("In den Papierkorb legen", role: .destructive) { pendingTrash = entry }
+        Button("Move to Trash", role: .destructive) { pendingTrash = entry }
     }
 
     @ViewBuilder private var backgroundMenu: some View {
-        Button("Neuer Ordner …") { askForNewFolder() }
+        Button("New Folder …") { askForNewFolder() }
         if let current = store.current {
-            Button("Im Finder zeigen") { NSWorkspace.shared.activateFileViewerSelecting([current]) }
+            Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([current]) }
         }
     }
 
@@ -244,48 +244,48 @@ struct LibraryView: View {
 
     @ToolbarContentBuilder private var toolbar: some ToolbarContent {
         ToolbarItem(placement: .navigation) {
-            Button { store.goUp() } label: { Label("Übergeordneter Ordner", systemImage: "chevron.left") }
+            Button { store.goUp() } label: { Label("Enclosing Folder", systemImage: "chevron.left") }
                 .disabled(!store.canGoUp)
                 .keyboardShortcut(.upArrow, modifiers: .command)
-                .help("Übergeordneter Ordner (⌘↑)")
+                .help("Enclosing folder (⌘↑)")
         }
         ToolbarItemGroup(placement: .primaryAction) {
-            Button { askForNewFolder() } label: { Label("Neuer Ordner", systemImage: "folder.badge.plus") }
+            Button { askForNewFolder() } label: { Label("New Folder", systemImage: "folder.badge.plus") }
                 .disabled(store.library == nil)
                 .keyboardShortcut("n", modifiers: [.command, .shift])
-                .help("Neuer Ordner (⇧⌘N)")
+                .help("New folder (⇧⌘N)")
             Button {
                 if let selectedEntry { pendingTrash = selectedEntry }
-            } label: { Label("In den Papierkorb legen", systemImage: "trash") }
+            } label: { Label("Move to Trash", systemImage: "trash") }
                 .disabled(selectedEntry == nil)
                 .keyboardShortcut(.delete, modifiers: .command)
-                .help("In den Papierkorb legen (⌘⌫)")
-            Button { store.refresh() } label: { Label("Aktualisieren", systemImage: "arrow.clockwise") }
+                .help("Move to Trash (⌘⌫)")
+            Button { store.refresh() } label: { Label("Refresh", systemImage: "arrow.clockwise") }
                 .disabled(store.library == nil)
                 .keyboardShortcut("r", modifiers: .command)
-                .help("Aktualisieren (⌘R)")
+                .help("Refresh (⌘R)")
             Menu {
-                Button(store.library == nil ? "Ordner auswählen …" : "Anderen Ordner auswählen …") { store.chooseRoot() }
+                Button(store.library == nil ? String(localized: "Choose Folder …") : String(localized: "Choose a Different Folder …")) { store.chooseRoot() }
                 if store.library != nil {
-                    Button("Ordner trennen") { store.disconnect() }
+                    Button("Disconnect Folder") { store.disconnect() }
                 }
             } label: {
-                Label("Ordner", systemImage: "folder.badge.gearshape")
-                    .accessibilityLabel("Freigegebenen Ordner ändern")
+                Label("Folder", systemImage: "folder.badge.gearshape")
+                    .accessibilityLabel("Change Shared Folder")
             }
-            .help("Freigegebenen Ordner ändern. Beim Trennen bleiben die Dateien unverändert.")
+            .help("Change the shared folder. Disconnecting leaves the files unchanged.")
         }
     }
 
     private var promptTitle: String {
         switch namePrompt {
-        case .rename(let entry): "„\(entry.name)“ umbenennen"
-        default: "Neuer Ordner"
+        case .rename(let entry): String(localized: "Rename “\(entry.name)”")
+        default: String(localized: "New Folder")
         }
     }
 
     private var promptAction: String {
-        if case .rename = namePrompt { "Umbenennen" } else { "Erstellen" }
+        if case .rename = namePrompt { String(localized: "Rename") } else { String(localized: "Create") }
     }
 
     private func askForNewFolder() {
@@ -347,7 +347,7 @@ struct LibraryView: View {
 private extension LibraryEntry {
     var caption: String {
         if let itemCount {
-            return itemCount == 0 ? "Leer" : itemCount == 1 ? "1 Objekt" : "\(itemCount) Objekte"
+            return itemCount == 0 ? String(localized: "Empty") : itemCount == 1 ? String(localized: "1 item") : String(localized: "\(itemCount) items")
         }
         return modified?.formatted(date: .abbreviated, time: .omitted) ?? ""
     }
@@ -376,7 +376,7 @@ private struct LibraryTile: View {
         .background(isSelected ? Color.accentColor.opacity(0.14) : .clear, in: RoundedRectangle(cornerRadius: 8))
         .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(isSelected ? Color.accentColor : .clear, lineWidth: 1.5))
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(entry.isDirectory ? "Ordner \(entry.name)" : entry.name)
+        .accessibilityLabel(entry.isDirectory ? String(localized: "Folder \(entry.name)") : entry.name)
         .accessibilityValue(entry.caption)
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }

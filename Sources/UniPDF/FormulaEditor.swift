@@ -8,10 +8,10 @@ struct FormulaEditor: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            TextField("z. B. E = m c^{2}", text: $formula, axis: .vertical)
+            TextField("e.g. E = m c^{2}", text: $formula, axis: .vertical)
                 .font(.system(.body, design: .monospaced))
                 .lineLimit(2...8).textFieldStyle(.roundedBorder)
-                .accessibilityLabel("Formel eingeben")
+                .accessibilityLabel("Enter Formula")
             if !formula.isEmpty {
                 Text(AttributedString(MathNotation.formatted(formula)))
                     .frame(maxWidth: .infinity, minHeight: 54, alignment: .leading)
@@ -19,8 +19,8 @@ struct FormulaEditor: View {
                     .environment(\.colorScheme, .light)
                     .textSelection(.enabled)
             }
-            Button("In die Mitschrift übernehmen", systemImage: "arrow.up.doc", action: moveIntoNotes)
-                .help("Die Formel als Formelblock ans Ende der Mitschrift setzen. Dort lässt sie sich mit der Formelleiste bearbeiten.")
+            Button("Move into Notes", systemImage: "arrow.up.doc", action: moveIntoNotes)
+                .help("Put the formula at the end of the notes as a formula block, where the formula bar can edit it.")
         }
     }
 }

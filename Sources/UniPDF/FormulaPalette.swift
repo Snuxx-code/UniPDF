@@ -18,79 +18,82 @@ struct FormulaTopic: Identifiable, Hashable {
         var help: String
         var insertion: FormulaInsertion
 
-        static func symbol(_ character: String, _ help: String) -> Item { Item(label: character, help: help, insertion: .symbol(character)) }
-        static func template(_ label: String, _ help: String, _ notation: String) -> Item {
-            Item(label: label, help: help, insertion: .template(notation))
+        static func symbol(_ character: String, _ help: String.LocalizationValue) -> Item {
+            Item(label: character, help: String(localized: help), insertion: .symbol(character))
+        }
+        static func template(_ label: String, _ help: String.LocalizationValue, _ notation: String) -> Item {
+            Item(label: label, help: String(localized: help), insertion: .template(notation))
         }
     }
 
-    var id: String { name }
+    /// Stays the same in every language, so that the chosen topic is remembered.
+    var id: String
     var name: String
     var symbol: String
     var items: [Item]
 
     static let all: [FormulaTopic] = [
-        FormulaTopic(name: "Grundlagen", symbol: "plus.forwardslash.minus", items: [
-            .symbol("±", "Plus-Minus"), .symbol("×", "Mal"), .symbol("·", "Mal (Punkt)"), .symbol("÷", "Geteilt"),
-            .symbol("≠", "Ungleich"), .symbol("≈", "Ungefähr gleich"), .symbol("≤", "Kleiner gleich"),
-            .symbol("≥", "Größer gleich"), .symbol("≡", "Identisch, kongruent"), .symbol("∝", "Proportional"),
-            .symbol("∞", "Unendlich"), .symbol("°", "Grad"),
-            .template("√", "Wurzel", "\\sqrt{‸}"), .template("ⁿ√", "n-te Wurzel", "\\sqrt[n]{‸}"),
-            .template("|x|", "Betrag", "|‸|"), .template("%", "Prozent", "‸ \\%")
+        FormulaTopic(id: "basics", name: String(localized: "Basics"), symbol: "plus.forwardslash.minus", items: [
+            .symbol("±", "Plus-minus"), .symbol("×", "Times"), .symbol("·", "Times (dot)"), .symbol("÷", "Divided by"),
+            .symbol("≠", "Not equal"), .symbol("≈", "Approximately equal"), .symbol("≤", "Less than or equal"),
+            .symbol("≥", "Greater than or equal"), .symbol("≡", "Identical, congruent"), .symbol("∝", "Proportional"),
+            .symbol("∞", "Infinity"), .symbol("°", "Degree"),
+            .template("√", "Square root", "\\sqrt{‸}"), .template("ⁿ√", "nth root", "\\sqrt[n]{‸}"),
+            .template("|x|", "Absolute value", "|‸|"), .template("%", "Percent", "‸ \\%")
         ]),
-        FormulaTopic(name: "Mengenlehre", symbol: "circle.circle", items: [
-            .symbol("∈", "Element von"), .symbol("∉", "Kein Element von"), .symbol("⊂", "Echte Teilmenge"),
-            .symbol("⊆", "Teilmenge"), .symbol("⊃", "Echte Obermenge"), .symbol("⊇", "Obermenge"),
-            .symbol("⊈", "Keine Teilmenge"), .symbol("∪", "Vereinigung"), .symbol("∩", "Schnitt"),
-            .symbol("∖", "Differenz"), .symbol("∅", "Leere Menge"), .symbol("∁", "Komplement"),
-            .symbol("ℕ", "Natürliche Zahlen"), .symbol("ℤ", "Ganze Zahlen"), .symbol("ℚ", "Rationale Zahlen"),
-            .symbol("ℝ", "Reelle Zahlen"), .symbol("ℂ", "Komplexe Zahlen"), .symbol("𝒫", "Potenzmenge"),
-            .template("{ }", "Menge", "\\{ ‸ \\}"), .template("{x | }", "Menge mit Bedingung", "\\{ x \\mid ‸ \\}"),
-            .symbol("∀", "Für alle"), .symbol("∃", "Es existiert"), .symbol("|", "Mit der Eigenschaft"),
-            .template("⋃", "Große Vereinigung", "\\bigcup_{i=1}^{n} ‸"), .template("⋂", "Großer Schnitt", "\\bigcap_{i=1}^{n} ‸")
+        FormulaTopic(id: "sets", name: String(localized: "Set Theory"), symbol: "circle.circle", items: [
+            .symbol("∈", "Element of"), .symbol("∉", "Not an element of"), .symbol("⊂", "Proper subset"),
+            .symbol("⊆", "Subset"), .symbol("⊃", "Proper superset"), .symbol("⊇", "Superset"),
+            .symbol("⊈", "Not a subset"), .symbol("∪", "Union"), .symbol("∩", "Intersection"),
+            .symbol("∖", "Difference"), .symbol("∅", "Empty set"), .symbol("∁", "Complement"),
+            .symbol("ℕ", "Natural numbers"), .symbol("ℤ", "Integers"), .symbol("ℚ", "Rational numbers"),
+            .symbol("ℝ", "Real numbers"), .symbol("ℂ", "Complex numbers"), .symbol("𝒫", "Power set"),
+            .template("{ }", "Set", "\\{ ‸ \\}"), .template("{x | }", "Set with a condition", "\\{ x \\mid ‸ \\}"),
+            .symbol("∀", "For all"), .symbol("∃", "There exists"), .symbol("|", "Such that"),
+            .template("⋃", "Big union", "\\bigcup_{i=1}^{n} ‸"), .template("⋂", "Big intersection", "\\bigcap_{i=1}^{n} ‸")
         ]),
-        FormulaTopic(name: "Logik", symbol: "checkmark.circle", items: [
-            .symbol("∧", "Und"), .symbol("∨", "Oder"), .symbol("¬", "Nicht"), .symbol("⇒", "Daraus folgt"),
-            .symbol("⇔", "Genau dann, wenn"), .symbol("→", "Pfeil, Abbildung"), .symbol("↔", "Äquivalent"),
-            .symbol("∀", "Für alle"), .symbol("∃", "Es existiert"), .symbol("∄", "Es existiert kein"),
-            .symbol("⊕", "Exklusives Oder"), .symbol("⊤", "Wahr"), .symbol("⊥", "Falsch"),
-            .symbol("⊢", "Herleitbar"), .symbol("⊨", "Folgt semantisch"), .symbol("≡", "Äquivalent")
+        FormulaTopic(id: "logic", name: String(localized: "Logic"), symbol: "checkmark.circle", items: [
+            .symbol("∧", "And"), .symbol("∨", "Or"), .symbol("¬", "Not"), .symbol("⇒", "Implies"),
+            .symbol("⇔", "If and only if"), .symbol("→", "Arrow, map"), .symbol("↔", "Equivalent"),
+            .symbol("∀", "For all"), .symbol("∃", "There exists"), .symbol("∄", "There does not exist"),
+            .symbol("⊕", "Exclusive or"), .symbol("⊤", "True"), .symbol("⊥", "False"),
+            .symbol("⊢", "Derivable"), .symbol("⊨", "Semantically entails"), .symbol("≡", "Equivalent")
         ]),
-        FormulaTopic(name: "Analysis", symbol: "function", items: [
-            .template("∑", "Summe", "\\sum_{i=1}^{n} ‸"), .template("∏", "Produkt", "\\prod_{i=1}^{n} ‸"),
-            .template("∫", "Integral", "\\int ‸ \\,dx"), .template("∫ₐᵇ", "Bestimmtes Integral", "\\int_{a}^{b} ‸ \\,dx"),
-            .template("lim", "Grenzwert", "\\lim_{x \\to ‸}"), .template("d/dx", "Ableitung", "\\frac{d}{dx} ‸"),
-            .symbol("∂", "Partielle Ableitung"), .symbol("∇", "Nabla, Gradient"), .symbol("Δ", "Delta, Differenz"),
-            .symbol("′", "Strich (Ableitung)"), .symbol("∞", "Unendlich"), .symbol("→", "Gegen"),
-            .symbol("↦", "Wird abgebildet auf"), .template("e^x", "Exponentialfunktion", "e^{‸}"),
-            .template("ln", "Natürlicher Logarithmus", "\\ln(‸)"), .template("sin", "Sinus", "\\sin(‸)"),
-            .template("cos", "Kosinus", "\\cos(‸)")
+        FormulaTopic(id: "analysis", name: String(localized: "Calculus"), symbol: "function", items: [
+            .template("∑", "Sum", "\\sum_{i=1}^{n} ‸"), .template("∏", "Product", "\\prod_{i=1}^{n} ‸"),
+            .template("∫", "Integral", "\\int ‸ \\,dx"), .template("∫ₐᵇ", "Definite integral", "\\int_{a}^{b} ‸ \\,dx"),
+            .template("lim", "Limit", "\\lim_{x \\to ‸}"), .template("d/dx", "Derivative", "\\frac{d}{dx} ‸"),
+            .symbol("∂", "Partial derivative"), .symbol("∇", "Nabla, gradient"), .symbol("Δ", "Delta, difference"),
+            .symbol("′", "Prime (derivative)"), .symbol("∞", "Infinity"), .symbol("→", "Tends to"),
+            .symbol("↦", "Maps to"), .template("e^x", "Exponential function", "e^{‸}"),
+            .template("ln", "Natural logarithm", "\\ln(‸)"), .template("sin", "Sine", "\\sin(‸)"),
+            .template("cos", "Cosine", "\\cos(‸)")
         ]),
-        FormulaTopic(name: "Lineare Algebra", symbol: "square.grid.3x3", items: [
-            .template("v⃗", "Vektor", "\\vec{‸}"), .template("⟨,⟩", "Skalarprodukt", "\\langle ‸ \\rangle"),
-            .template("‖‖", "Norm", "\\|‸\\|"), .template("Aᵀ", "Transponiert", "‸^{T}"),
-            .template("A⁻¹", "Inverse", "‸^{-1}"), .template("det", "Determinante", "\\det(‸)"),
-            .template("ℝⁿ", "n-dimensionaler Raum", "ℝ^{‸}"), .symbol("·", "Skalarprodukt"),
-            .symbol("×", "Kreuzprodukt"), .symbol("⊗", "Tensorprodukt"), .symbol("⊥", "Orthogonal"),
-            .symbol("∥", "Parallel"), .symbol("λ", "Eigenwert"), .template("dim", "Dimension", "\\dim(‸)"),
-            .template("ker", "Kern", "\\ker(‸)"), .symbol("∘", "Verkettung")
+        FormulaTopic(id: "linear-algebra", name: String(localized: "Linear Algebra"), symbol: "square.grid.3x3", items: [
+            .template("v⃗", "Vector", "\\vec{‸}"), .template("⟨,⟩", "Inner product", "\\langle ‸ \\rangle"),
+            .template("‖‖", "Norm", "\\|‸\\|"), .template("Aᵀ", "Transpose", "‸^{T}"),
+            .template("A⁻¹", "Inverse", "‸^{-1}"), .template("det", "Determinant", "\\det(‸)"),
+            .template("ℝⁿ", "n-dimensional space", "ℝ^{‸}"), .symbol("·", "Dot product"),
+            .symbol("×", "Cross product"), .symbol("⊗", "Tensor product"), .symbol("⊥", "Orthogonal"),
+            .symbol("∥", "Parallel"), .symbol("λ", "Eigenvalue"), .template("dim", "Dimension", "\\dim(‸)"),
+            .template("ker", "Kernel", "\\ker(‸)"), .symbol("∘", "Composition")
         ]),
-        FormulaTopic(name: "Stochastik", symbol: "chart.bar", items: [
-            .template("P()", "Wahrscheinlichkeit", "P(‸)"), .template("P(A|B)", "Bedingte Wahrscheinlichkeit", "P(‸ \\mid B)"),
-            .template("E[]", "Erwartungswert", "\\mathbb{E}[‸]"), .template("Var", "Varianz", "\\Var(‸)"),
-            .symbol("μ", "Mittelwert"), .symbol("σ", "Standardabweichung"), .template("σ²", "Varianz", "σ^{2}"),
-            .template("x̄", "Stichprobenmittel", "\\bar{‸}"), .symbol("∼", "Verteilt nach"),
-            .template("n!", "Fakultät", "‸!"), .template("(n k)", "Binomialkoeffizient", "\\binom{n}{‸}"),
-            .symbol("∩", "Und (Schnitt)"), .symbol("∪", "Oder (Vereinigung)"), .symbol("Ω", "Ergebnisraum")
+        FormulaTopic(id: "stochastics", name: String(localized: "Probability"), symbol: "chart.bar", items: [
+            .template("P()", "Probability", "P(‸)"), .template("P(A|B)", "Conditional probability", "P(‸ \\mid B)"),
+            .template("E[]", "Expected value", "\\mathbb{E}[‸]"), .template("Var", "Variance", "\\Var(‸)"),
+            .symbol("μ", "Mean"), .symbol("σ", "Standard deviation"), .template("σ²", "Variance", "σ^{2}"),
+            .template("x̄", "Sample mean", "\\bar{‸}"), .symbol("∼", "Distributed as"),
+            .template("n!", "Factorial", "‸!"), .template("(n k)", "Binomial coefficient", "\\binom{n}{‸}"),
+            .symbol("∩", "And (intersection)"), .symbol("∪", "Or (union)"), .symbol("Ω", "Sample space")
         ]),
-        FormulaTopic(name: "Griechisch", symbol: "textformat.alt", items:
+        FormulaTopic(id: "greek", name: String(localized: "Greek"), symbol: "textformat.alt", items:
             ["α", "β", "γ", "δ", "ε", "ζ", "η", "θ", "ι", "κ", "λ", "μ", "ν", "ξ", "π", "ρ", "σ", "τ", "φ", "χ", "ψ", "ω",
-             "Γ", "Δ", "Θ", "Λ", "Ξ", "Π", "Σ", "Φ", "Ψ", "Ω"].map { .symbol($0, "Griechischer Buchstabe \($0)") }
+             "Γ", "Δ", "Θ", "Λ", "Ξ", "Π", "Σ", "Φ", "Ψ", "Ω"].map { .symbol($0, "Greek letter \($0)") }
         ),
-        FormulaTopic(name: "Pfeile", symbol: "arrow.right", items: [
-            .symbol("→", "Nach rechts"), .symbol("←", "Nach links"), .symbol("↔", "Beidseitig"), .symbol("⇒", "Folgt"),
-            .symbol("⇐", "Folgt aus"), .symbol("⇔", "Äquivalent"), .symbol("↦", "Abbildung"), .symbol("↑", "Nach oben"),
-            .symbol("↓", "Nach unten"), .symbol("⇌", "Gleichgewicht"), .symbol("↗", "Steigt"), .symbol("↘", "Fällt")
+        FormulaTopic(id: "arrows", name: String(localized: "Arrows"), symbol: "arrow.right", items: [
+            .symbol("→", "Right"), .symbol("←", "Left"), .symbol("↔", "Both ways"), .symbol("⇒", "Implies"),
+            .symbol("⇐", "Is implied by"), .symbol("⇔", "Equivalent"), .symbol("↦", "Maps to"), .symbol("↑", "Up"),
+            .symbol("↓", "Down"), .symbol("⇌", "Equilibrium"), .symbol("↗", "Rises"), .symbol("↘", "Falls")
         ])
     ]
 }
@@ -100,23 +103,23 @@ struct FormulaPalette: View {
     let insert: (FormulaInsertion) -> Void
     /// Whether the caret is inside a formula, so the palette can say where things go.
     let isInFormula: Bool
-    @AppStorage("formulaTopic") private var topicName = FormulaTopic.all[1].name
+    @AppStorage("formulaTopicID") private var topicID = FormulaTopic.all[1].id
 
-    private var topic: FormulaTopic { FormulaTopic.all.first { $0.name == topicName } ?? FormulaTopic.all[0] }
+    private var topic: FormulaTopic { FormulaTopic.all.first { $0.id == topicID } ?? FormulaTopic.all[0] }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
-                Button { insert(.block) } label: { Label("Formelblock", systemImage: "plus.rectangle") }
-                    .help("Neuen Formelblock in die Mitschrift einfügen. Formeln stehen zwischen $$ … $$, im Satz zwischen $ … $.")
-                Picker("Themengebiet", selection: $topicName) {
-                    ForEach(FormulaTopic.all) { topic in Label(topic.name, systemImage: topic.symbol).tag(topic.name) }
+                Button { insert(.block) } label: { Label("Formula Block", systemImage: "plus.rectangle") }
+                    .help("Insert a new formula block into the notes. Formulas go between $$ … $$, or between $ … $ within a sentence.")
+                Picker("Topic", selection: $topicID) {
+                    ForEach(FormulaTopic.all) { topic in Label(topic.name, systemImage: topic.symbol).tag(topic.id) }
                 }
-                .labelsHidden().fixedSize().help("Themengebiet der Zeichen")
+                .labelsHidden().fixedSize().help("Topic of the symbols")
                 Spacer(minLength: 0)
-                structureButton("x²", "Hochgestellt", .superscript)
-                structureButton("xₙ", "Tiefgestellt", .subscript)
-                structureButton("a⁄b", "Bruch", .template("\\frac{‸}{}"))
+                structureButton("x²", "Superscript", .superscript)
+                structureButton("xₙ", "Subscript", .subscript)
+                structureButton("a⁄b", "Fraction", .template("\\frac{‸}{}"))
             }
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 34, maximum: 60), spacing: 4)], alignment: .leading, spacing: 4) {
                 ForEach(topic.items, id: \.self) { item in
@@ -132,15 +135,15 @@ struct FormulaPalette: View {
                     .accessibilityLabel(item.help)
                 }
             }
-            Text(isInFormula ? "Wird in die Formel am Cursor eingefügt."
-                             : "Zeichen landen am Cursor. Hoch, tief und Vorlagen werden zur Formel, das Wort davor wird ihre Basis.")
+            Text(isInFormula ? String(localized: "Goes into the formula at the cursor.")
+                             : String(localized: "Symbols go in at the cursor. Superscript, subscript and templates become a formula, with the word before as its base."))
                 .font(.caption).foregroundStyle(.secondary)
         }
         .padding(12)
         .background(Color.primary.opacity(0.035), in: RoundedRectangle(cornerRadius: 10))
     }
 
-    private func structureButton(_ label: String, _ help: String, _ insertion: FormulaInsertion) -> some View {
+    private func structureButton(_ label: String, _ help: LocalizedStringKey, _ insertion: FormulaInsertion) -> some View {
         Button { insert(insertion) } label: {
             Text(label).font(.system(size: 14)).frame(minWidth: 34, minHeight: 26).contentShape(Rectangle())
         }

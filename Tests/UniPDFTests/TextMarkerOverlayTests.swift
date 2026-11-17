@@ -118,7 +118,7 @@ import UniPDFCore
         harness.session.activateHighlighter()
         try harness.drag(from: CGPoint(x: 80, y: 90), to: CGPoint(x: 200, y: 140))
         #expect(harness.committed.isEmpty)
-        #expect(harness.session.annotationError?.contains("keinen auswählbaren PDF-Text") == true)
+        #expect(harness.session.annotationError?.contains("no selectable PDF text") == true)
     }
 
     @Test func foregroundAnnotationsRemainSelectableAboveHighlights() throws {

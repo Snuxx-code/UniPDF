@@ -64,25 +64,25 @@ struct DocumentSearchCommands: Commands {
 
     var body: some Commands {
         CommandGroup(after: .toolbar) {
-            Toggle("Fortlaufend scrollen", isOn: Binding(get: { session?.scrollsContinuously ?? false },
+            Toggle("Scroll Continuously", isOn: Binding(get: { session?.scrollsContinuously ?? false },
                                                          set: { session?.scrollsContinuously = $0 }))
                 .keyboardShortcut("j", modifiers: [.command, .option])
                 .disabled(session == nil)
         }
         CommandGroup(after: .textEditing) {
             Section {
-                Button("Im Dokument suchen …") { search?.open() }
+                Button("Search Document …") { search?.open() }
                     .keyboardShortcut("f")
                     .disabled(search == nil)
-                Button("Nächster Treffer") { search?.step(1) }
+                Button("Next Result") { search?.step(1) }
                     .keyboardShortcut("g")
                     .disabled(search?.hits.isEmpty ?? true)
-                Button("Vorheriger Treffer") { search?.step(-1) }
+                Button("Previous Result") { search?.step(-1) }
                     .keyboardShortcut("g", modifiers: [.command, .shift])
                     .disabled(search?.hits.isEmpty ?? true)
             }
             Section {
-                Button("Kommentar hinzufügen") { session?.activateComment() }
+                Button("Add Comment") { session?.activateComment() }
                     .keyboardShortcut("m", modifiers: [.command, .option])
                     .disabled(session == nil)
             }
@@ -119,10 +119,10 @@ struct SearchResultRow: View {
 
     private var source: (symbol: String, label: String) {
         switch hit.source {
-        case .slide: ("doc.text", "Folientext")
-        case .notes: ("square.and.pencil", "Mitschrift")
-        case .textBox: ("character.textbox", "Textfeld")
-        case .comment: ("text.bubble", "Kommentar")
+        case .slide: ("doc.text", String(localized: "Slide text"))
+        case .notes: ("square.and.pencil", String(localized: "Notes"))
+        case .textBox: ("character.textbox", String(localized: "Text box"))
+        case .comment: ("text.bubble", String(localized: "Comment"))
         }
     }
 
@@ -152,7 +152,7 @@ struct SearchResultRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("\(source.label), Folie \(hit.page + 1): \(hit.before)\(hit.match)\(hit.after)")
+        .accessibilityLabel("\(source.label), slide \(hit.page + 1): \(hit.before)\(hit.match)\(hit.after)")
         .accessibilityAddTraits(isCurrent ? .isSelected : [])
     }
 }

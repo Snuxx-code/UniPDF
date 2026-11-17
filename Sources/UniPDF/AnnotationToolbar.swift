@@ -21,14 +21,14 @@ struct SlideToolBar: View {
     private func groups(compactZoom: Bool) -> some View {
         HStack(spacing: 8) {
             ToolCapsule {
-                toolButton(.select, "Auswählen und verschieben", symbol: "cursorarrow")
-                toolButton(.pen, "Stift", symbol: "pencil.tip")
-                iconButton("Textmarker", symbol: "highlighter", selected: session.tool == .highlight) { session.activateHighlighter() }
-                    .help("Textmarker: PDF-Text auswählen und hervorheben. Eine bestehende Textauswahl wird sofort markiert.")
-                toolButton(.eraser, "Radiergummi für Stift und Textmarker", symbol: "eraser")
-                iconButton("Kommentieren", symbol: "text.bubble", selected: session.tool == .comment) { session.activateComment() }
-                    .help("Kommentieren (⌥⌘M): Text auswählen oder über Text ziehen. Auf freier Fläche entsteht ein Bereich, ⌥ erzwingt ihn.")
-                toolButton(.text, session.keepsTextTool ? "Textfeld (fixiert)" : "Textfeld", symbol: "textbox")
+                toolButton(.select, "Select and move", symbol: "cursorarrow")
+                toolButton(.pen, "Pen", symbol: "pencil.tip")
+                iconButton("Highlighter", symbol: "highlighter", selected: session.tool == .highlight) { session.activateHighlighter() }
+                    .help("Highlighter: select PDF text to highlight it. An existing text selection is highlighted right away.")
+                toolButton(.eraser, "Eraser for pen and highlighter", symbol: "eraser")
+                iconButton("Comment", symbol: "text.bubble", selected: session.tool == .comment) { session.activateComment() }
+                    .help("Comment (⌥⌘M): select text or drag over it. On an empty spot you get an area, ⌥ always makes one.")
+                toolButton(.text, session.keepsTextTool ? "Text box (locked)" : "Text box", symbol: "textbox")
                     .overlay(alignment: .bottomTrailing) {
                         if session.keepsTextTool {
                             Image(systemName: "lock.fill")
@@ -41,25 +41,25 @@ struct SlideToolBar: View {
             }
             shapeCapsule
             ToolCapsule {
-                iconButton("Bild einfügen", symbol: "photo", selected: false, action: chooseImage)
+                iconButton("Insert image", symbol: "photo", selected: false, action: chooseImage)
             }
             Spacer(minLength: 0)
             ToolCapsule {
-                iconButton("Einzelseite", symbol: "rectangle", selected: !session.scrollsContinuously) {
+                iconButton("Single page", symbol: "rectangle", selected: !session.scrollsContinuously) {
                     session.scrollsContinuously = false
                 }
-                .help("Einzelseite: eine Folie nach der anderen")
-                iconButton("Fortlaufend scrollen", symbol: "rectangle.split.1x2", selected: session.scrollsContinuously) {
+                .help("Single page: one slide after another")
+                iconButton("Scroll continuously", symbol: "rectangle.split.1x2", selected: session.scrollsContinuously) {
                     session.scrollsContinuously = true
                 }
-                .help("Fortlaufend: alle Folien untereinander durchscrollen")
+                .help("Continuous: scroll through all slides one below the other")
             }
             if compactZoom {
                 ToolCapsule {
                     Menu {
-                        Button("Vergrößern") { session.view?.zoomIn(nil) }
-                        Button("Verkleinern") { session.view?.zoomOut(nil) }
-                        Button("An Fenster anpassen") { session.view?.autoScales = true }
+                        Button("Zoom In") { session.view?.zoomIn(nil) }
+                        Button("Zoom Out") { session.view?.zoomOut(nil) }
+                        Button("Zoom to Fit") { session.view?.autoScales = true }
                     } label: {
                         Image(systemName: "plus.magnifyingglass").frame(width: 30, height: 30)
                     }
@@ -68,9 +68,9 @@ struct SlideToolBar: View {
                 }
             } else {
                 ToolCapsule {
-                    iconButton("Verkleinern", symbol: "minus.magnifyingglass", selected: false) { session.view?.zoomOut(nil) }
-                    iconButton("An Fenster anpassen", symbol: "arrow.up.left.and.arrow.down.right", selected: false) { session.view?.autoScales = true }
-                    iconButton("Vergrößern", symbol: "plus.magnifyingglass", selected: false) { session.view?.zoomIn(nil) }
+                    iconButton("Zoom out", symbol: "minus.magnifyingglass", selected: false) { session.view?.zoomOut(nil) }
+                    iconButton("Zoom to fit", symbol: "arrow.up.left.and.arrow.down.right", selected: false) { session.view?.autoScales = true }
+                    iconButton("Zoom in", symbol: "plus.magnifyingglass", selected: false) { session.view?.zoomIn(nil) }
                 }
             }
         }
@@ -81,10 +81,10 @@ struct SlideToolBar: View {
         var isActive = false
         if case .shape = session.tool { isActive = true }
         return ToolCapsule {
-            iconButton("Form: \(session.lastShape.label)", symbol: session.lastShape.symbol, selected: isActive) {
+            iconButton("Shape: \(session.lastShape.label)", symbol: session.lastShape.symbol, selected: isActive) {
                 pick(session.lastShape)
             }
-            .help("Form zeichnen: \(session.lastShape.label). ⇧ beim Ziehen hält die Proportionen.")
+            .help("Draw a shape: \(session.lastShape.label). Hold ⇧ while dragging to keep the proportions.")
             Divider().frame(height: 18).padding(.horizontal, 2)
             Menu {
                 ForEach(SlideShape.allCases, id: \.self) { shape in
@@ -93,19 +93,19 @@ struct SlideToolBar: View {
             } label: {
                 Image(systemName: "chevron.down").font(.system(size: 11, weight: .semibold)).frame(width: 24, height: 30)
                     // Otherwise VoiceOver reads the symbol's name instead of what the menu does.
-                    .accessibilityLabel("Form wählen")
+                    .accessibilityLabel("Choose Shape")
             }
             .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
-            .help("Form wählen: Rechteck, Quadrat, Kreis, Oval oder Linie")
-            .accessibilityLabel("Form wählen")
+            .help("Choose a shape: rectangle, square, circle, oval or line")
+            .accessibilityLabel("Choose Shape")
         }
     }
 
-    private func toolButton(_ tool: AnnotationTool, _ label: String, symbol: String) -> some View {
+    private func toolButton(_ tool: AnnotationTool, _ label: LocalizedStringKey, symbol: String) -> some View {
         iconButton(label, symbol: symbol, selected: session.tool == tool) { session.tool = tool }
     }
 
-    private func iconButton(_ label: String, symbol: String, selected: Bool, action: @escaping () -> Void) -> some View {
+    private func iconButton(_ label: LocalizedStringKey, symbol: String, selected: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: symbol)
                 .font(.system(size: 14))
@@ -187,7 +187,7 @@ struct AnnotationSettingsBar: View {
             // First, so that the other settings stay where they are when it appears.
             if deletable {
                 Button { session.overlay?.deleteSelection() } label: { Image(systemName: "trash").frame(height: 24) }
-                    .help("Auswahl löschen (⌫)").accessibilityLabel("Auswahl löschen")
+                    .help("Delete the selection (⌫)").accessibilityLabel("Delete Selection")
             }
             switch kind {
             case .stroke:
@@ -201,19 +201,19 @@ struct AnnotationSettingsBar: View {
             case .highlight:
                 colors(swatches: true, highlighter: true)
             case .eraser:
-                Picker("Radiermodus", selection: Binding(get: { session.style.erasesWholeStrokes },
+                Picker("Eraser mode", selection: Binding(get: { session.style.erasesWholeStrokes },
                                                          set: { session.style.erasesWholeStrokes = $0 })) {
-                    Text("Präzise").tag(false)
-                    Text("Strich").tag(true)
+                    Text("Precise").tag(false)
+                    Text("Stroke").tag(true)
                 }
                 // A pop-up like the size: a segmented control inside ViewThatFits ends in an AppKit constraint loop.
                 .labelsHidden().fixedSize()
-                .help("Präzise entfernt nur, was der Radiergummi berührt, bei Markierungen ganze Zeichen. Strich entfernt jeden berührten Strich und jede berührte Markierung ganz.")
+                .help("Precise removes only what the eraser touches, whole characters for highlights. Stroke removes every stroke and highlight it touches entirely.")
                 eraserSizePicker
             case .comment:
                 commentColors
                 if session.tool == .comment {
-                    Text("Über Text ziehen kommentiert die Stelle, auf freier Fläche einen Bereich")
+                    Text("Drag over text to comment on the passage, on an empty spot for an area")
                         .foregroundStyle(.secondary).lineLimit(1).truncationMode(.tail)
                 }
             case .image, nil:
@@ -237,12 +237,12 @@ struct AnnotationSettingsBar: View {
         let widths = [2, 4, 8].map { $0 * unit }
         let current = session.style.lineWidth
         let nearest = widths.min { abs($0 - current) < abs($1 - current) } ?? current
-        return Picker("Strichstärke", selection: Binding(get: { nearest }, set: { binding(\.lineWidth).wrappedValue = $0 })) {
-            Text("Fein").tag(widths[0])
-            Text("Mittel").tag(widths[1])
-            Text("Breit").tag(widths[2])
+        return Picker("Line width", selection: Binding(get: { nearest }, set: { binding(\.lineWidth).wrappedValue = $0 })) {
+            Text("Fine").tag(widths[0])
+            Text("Medium").tag(widths[1])
+            Text("Bold").tag(widths[2])
         }
-        .labelsHidden().fixedSize().help("Strichstärke")
+        .labelsHidden().fixedSize().help("Line width")
     }
 
     private var eraserSizePicker: some View {
@@ -250,12 +250,12 @@ struct AnnotationSettingsBar: View {
         let radii = [5, 10, 20].map { $0 * unit }
         let current = session.style.eraserRadius
         let nearest = radii.min { abs($0 - current) < abs($1 - current) } ?? current
-        return Picker("Radiergröße", selection: Binding(get: { nearest }, set: { session.style.eraserRadius = $0 })) {
-            Text("Klein").tag(radii[0])
-            Text("Mittel").tag(radii[1])
-            Text("Groß").tag(radii[2])
+        return Picker("Eraser size", selection: Binding(get: { nearest }, set: { session.style.eraserRadius = $0 })) {
+            Text("Small").tag(radii[0])
+            Text("Medium").tag(radii[1])
+            Text("Large").tag(radii[2])
         }
-        .labelsHidden().fixedSize().help("Größe des Radiergummis")
+        .labelsHidden().fixedSize().help("Eraser size")
     }
 
     /// Pastel, like the comments themselves.
@@ -273,7 +273,7 @@ struct AnnotationSettingsBar: View {
                         .contentShape(Rectangle())
                 }
                 .help(color.label)
-                .accessibilityLabel("Kommentarfarbe \(color.label)")
+                .accessibilityLabel("Comment color \(color.label)")
                 .accessibilityAddTraits(isCurrent ? .isSelected : [])
             }
         }
@@ -281,10 +281,10 @@ struct AnnotationSettingsBar: View {
 
     private func colors(swatches: Bool, highlighter: Bool = false) -> some View {
         let palette: [(label: String, value: AnnotationColor)] = highlighter ? [
-            ("Gelb", PDFTextHighlight.yellow),
-            ("Grün", AnnotationColor(red: 0.25, green: 0.85, blue: 0.4)),
-            ("Pink", AnnotationColor(red: 1, green: 0.4, blue: 0.65)),
-            ("Blau", AnnotationColor(red: 0.25, green: 0.65, blue: 1))
+            (String(localized: "Yellow"), PDFTextHighlight.yellow),
+            (String(localized: "Green"), AnnotationColor(red: 0.25, green: 0.85, blue: 0.4)),
+            (String(localized: "Pink"), AnnotationColor(red: 1, green: 0.4, blue: 0.65)),
+            (String(localized: "Blue"), AnnotationColor(red: 0.25, green: 0.65, blue: 1))
         ] : InkColor.allCases.map { ($0.label, AnnotationColor($0)) }
         let keyPath: WritableKeyPath<AnnotationStyle, AnnotationColor> = highlighter ? \.highlightColor : \.color
         let current = session.style[keyPath: keyPath]
@@ -303,11 +303,11 @@ struct AnnotationSettingsBar: View {
                     .accessibilityAddTraits(current == option.value ? .isSelected : [])
                 }
             }
-            ColorPicker("Farbe", selection: Binding(
+            ColorPicker("Color", selection: Binding(
                 get: { Color(nsColor: session.style[keyPath: keyPath].nsColor) },
                 set: { binding(keyPath).wrappedValue = AnnotationColor(NSColor($0)) }
             ), supportsOpacity: !highlighter)
-            .labelsHidden().help("Beliebige Farbe wählen")
+            .labelsHidden().help("Choose any color")
         }
     }
 
@@ -321,20 +321,20 @@ struct AnnotationSettingsBar: View {
                 .foregroundStyle(isOn ? green : .primary)
                 .contentShape(Rectangle())
         }
-        .help(isOn ? "Textwerkzeug bleibt aktiv: Jeder Klick auf die Folie beginnt ein neues Textfeld. Zum Lösen klicken."
-                   : "Textwerkzeug fixieren, um mehrere Textfelder nacheinander zu schreiben")
-        .accessibilityLabel("Textwerkzeug fixieren")
+        .help(isOn ? String(localized: "The text tool stays active: every click on the slide starts a new text box. Click to release.")
+                   : String(localized: "Lock the text tool to write several text boxes in a row"))
+        .accessibilityLabel("Lock Text Tool")
         .accessibilityAddTraits(isOn ? .isSelected : [])
     }
 
     private var fontControls: some View {
         HStack(spacing: 6) {
-            Picker("Schriftart", selection: binding(\.text.fontFamily)) {
+            Picker("Font", selection: binding(\.text.fontFamily)) {
                 Text("System").tag(String?.none)
                 Divider()
                 ForEach(Self.fontFamilies, id: \.self) { Text($0).tag(String?.some($0)) }
             }
-            .labelsHidden().frame(maxWidth: 100).help("Schriftart")
+            .labelsHidden().frame(maxWidth: 100).help("Font")
 
             Menu {
                 ForEach(Self.fontSizes, id: \.self) { size in
@@ -343,17 +343,17 @@ struct AnnotationSettingsBar: View {
             } label: {
                 Text("\(Int(session.style.text.size)) pt").monospacedDigit()
             }
-            .menuStyle(.borderlessButton).fixedSize().help("Schriftgröße")
-            .accessibilityLabel("Schriftgröße, \(Int(session.style.text.size)) Punkt")
-            Stepper("Schriftgröße", value: binding(\.text.size), in: 6...400).labelsHidden().help("Schriftgröße ändern")
+            .menuStyle(.borderlessButton).fixedSize().help("Font size")
+            .accessibilityLabel("Font size, \(Int(session.style.text.size)) points")
+            Stepper("Font size", value: binding(\.text.size), in: 6...400).labelsHidden().help("Change the font size")
 
-            styleToggle(\.text.bold, symbol: "bold", label: "Fett")
-            styleToggle(\.text.italic, symbol: "italic", label: "Kursiv")
-            styleToggle(\.text.underline, symbol: "underline", label: "Unterstrichen")
+            styleToggle(\.text.bold, symbol: "bold", label: "Bold")
+            styleToggle(\.text.italic, symbol: "italic", label: "Italic")
+            styleToggle(\.text.underline, symbol: "underline", label: "Underline")
         }
     }
 
-    private func styleToggle(_ keyPath: WritableKeyPath<AnnotationStyle, Bool>, symbol: String, label: String) -> some View {
+    private func styleToggle(_ keyPath: WritableKeyPath<AnnotationStyle, Bool>, symbol: String, label: LocalizedStringKey) -> some View {
         let isOn = session.style[keyPath: keyPath]
         return Button { binding(keyPath).wrappedValue.toggle() } label: { toolLabel(symbol, selected: isOn) }
             .help(label).accessibilityLabel(label)

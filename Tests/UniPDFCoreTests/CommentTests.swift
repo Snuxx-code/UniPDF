@@ -64,7 +64,7 @@ struct CommentTests {
     @Test func labelsAreShortAndAreasSaySo() {
         #expect(SlideComment(rects: [], quote: "Kurz").label == "Kurz")
         #expect(SlideComment(rects: [], quote: "Ein ziemlich langer Satz über die Wahrscheinlichkeit").label == "Ein ziemlich langer Satz …")
-        #expect(SlideComment(rects: [], isArea: true).label == "Bereich")
+        #expect(SlideComment(rects: [], isArea: true).label == "Area")
         #expect(CommentColor.lavender.next == .rose)
     }
 
@@ -79,13 +79,13 @@ struct CommentTests {
         // Tags keep their words together with non-breaking spaces.
         let text = try #require(exported.page(at: 0)?.string).replacingOccurrences(of: "\u{00A0}", with: " ")
         #expect(!text.contains("kommentar:"))
-        #expect(text.contains("KOMMENTARE"))
+        #expect(text.contains("COMMENTS"))
         #expect(text.contains("Gilt nur für diskrete Fälle"))
         // Numbered in the order of the tags, the area first, and shortened to the tag's label as in the app.
-        #expect(text.contains("1 · Bereich"))
+        #expect(text.contains("1 · Area"))
         #expect(text.contains("2 · Satz von Bayes"))
-        let footnotes = try #require(text.range(of: "KOMMENTARE"))
-        let area = try #require(text.range(of: "1 · Bereich", range: footnotes.upperBound..<text.endIndex))
+        let footnotes = try #require(text.range(of: "COMMENTS"))
+        let area = try #require(text.range(of: "1 · Area", range: footnotes.upperBound..<text.endIndex))
         let passage = try #require(text.range(of: "2 · Satz von Bayes", range: footnotes.upperBound..<text.endIndex))
         #expect(area.lowerBound < passage.lowerBound)
     }

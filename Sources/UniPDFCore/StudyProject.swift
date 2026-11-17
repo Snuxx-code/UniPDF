@@ -8,7 +8,7 @@ public struct StudyProject: Codable, Sendable {
     public var pdfData: Data?
     public var pages: [Int: PageNotes]
 
-    public init(title: String = "Neue Vorlesung", pdfData: Data? = nil, pages: [Int: PageNotes] = [:]) {
+    public init(title: String = String(localized: "New Lecture"), pdfData: Data? = nil, pages: [Int: PageNotes] = [:]) {
         self.title = title
         self.pdfData = pdfData
         self.pages = pages
@@ -33,12 +33,12 @@ public enum ProjectError: LocalizedError {
 
     public var errorDescription: String? {
         switch self {
-        case .unsupportedVersion: "Dieses Projekt benötigt eine neuere Version von UniPDF."
-        case .invalidData: "Die Projektdatei enthält ungültige Daten. Öffne eine andere Datei oder eine Sicherung."
-        case .invalidPDF: "Diese Datei enthält kein lesbares PDF. Wähle ein anderes PDF."
-        case .lockedPDF: "Dieses PDF ist geschützt. Entsperre es zuerst in Vorschau und importiere eine ungeschützte Kopie."
-        case .exportFailed: "Das Lern-PDF konnte nicht erstellt werden. Versuche es erneut."
-        case .invalidImage: "Dieses Bild kann nicht gelesen werden. Wähle ein Bild im Format PNG, JPEG, HEIC oder TIFF."
+        case .unsupportedVersion: String(localized: "This project needs a newer version of UniPDF.")
+        case .invalidData: String(localized: "The project file contains invalid data. Open a different file or a backup.")
+        case .invalidPDF: String(localized: "This file does not contain a readable PDF. Choose a different PDF.")
+        case .lockedPDF: String(localized: "This PDF is protected. Unlock it in Preview first and import an unprotected copy.")
+        case .exportFailed: String(localized: "The study PDF could not be created. Try again.")
+        case .invalidImage: String(localized: "This image cannot be read. Choose a PNG, JPEG, HEIC or TIFF image.")
         }
     }
 }
@@ -71,11 +71,11 @@ public enum InkTool: String, Codable, CaseIterable, Sendable {
     case pen, line, arrow, rectangle, ellipse
     public var label: String {
         switch self {
-        case .pen: "Stift"
-        case .line: "Linie"
-        case .arrow: "Pfeil"
-        case .rectangle: "Rechteck"
-        case .ellipse: "Ellipse"
+        case .pen: String(localized: "Pen")
+        case .line: String(localized: "Line")
+        case .arrow: String(localized: "Arrow")
+        case .rectangle: String(localized: "Rectangle")
+        case .ellipse: String(localized: "Ellipse")
         }
     }
     public var symbol: String {
@@ -93,10 +93,10 @@ public enum InkColor: String, Codable, CaseIterable, Sendable {
     case graphite, blue, red, green
     public var label: String {
         switch self {
-        case .graphite: "Graphit"
-        case .blue: "Blau"
-        case .red: "Rot"
-        case .green: "Grün"
+        case .graphite: String(localized: "Graphite")
+        case .blue: String(localized: "Blue")
+        case .red: String(localized: "Red")
+        case .green: String(localized: "Green")
         }
     }
 }

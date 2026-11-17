@@ -74,7 +74,7 @@ enum PDFProjectMetadata {
 
 public enum StudyPDF {
     /// Opens an ordinary lecture, or restores a previously saved editable study PDF.
-    public static func open(_ data: Data, title: String = "Vorlesung") throws -> StudyProject {
+    public static func open(_ data: Data, title: String = String(localized: "Lecture")) throws -> StudyProject {
         _ = try PDFExporter.validatedDocument(data: data)
         if let project = try PDFProjectMetadata.decode(from: data) {
             guard let original = project.pdfData else { throw ProjectError.invalidData }

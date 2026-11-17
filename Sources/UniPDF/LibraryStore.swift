@@ -28,9 +28,9 @@ final class LibraryStore {
         panel.canChooseFiles = false
         panel.canCreateDirectories = true
         panel.allowsMultipleSelection = false
-        panel.title = "Ordner für die Bibliothek auswählen"
-        panel.message = "UniPDF zeigt diesen Ordner mit allen Unterordnern und kann darin Dateien ordnen."
-        panel.prompt = "Zugriff geben"
+        panel.title = String(localized: "Choose a Folder for the Library")
+        panel.message = String(localized: "UniPDF shows this folder with all its subfolders and can organize files in it.")
+        panel.prompt = String(localized: "Give Access")
         guard panel.runModal() == .OK, let url = panel.url else { return }
         do {
             UserDefaults.standard.set(try url.bookmarkData(), forKey: Self.bookmarkKey)
@@ -78,7 +78,11 @@ final class LibraryStore {
             if let selection, !contents.contains(where: { $0.id == selection }) { self.selection = nil }
             return
         }
-        errorMessage = "Auf „\(library?.root.lastPathComponent ?? "den Ordner")“ kann nicht mehr zugegriffen werden. Wähle den Ordner erneut aus."
+        errorMessage = if let folder = library?.root.lastPathComponent {
+            String(localized: "“\(folder)” can no longer be accessed. Choose the folder again.")
+        } else {
+            String(localized: "The folder can no longer be accessed. Choose it again.")
+        }
         disconnect()
     }
 
@@ -126,7 +130,7 @@ final class LibraryStore {
         guard let bookmark = UserDefaults.standard.data(forKey: Self.bookmarkKey) else { return }
         var isStale = false
         guard let url = try? URL(resolvingBookmarkData: bookmark, bookmarkDataIsStale: &isStale) else {
-            errorMessage = "Der Ordner der Bibliothek wurde nicht gefunden. Wähle ihn erneut aus."
+            errorMessage = String(localized: "The library’s folder was not found. Choose it again.")
             UserDefaults.standard.removeObject(forKey: Self.bookmarkKey)
             return
         }

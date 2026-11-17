@@ -22,29 +22,32 @@ public struct AIQuestionPrompt: Sendable {
         let question = question.trimmingCharacters(in: .whitespacesAndNewlines)
         let title = title.trimmingCharacters(in: .whitespacesAndNewlines)
         let source = if let sourceURL {
-            "Geöffnete Datei (letzter gespeicherter Stand):\n\(sourceURL.path)"
+            String(localized: "Open file (last saved version):\n\(sourceURL.path)")
         } else {
-            "Die Vorlesung ist noch nicht als eigene Datei gespeichert. Verwende die folgenden PDF-Kopien."
+            String(localized: "The lecture is not saved as a file of its own yet. Use the PDF copies below.")
         }
-        return """
-        Hilf mir bei der Vorlesung „\(title.isEmpty ? "Vorlesung" : title)“.
-        Ich beziehe mich auf Originalfolie \(slideNumber) von \(slideCount).
+        let lecture = title.isEmpty ? String(localized: "Lecture") : title
+        let asked = question.isEmpty ? String(localized: "[Enter my question about the slide here.]") : question
+        // The prompt asks for an answer in the language the student uses the app in.
+        return String(localized: """
+        Help me with the lecture “\(lecture)”.
+        I am referring to original slide \(slideNumber) of \(slideCount).
 
         \(source)
 
-        Aktuelle Lern-PDF mit allen Mitschriften, Formeln und Skizzen, einschließlich noch ungespeicherter Änderungen:
+        Current study PDF with all notes, formulas and sketches, including unsaved changes:
         \(studyPDFURL.path)
 
-        Die ausgewählte Originalfolie als einzelne PDF (Seite 1):
+        The selected original slide as a single PDF (page 1):
         \(slidePDFURL.path)
 
-        Nutze die aktuelle Lern-PDF für meine Mitschriften und die einzelne Originalfolie für die genaue Zuordnung. Wegen möglicher Fortsetzungsseiten entspricht die Originalfoliennummer nicht unbedingt der Seitenzahl in der Lern-PDF.
+        Use the current study PDF for my notes and the single original slide to tell exactly which slide I mean. Because of continuation pages, the original slide number is not necessarily the page number in the study PDF.
 
-        Meine Frage:
-        \(question.isEmpty ? "[Hier meine Frage zur Folie eintragen.]" : question)
+        My question:
+        \(asked)
 
-        Antworte auf Deutsch. Erkläre den Zusammenhang anhand der Vorlesung und kennzeichne, wenn eine Information aus den Unterlagen nicht hervorgeht.
-        Falls du lokale Dateien nicht öffnen kannst, bitte mich, die genannten PDF-Kopien anzuhängen.
-        """
+        Answer in English. Explain the context using the lecture, and say so when the material does not contain a piece of information.
+        If you cannot open local files, ask me to attach the PDF copies named above.
+        """)
     }
 }
