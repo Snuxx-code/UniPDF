@@ -1,29 +1,24 @@
-# Bilder für die UniPDF-README
+# Images for the UniPDF README
 
-[Zurück zur Übersicht](../../README.md)
+[Back to the overview](../../README.md)
 
-Alle Bilder gehören zum Projekt. Sie verwenden ausschließlich das eigens erstellte und sichtbar markierte Demomaterial aus `Sources/UniPDF/PreviewHarness.swift`, keine persönlichen Mitschriften oder fremden Vorlesungsunterlagen.
+All images belong to the project. They only use the purpose-made and visibly labeled demo material from `Sources/UniPDF/PreviewHarness.swift`, never personal notes or someone else's lecture material.
 
-| Datei | Herkunft |
+| File | Origin |
 | --- | --- |
-| `unipdf-logo.png` | Vorhandenes App-Icon, mit `scripts/make-icon.swift` erzeugt; PNG in 512 × 512 Pixeln. |
-| `workspace-light.png` | Gerenderte SwiftUI-Arbeitsansicht im hellen Erscheinungsbild. |
-| `library.png` | Gerenderte SwiftUI-Bibliothek mit Beispielordnern und PDF-Vorschaubildern. |
-| `study-pdf.png` | Erste Seite der tatsächlichen, mit `PDFExporter.export` erzeugten Beispiel-Lern-PDF. |
+| `unipdf-logo.png` | The app icon, created with `scripts/make-icon.swift`; PNG at 512 × 512 pixels. |
+| `workspace-light.png` | Window of the running app in the light appearance, in English. |
+| `workspace-dark.png` | The same window in the dark appearance; GitHub shows it in dark mode. |
+| `library.png` | Library window of the running app with the sample folders and their thumbnails. |
+| `study-pdf.png` | First page of the actual sample study PDF created with `PDFExporter.export`. |
 
-## Aufnahmeverfahren
+## How the images were made
 
-Die App-Ansichten basieren auf dem Quellstand `acf37a3` mit der angepassten Demomarkierung aus `PreviewHarness.swift`. Die Beispiel-Ellipse wird aus den tatsächlichen Textabmessungen mit zusätzlichem Abstand zu den Buchstaben berechnet. Die bestehenden SwiftUI-Views werden mit `NSHostingView` und `cacheDisplay` aufgenommen. Die Arbeitsansichten verwenden 1320 × 1000 Punkte, die Bibliothek 720 × 560 Punkte; beide werden mit doppelter Pixeldichte gerendert.
+`.build/release/UniPDF --preview` creates the demo lecture, its study PDF and a sample library in `build/Preview`. The images are captures of the running app's windows (`screencapture -l <window id> -o`), made with the built `build/UniPDF.app`:
 
-Bildschirmaufnahmen und GPU-gestütztes PDFKit-Rendering sind in der Entwicklungsumgebung eingeschränkt. Für diese Dokumentationsbilder wurde der PDF-Bereich deshalb ausschließlich in einer temporären Aufnahmeversion durch eine CPU-gerenderte Ansicht derselben Originalfolie mit denselben Anmerkungen ersetzt (`AnnotationRenderer.thumbnail`). Die PDF-Vorschaubilder in der Bibliothek wurden aus den tatsächlichen Beispiel-PDFs vorab in den vorhandenen Thumbnail-Cache geladen, da der Quick-Look-Dienst hier keine Inhaltsvorschau liefert. Bedienelemente, Mitschrift, Formel, Skizze und Bibliothek stammen aus den vorhandenen App-Views. Die Abbildungen sind **gerenderte App-Vorschauen**, keine Aufnahmen eines laufenden Desktop-Fensters. Die Aufnahmeversion wird nicht mit der App ausgeliefert.
+1. Copy `Example-Study-PDF.pdf` into the sample library as `Semester 1/Linear Algebra.pdf`.
+2. Back up the app's preferences (`defaults export de.unipdf.mac`), point its library at `build/Preview/Example-Library` and give the document window 1320 × 820 points.
+3. Open the lecture with `open -a build/UniPDF.app … --args -ApplePersistenceIgnoreState YES -AppleLanguages "(en)" -AppleLocale en_US`, adding `-NSRequiresAquaSystemAppearance YES` for the light images. Capture the document window, then open the library with ⇧⌘L and capture it.
+4. Quit the app and restore the preferences (`defaults import`).
 
-Die Lern-PDF wird aus demselben Beispielprojekt exportiert und als PDF-Seite gerastert. Die Bilddateien enthalten zusätzlich Herkunftsangaben in ihren PNG-Metadaten.
-
-Für neue Aufnahmen auf einem Mac die App bauen und die bestehende Vorschau aus dem Repository-Verzeichnis starten:
-
-```sh
-zsh scripts/build-app.sh
-.build/release/UniPDF --preview
-```
-
-Die Vorschau erzeugt ihr Demoprojekt, die Lern-PDF und die App-Ansichten unter `build/Preview`. Sie ist für Entwicklungszwecke gedacht. Vor dem Ersetzen der README-Bilder prüfen, dass PDF-Inhalt und Anmerkungen in den Aufnahmen vollständig sichtbar sind; nicht alle Aufnahmeverfahren erfassen die PDFKit-Layer.
+The study PDF image is the first page of `Example-Study-PDF.pdf`, rasterized at twice its size. Only demo material appears in the images; check that no personal files show up, for example in the sidebar's Files section, before replacing them.

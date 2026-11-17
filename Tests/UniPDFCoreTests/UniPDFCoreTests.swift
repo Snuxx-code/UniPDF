@@ -71,7 +71,7 @@ import Testing
         #expect(text.contains("ANFANG DER MITSCHRIFT"))
         #expect(text.contains("ENDE DER MITSCHRIFT"))
         #expect(text.contains("TESTVORLESUNG"))
-        #expect(text.contains("FORTSETZUNG"))
+        #expect(text.contains("CONTINUED"))
         #expect(document.page(at: 0)?.bounds(for: .mediaBox).width == 841.89)
     }
 
@@ -80,7 +80,7 @@ import Testing
         let document = try #require(PDFDocument(data: result))
         #expect(document.pageCount == 1)
         #expect(document.string?.contains("TESTVORLESUNG") == true)
-        #expect(document.string?.contains("Keine Mitschrift") == true)
+        #expect(document.string?.contains("No notes") == true)
     }
 
     @Test func drawingOnlyStillExportsOnePage() throws {

@@ -14,12 +14,12 @@ enum AIQuestionContext {
         // A snapshot needs readable PDF pages; the editable project stays in the source document.
         let studyData = try PDFExporter.export(project, includingProject: false)
         let directory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("UniPDF-KI", isDirectory: true)
+            .appendingPathComponent("UniPDF-AI", isDirectory: true)
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         do {
-            let studyURL = directory.appendingPathComponent("Aktuelle-Mitschrift.pdf")
-            let slideURL = directory.appendingPathComponent("Originalfolie-\(slideIndex + 1).pdf")
+            let studyURL = directory.appendingPathComponent(String(localized: "Current-Notes.pdf"))
+            let slideURL = directory.appendingPathComponent(String(localized: "Original-Slide-\(slideIndex + 1).pdf"))
             try studyData.write(to: studyURL, options: .atomic)
             try slideData.write(to: slideURL, options: .atomic)
             return AIQuestionPrompt(title: project.title, sourceURL: sourceURL,

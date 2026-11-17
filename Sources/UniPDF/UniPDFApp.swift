@@ -16,19 +16,19 @@ struct UniPDFApp: App {
             LibraryCommands()
             DocumentSearchCommands()
             CommandGroup(replacing: .help) {
-                Button("UniPDF-Hilfe") {
+                Button("UniPDF Help") {
                     let alert = NSAlert()
-                    alert.messageText = "Deine Vorlesung. Deine Gedanken."
-                    alert.informativeText = "1. Öffne dein Vorlesungs-PDF mit ⌘O oder „Vorlesungs-PDF öffnen“.\n2. Wähle links eine Folie und schreibe rechts deine Notizen. Unter „Formel“ und „Skizze“ kannst du weitere Inhalte ergänzen.\n3. ⌘S aktualisiert die geöffnete Datei am selben Speicherort. Bei einer PDF wird die ursprüngliche Datei durch Folien mit Mitschriften ersetzt.\n4. Die PDF enthält auch die bearbeitbaren Inhalte. Öffne sie wieder in UniPDF, um weiterzuschreiben. „Lern-PDF exportieren“ erstellt eine zusätzliche Kopie.\n\nOhne Datei gestartet öffnet UniPDF die zuletzt geöffnete Datei oder, falls es keine mehr gibt, die Bibliothek.\n\nBibliothek (⇧⌘L): Gib Zugriff auf einen Ordner und ordne darin Unterordner und Dateien. Doppelklick geht in einen Ordner. Ziehe Einträge auf einen Ordner oder auf den Pfad oben, um sie zu verschieben. Im Viewer findest du dieselben Dateien auch in der Seitenleiste unter „Dateien“.\n\nAuf der Folie: Die Werkzeuge über der Folie bieten Stift, Textfeld, Formen und Bilder. Mit dem Pfeil wählst, verschiebst und vergrößerst du sie, ⌫ löscht. Sie bleiben beim Speichern bearbeitbar und erscheinen im Lern-PDF.\n\nMehrere Dateien liegen als Tabs in einem Fenster. Rechtsklick auf einen Tab bewegt ihn in ein neues Fenster.\n\nBestehende .unipdf-Projekte bleiben unterstützt und werden ebenfalls an ihrem bisherigen Ort aktualisiert.\n\nFormeln: x^{2}, a_{n}, \\frac{a}{b}, \\sqrt{x}, \\alpha, \\sum und \\int. Einfache Notation, kein vollständiges LaTeX.\n\nAlles bleibt lokal auf deinem Mac."
-                    alert.informativeText += "\n\nFolien wechseln: Im PDF-Bereich → oder ↓ für die nächste, ← oder ↑ für die vorherige Folie. In Textfeldern bewegen die Pfeile weiterhin den Cursor; ausgewählte Anmerkungen werden damit verschoben. Mit Esc abwählen. ⌘↑ und ⌘↓ bleiben verfügbar."
-                    alert.informativeText += "\n\nTextmarker: Den Marker über der Folie aktivieren und über PDF-Text ziehen. Du kannst auch erst Text auswählen und dann den Marker anklicken. Die Farbe lässt sich separat wählen. Mit Esc zum Auswahlwerkzeug zurückkehren; eine Markierung anklicken und mit ⌫ löschen. Markierungen bleiben in der gespeicherten PDF bearbeitbar."
-                    alert.informativeText += "\n\nRadiergummi: Über Stiftstriche und Textmarkierungen ziehen. „Präzise“ entfernt nur Berührtes, bei Markierungen ganze Zeichen; „Strich“ löscht jeden berührten Strich und jede Markierung ganz. Modus und Größe wählst du in der Zeile unter den Werkzeugen; ⌘Z nimmt einen ganzen Zug zurück. Formen, Textfelder und Bilder anklicken und mit ⌫ löschen."
+                    alert.messageText = String(localized: "Your lecture. Your thoughts.")
+                    alert.informativeText = String(localized: "1. Open your lecture PDF with ⌘O or “Open Lecture PDF”.\n2. Choose a slide on the left and write your notes on the right. “Formula” and “Sketch” add more.\n3. ⌘S updates the open file in the same place. For a PDF, the original file is replaced by the slides with your notes.\n4. The PDF also holds the editable content. Open it in UniPDF again to keep writing. “Export Study PDF” creates an additional copy.\n\nStarted without a file, UniPDF opens the file you opened last or, if it no longer exists, the library.\n\nLibrary (⇧⌘L): give access to a folder and organize its subfolders and files. Double-click to go into a folder. Drag items onto a folder or onto the path at the top to move them. In the viewer, the same files are in the sidebar under “Files”.\n\nOn the slide: the tools above the slide offer a pen, text boxes, shapes and images. The arrow selects, moves and resizes them, ⌫ deletes. They stay editable when you save and appear in the study PDF.\n\nSeveral files share one window as tabs. Right-click a tab to move it to a new window.\n\nExisting .unipdf projects are still supported and are also updated in their current place.\n\nFormulas: x^{2}, a_{n}, \\frac{a}{b}, \\sqrt{x}, \\alpha, \\sum and \\int. Simple notation, not full LaTeX.\n\nEverything stays local on your Mac.")
+                    alert.informativeText += "\n\n" + String(localized: "Changing slides: in the PDF area, → or ↓ for the next slide, ← or ↑ for the previous one. In text fields the arrows still move the cursor, and they move selected annotations. Press Esc to deselect. ⌘↑ and ⌘↓ stay available.")
+                    alert.informativeText += "\n\n" + String(localized: "Highlighter: turn on the highlighter above the slide and drag over PDF text. You can also select text first and then click the highlighter. Its color is chosen separately. Press Esc to return to the selection tool; click a highlight and press ⌫ to delete it. Highlights stay editable in the saved PDF.")
+                    alert.informativeText += "\n\n" + String(localized: "Eraser: drag over pen strokes and highlights. “Precise” removes only what it touches, whole characters for highlights; “Stroke” deletes every stroke and highlight it touches entirely. Choose the mode and size in the row below the tools; ⌘Z takes back a whole stroke of the eraser. Click shapes, text boxes and images and press ⌫ to delete them.")
                     alert.runModal()
                 }
             }
         }
 
-        Window("Bibliothek", id: LibraryCommands.windowID) {
+        Window("Library", id: LibraryCommands.windowID) {
             LibraryView().frame(minWidth: 480, minHeight: 420)
                 .background(WindowTabbing(group: nil))
                 .background(WindowFrameMemory(key: "libraryWindowFrame"))
@@ -47,7 +47,7 @@ struct LibraryCommands: Commands {
         let _ = AppDelegate.openLibrary = { [openWindow] in openWindow(id: Self.windowID) }
         let _ = AppDelegate.openFile = { [openDocument] url in try await openDocument(at: url) }
         CommandGroup(after: .newItem) {
-            Button("Bibliothek") { openWindow(id: Self.windowID) }
+            Button("Library") { openWindow(id: Self.windowID) }
                 .keyboardShortcut("l", modifiers: [.command, .shift])
         }
     }

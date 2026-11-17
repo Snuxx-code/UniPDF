@@ -501,7 +501,7 @@ final class NotesTextView: NSTextView, NSLayoutManagerDelegate {
         for tag in parsed.comments {
             let comment = comments?.comments[tag.id]
             let expanded = comments?.expanded == tag.id && comment != nil
-            let rendering = TagRendering(id: tag.id, label: comment?.label ?? "Kommentar fehlt", color: comment?.color,
+            let rendering = TagRendering(id: tag.id, label: comment?.label ?? String(localized: "Comment missing"), color: comment?.color,
                                          size: fontSize, dark: dark, expanded: expanded)
             storage.addAttribute(.collapsedFormula, value: rendering, range: tag.range)
             if expanded {

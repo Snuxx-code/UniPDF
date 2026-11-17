@@ -9,24 +9,25 @@
     <key>CFBundlePackageType</key><string>APPL</string>
     <key>CFBundleShortVersionString</key><string>1.2.0</string>
     <key>CFBundleVersion</key><string>3</string>
-    <key>CFBundleDevelopmentRegion</key><string>de</string>
+    <key>CFBundleDevelopmentRegion</key><string>en</string>
+    <key>CFBundleLocalizations</key><array><string>en</string><string>de</string></array>
     <key>LSMinimumSystemVersion</key><string>14.0</string>
     <key>NSHighResolutionCapable</key><true/>
     <key>NSSupportsAutomaticTermination</key><true/>
     <key>CFBundleDocumentTypes</key><array><dict>
-        <key>CFBundleTypeName</key><string>UniPDF-Projekt</string>
+        <key>CFBundleTypeName</key><string>UniPDF Project</string>
         <key>CFBundleTypeRole</key><string>Editor</string>
         <key>LSHandlerRank</key><string>Owner</string>
         <key>LSItemContentTypes</key><array><string>de.unipdf.study-project</string></array>
     </dict><dict>
-        <key>CFBundleTypeName</key><string>Vorlesungs-PDF</string>
+        <key>CFBundleTypeName</key><string>Lecture PDF</string>
         <key>CFBundleTypeRole</key><string>Editor</string>
         <key>LSHandlerRank</key><string>Alternate</string>
         <key>LSItemContentTypes</key><array><string>com.adobe.pdf</string></array>
     </dict></array>
     <key>UTExportedTypeDeclarations</key><array><dict>
         <key>UTTypeIdentifier</key><string>de.unipdf.study-project</string>
-        <key>UTTypeDescription</key><string>UniPDF-Projekt</string>
+        <key>UTTypeDescription</key><string>UniPDF Project</string>
         <key>UTTypeConformsTo</key><array><string>public.data</string></array>
         <key>UTTypeTagSpecification</key><dict>
             <key>public.filename-extension</key><array><string>unipdf</string></array>

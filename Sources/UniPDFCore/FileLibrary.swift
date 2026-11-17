@@ -29,12 +29,12 @@ public enum LibraryError: LocalizedError {
 
     public var errorDescription: String? {
         switch self {
-        case .invalidName: "Dieser Name ist nicht möglich. Namen dürfen nicht leer sein, nicht mit einem Punkt beginnen und weder „/“ noch „:“ enthalten."
-        case .alreadyExists(let name): "„\(name)“ gibt es hier schon. Wähle einen anderen Namen."
-        case .outsideLibrary: "Das geht nur mit Dateien innerhalb des freigegebenen Ordners."
-        case .moveIntoItself: "Ein Ordner kann nicht in sich selbst verschoben werden."
-        case .protectedRoot: "Der freigegebene Ordner selbst kann hier nicht geändert werden."
-        case .notAFolder: "Das Ziel ist kein Ordner."
+        case .invalidName: String(localized: "This name is not possible. A name cannot be empty, cannot start with a period and cannot contain “/” or “:”.")
+        case .alreadyExists(let name): String(localized: "“\(name)” already exists here. Choose a different name.")
+        case .outsideLibrary: String(localized: "This only works with files inside the shared folder.")
+        case .moveIntoItself: String(localized: "A folder cannot be moved into itself.")
+        case .protectedRoot: String(localized: "The shared folder itself cannot be changed here.")
+        case .notAFolder: String(localized: "The destination is not a folder.")
         }
     }
 }

@@ -1,0 +1,450 @@
+/* German translation. The keys are the English texts in the source code. */
+
+/* AIPromptPopover.swift */
+"Paste it into your AI chat with ⌘V. You can also add your question here." = "Mit ⌘V in deinen KI-Chat einfügen. Du kannst deine Frage auch hier ergänzen.";
+"What would you like to know about this slide?" = "Was möchtest du zu dieser Folie wissen?";
+"Question for the AI" = "Frage an die KI";
+"Question about slide %lld" = "Frage zu Folie %lld";
+"Prompt copied" = "Prompt kopiert";
+"The PDF copies are stored locally in the temporary folder." = "Die PDF-Kopien liegen lokal im temporären Ordner.";
+"Copy Again" = "Erneut kopieren";
+"Copy Prompt" = "Prompt kopieren";
+"Lecture" = "Vorlesung";
+
+/* AIQuestionContext.swift */
+"Current-Notes.pdf" = "Aktuelle-Mitschrift.pdf";
+"Original-Slide-%lld.pdf" = "Originalfolie-%lld.pdf";
+
+/* AIQuestionPrompt.swift */
+"Open file (last saved version):\n%@" = "Geöffnete Datei (letzter gespeicherter Stand):\n%@";
+"The lecture is not saved as a file of its own yet. Use the PDF copies below." = "Die Vorlesung ist noch nicht als eigene Datei gespeichert. Verwende die folgenden PDF-Kopien.";
+"[Enter my question about the slide here.]" = "[Hier meine Frage zur Folie eintragen.]";
+"Help me with the lecture “%@”.\nI am referring to original slide %lld of %lld.\n\n%@\n\nCurrent study PDF with all notes, formulas and sketches, including unsaved changes:\n%@\n\nThe selected original slide as a single PDF (page 1):\n%@\n\nUse the current study PDF for my notes and the single original slide to tell exactly which slide I mean. Because of continuation pages, the original slide number is not necessarily the page number in the study PDF.\n\nMy question:\n%@\n\nAnswer in English. Explain the context using the lecture, and say so when the material does not contain a piece of information.\nIf you cannot open local files, ask me to attach the PDF copies named above." = "Hilf mir bei der Vorlesung „%@“.\nIch beziehe mich auf Originalfolie %lld von %lld.\n\n%@\n\nAktuelle Lern-PDF mit allen Mitschriften, Formeln und Skizzen, einschließlich noch ungespeicherter Änderungen:\n%@\n\nDie ausgewählte Originalfolie als einzelne PDF (Seite 1):\n%@\n\nNutze die aktuelle Lern-PDF für meine Mitschriften und die einzelne Originalfolie für die genaue Zuordnung. Wegen möglicher Fortsetzungsseiten entspricht die Originalfoliennummer nicht unbedingt der Seitenzahl in der Lern-PDF.\n\nMeine Frage:\n%@\n\nAntworte auf Deutsch. Erkläre den Zusammenhang anhand der Vorlesung und kennzeichne, wenn eine Information aus den Unterlagen nicht hervorgeht.\nFalls du lokale Dateien nicht öffnen kannst, bitte mich, die genannten PDF-Kopien anzuhängen.";
+"New Lecture" = "Neue Vorlesung";
+
+/* AnnotationOverlayView.swift */
+"Comment" = "Kommentar";
+"Highlight with Highlighter" = "Mit Textmarker hervorheben";
+"Annotations on the slide" = "Anmerkungen auf der Folie";
+"This slide has no selectable PDF text. For scanned slides, you can use the pen." = "Diese Folie enthält keinen auswählbaren PDF-Text. Für gescannte Folien kannst du den Stift verwenden.";
+"Text box on the slide" = "Textfeld auf der Folie";
+"Cut" = "Ausschneiden";
+"Copy" = "Kopieren";
+"Delete" = "Löschen";
+"Comment without text – click to open it" = "Kommentar ohne Text – klicken, um ihn zu öffnen";
+
+/* AnnotationToolbar.swift */
+"Select and move" = "Auswählen und verschieben";
+"Pen" = "Stift";
+"Highlighter" = "Textmarker";
+"Highlighter: select PDF text to highlight it. An existing text selection is highlighted right away." = "Textmarker: PDF-Text auswählen und hervorheben. Eine bestehende Textauswahl wird sofort markiert.";
+"Eraser for pen and highlighter" = "Radiergummi für Stift und Textmarker";
+"Comment (⌥⌘M): select text or drag over it. On an empty spot you get an area, ⌥ always makes one." = "Kommentieren (⌥⌘M): Text auswählen oder über Text ziehen. Auf freier Fläche entsteht ein Bereich, ⌥ erzwingt ihn.";
+"Text box (locked)" = "Textfeld (fixiert)";
+"Text box" = "Textfeld";
+"Insert image" = "Bild einfügen";
+"Single page" = "Einzelseite";
+"Single page: one slide after another" = "Einzelseite: eine Folie nach der anderen";
+"Scroll continuously" = "Fortlaufend scrollen";
+"Continuous: scroll through all slides one below the other" = "Fortlaufend: alle Folien untereinander durchscrollen";
+"Zoom" = "Zoom";
+"Zoom In" = "Vergrößern";
+"Zoom Out" = "Verkleinern";
+"Zoom to Fit" = "An Fenster anpassen";
+"Zoom out" = "Verkleinern";
+"Zoom to fit" = "An Fenster anpassen";
+"Zoom in" = "Vergrößern";
+"Shape: %@" = "Form: %@";
+"Draw a shape: %@. Hold ⇧ while dragging to keep the proportions." = "Form zeichnen: %@. ⇧ beim Ziehen hält die Proportionen.";
+"Choose a shape: rectangle, square, circle, oval or line" = "Form wählen: Rechteck, Quadrat, Kreis, Oval oder Linie";
+"Choose Shape" = "Form wählen";
+"Drag over text to comment on the passage, on an empty spot for an area" = "Über Text ziehen kommentiert die Stelle, auf freier Fläche einen Bereich";
+"Delete the selection (⌫)" = "Auswahl löschen (⌫)";
+"Delete Selection" = "Auswahl löschen";
+"Eraser mode" = "Radiermodus";
+"Precise removes only what the eraser touches, whole characters for highlights. Stroke removes every stroke and highlight it touches entirely." = "Präzise entfernt nur, was der Radiergummi berührt, bei Markierungen ganze Zeichen. Strich entfernt jeden berührten Strich und jede berührte Markierung ganz.";
+"Line width" = "Strichstärke";
+"Yellow" = "Gelb";
+"Green" = "Grün";
+"Pink" = "Pink";
+"Blue" = "Blau";
+"The text tool stays active: every click on the slide starts a new text box. Click to release." = "Textwerkzeug bleibt aktiv: Jeder Klick auf die Folie beginnt ein neues Textfeld. Zum Lösen klicken.";
+"Lock the text tool to write several text boxes in a row" = "Textwerkzeug fixieren, um mehrere Textfelder nacheinander zu schreiben";
+"Lock Text Tool" = "Textwerkzeug fixieren";
+"Precise" = "Präzise";
+"Stroke" = "Strich";
+"Eraser size" = "Größe des Radiergummis";
+"Fine" = "Fein";
+"Medium" = "Mittel";
+"Bold" = "Fett";
+"Small" = "Klein";
+"Large" = "Groß";
+"Comment color %@" = "Kommentarfarbe %@";
+"Color" = "Farbe";
+"Choose any color" = "Beliebige Farbe wählen";
+"Font" = "Schriftart";
+"Font size" = "Schriftgröße";
+"Font size, %lld points" = "Schriftgröße, %lld Punkt";
+"Change the font size" = "Schriftgröße ändern";
+"Italic" = "Kursiv";
+"Underline" = "Unterstrichen";
+"System" = "System";
+"%lld pt" = "%lld pt";
+
+/* CommentCard.swift */
+"Go to the Area on the Slide" = "Zum Bereich auf der Folie";
+"Go to the passage: %@" = "Zur Textstelle: %@";
+"Go to the passage on the slide" = "Zur Stelle auf der Folie";
+"Comment color" = "Farbe des Kommentars";
+"Color: %@" = "Farbe: %@";
+"Collapse" = "Zuklappen";
+"Collapse Comment" = "Kommentar zuklappen";
+"Area on the slide" = "Bereich auf der Folie";
+"“%@”" = "„%@“";
+"Write a comment …" = "Kommentar schreiben …";
+"Delete the comment and its mark on the slide" = "Kommentar und Markierung auf der Folie löschen";
+
+/* DocumentSearch.swift */
+"Scroll Continuously" = "Fortlaufend scrollen";
+"Search Document …" = "Im Dokument suchen …";
+"Next Result" = "Nächster Treffer";
+"Previous Result" = "Vorheriger Treffer";
+"Add Comment" = "Kommentar hinzufügen";
+"Slide text" = "Folientext";
+"Notes" = "Mitschrift";
+"%@, slide %lld: %@%@%@" = "%@, Folie %lld: %@%@%@";
+
+/* DrawingEditor.swift */
+"Draw with a mouse, trackpad or graphics tablet." = "Mit Maus, Trackpad oder Grafiktablett zeichnen.";
+"Remove the last element" = "Letztes Element entfernen";
+"Remove Last Element" = "Letztes Element entfernen";
+"Restore the element" = "Element wiederherstellen";
+"Restore Element" = "Element wiederherstellen";
+"Drawing area for %@. Draw with a mouse or trackpad." = "Zeichenfläche für %@. Mit Maus oder Trackpad zeichnen.";
+
+/* FileLibrary.swift */
+"This name is not possible. A name cannot be empty, cannot start with a period and cannot contain “/” or “:”." = "Dieser Name ist nicht möglich. Namen dürfen nicht leer sein, nicht mit einem Punkt beginnen und weder „/“ noch „:“ enthalten.";
+"“%@” already exists here. Choose a different name." = "„%@“ gibt es hier schon. Wähle einen anderen Namen.";
+"This only works with files inside the shared folder." = "Das geht nur mit Dateien innerhalb des freigegebenen Ordners.";
+"A folder cannot be moved into itself." = "Ein Ordner kann nicht in sich selbst verschoben werden.";
+"The shared folder itself cannot be changed here." = "Der freigegebene Ordner selbst kann hier nicht geändert werden.";
+"The destination is not a folder." = "Das Ziel ist kein Ordner.";
+
+/* FileTreeSection.swift */
+"This folder is empty." = "Dieser Ordner ist leer.";
+"Give UniPDF access to a folder, such as the one for your studies." = "Gib UniPDF Zugriff auf einen Ordner, zum Beispiel dein Studium.";
+"Choose Folder …" = "Ordner auswählen …";
+"Files" = "Dateien";
+
+/* FormulaEditor.swift */
+"e.g. E = m c^{2}" = "z. B. E = m c^{2}";
+"Enter Formula" = "Formel eingeben";
+"Move into Notes" = "In die Mitschrift übernehmen";
+"Put the formula at the end of the notes as a formula block, where the formula bar can edit it." = "Die Formel als Formelblock ans Ende der Mitschrift setzen. Dort lässt sie sich mit der Formelleiste bearbeiten.";
+
+/* FormulaPalette.swift */
+"Basics" = "Grundlagen";
+"Set Theory" = "Mengenlehre";
+"Logic" = "Logik";
+"Calculus" = "Analysis";
+"Linear Algebra" = "Lineare Algebra";
+"Probability" = "Stochastik";
+"Greek" = "Griechisch";
+"Arrows" = "Pfeile";
+"Plus-minus" = "Plus-Minus";
+"Times" = "Mal";
+"Times (dot)" = "Mal (Punkt)";
+"Divided by" = "Geteilt";
+"Not equal" = "Ungleich";
+"Approximately equal" = "Ungefähr gleich";
+"Less than or equal" = "Kleiner gleich";
+"Greater than or equal" = "Größer gleich";
+"Identical, congruent" = "Identisch, kongruent";
+"Proportional" = "Proportional";
+"Infinity" = "Unendlich";
+"Degree" = "Grad";
+"Square root" = "Wurzel";
+"nth root" = "n-te Wurzel";
+"Absolute value" = "Betrag";
+"Percent" = "Prozent";
+"Element of" = "Element von";
+"Not an element of" = "Kein Element von";
+"Proper subset" = "Echte Teilmenge";
+"Subset" = "Teilmenge";
+"Proper superset" = "Echte Obermenge";
+"Superset" = "Obermenge";
+"Not a subset" = "Keine Teilmenge";
+"Union" = "Vereinigung";
+"Intersection" = "Schnitt";
+"Difference" = "Differenz";
+"Empty set" = "Leere Menge";
+"Complement" = "Komplement";
+"Natural numbers" = "Natürliche Zahlen";
+"Integers" = "Ganze Zahlen";
+"Rational numbers" = "Rationale Zahlen";
+"Real numbers" = "Reelle Zahlen";
+"Complex numbers" = "Komplexe Zahlen";
+"Power set" = "Potenzmenge";
+"Set" = "Menge";
+"Set with a condition" = "Menge mit Bedingung";
+"For all" = "Für alle";
+"There exists" = "Es existiert";
+"Such that" = "Mit der Eigenschaft";
+"Big union" = "Große Vereinigung";
+"Big intersection" = "Großer Schnitt";
+"And" = "Und";
+"Or" = "Oder";
+"Not" = "Nicht";
+"Implies" = "Daraus folgt";
+"If and only if" = "Genau dann, wenn";
+"Arrow, map" = "Pfeil, Abbildung";
+"Equivalent" = "Äquivalent";
+"There does not exist" = "Es existiert kein";
+"Exclusive or" = "Exklusives Oder";
+"True" = "Wahr";
+"False" = "Falsch";
+"Derivable" = "Herleitbar";
+"Semantically entails" = "Folgt semantisch";
+"Sum" = "Summe";
+"Product" = "Produkt";
+"Integral" = "Integral";
+"Definite integral" = "Bestimmtes Integral";
+"Limit" = "Grenzwert";
+"Derivative" = "Ableitung";
+"Partial derivative" = "Partielle Ableitung";
+"Nabla, gradient" = "Nabla, Gradient";
+"Delta, difference" = "Delta, Differenz";
+"Prime (derivative)" = "Strich (Ableitung)";
+"Tends to" = "Gegen";
+"Maps to" = "Wird abgebildet auf";
+"Exponential function" = "Exponentialfunktion";
+"Natural logarithm" = "Natürlicher Logarithmus";
+"Sine" = "Sinus";
+"Cosine" = "Kosinus";
+"Vector" = "Vektor";
+"Inner product" = "Skalarprodukt";
+"Norm" = "Norm";
+"Transpose" = "Transponiert";
+"Inverse" = "Inverse";
+"Determinant" = "Determinante";
+"n-dimensional space" = "n-dimensionaler Raum";
+"Dot product" = "Skalarprodukt";
+"Cross product" = "Kreuzprodukt";
+"Tensor product" = "Tensorprodukt";
+"Orthogonal" = "Orthogonal";
+"Parallel" = "Parallel";
+"Eigenvalue" = "Eigenwert";
+"Dimension" = "Dimension";
+"Kernel" = "Kern";
+"Composition" = "Verkettung";
+"Conditional probability" = "Bedingte Wahrscheinlichkeit";
+"Expected value" = "Erwartungswert";
+"Variance" = "Varianz";
+"Mean" = "Mittelwert";
+"Standard deviation" = "Standardabweichung";
+"Sample mean" = "Stichprobenmittel";
+"Distributed as" = "Verteilt nach";
+"Factorial" = "Fakultät";
+"Binomial coefficient" = "Binomialkoeffizient";
+"And (intersection)" = "Und (Schnitt)";
+"Or (union)" = "Oder (Vereinigung)";
+"Sample space" = "Ergebnisraum";
+"Right" = "Nach rechts";
+"Left" = "Nach links";
+"Both ways" = "Beidseitig";
+"Is implied by" = "Folgt aus";
+"Up" = "Nach oben";
+"Down" = "Nach unten";
+"Equilibrium" = "Gleichgewicht";
+"Rises" = "Steigt";
+"Falls" = "Fällt";
+"Greek letter %@" = "Griechischer Buchstabe %@";
+"Goes into the formula at the cursor." = "Wird in die Formel am Cursor eingefügt.";
+"Symbols go in at the cursor. Superscript, subscript and templates become a formula, with the word before as its base." = "Zeichen landen am Cursor. Hoch, tief und Vorlagen werden zur Formel, das Wort davor wird ihre Basis.";
+"Insert a new formula block into the notes. Formulas go between $$ … $$, or between $ … $ within a sentence." = "Neuen Formelblock in die Mitschrift einfügen. Formeln stehen zwischen $$ … $$, im Satz zwischen $ … $.";
+"Topic" = "Themengebiet";
+"Topic of the symbols" = "Themengebiet der Zeichen";
+"Superscript" = "Hochgestellt";
+"Subscript" = "Tiefgestellt";
+"Fraction" = "Bruch";
+"Formula Block" = "Formelblock";
+
+/* LibraryStore.swift */
+"Choose a Folder for the Library" = "Ordner für die Bibliothek auswählen";
+"UniPDF shows this folder with all its subfolders and can organize files in it." = "UniPDF zeigt diesen Ordner mit allen Unterordnern und kann darin Dateien ordnen.";
+"Give Access" = "Zugriff geben";
+"The library’s folder was not found. Choose it again." = "Der Ordner der Bibliothek wurde nicht gefunden. Wähle ihn erneut aus.";
+"“%@” can no longer be accessed. Choose the folder again." = "Auf „%@“ kann nicht mehr zugegriffen werden. Wähle den Ordner erneut aus.";
+"The folder can no longer be accessed. Choose it again." = "Auf den Ordner kann nicht mehr zugegriffen werden. Wähle ihn erneut aus.";
+
+/* LibraryView.swift */
+"Move “%@” to the Trash?" = "„%@“ in den Papierkorb legen?";
+"That didn’t work" = "Das hat nicht geklappt";
+"Rename “%@”" = "„%@“ umbenennen";
+"New Folder" = "Neuer Ordner";
+"Name" = "Name";
+"Cancel" = "Abbrechen";
+"Rename" = "Umbenennen";
+"Create" = "Erstellen";
+"Move to Trash" = "In den Papierkorb legen";
+"The folder and everything in it can be restored from the Trash." = "Der Ordner und sein gesamter Inhalt lassen sich aus dem Papierkorb wiederherstellen.";
+"The file can be restored from the Trash." = "Die Datei lässt sich aus dem Papierkorb wiederherstellen.";
+"OK" = "OK";
+"No Folder Yet" = "Noch kein Ordner";
+"Give UniPDF access to a folder, such as the one for your studies. You can then organize its subfolders and PDFs right here." = "Gib UniPDF Zugriff auf einen Ordner, zum Beispiel dein Studium. Darin kannst du dann Unterordner und PDFs direkt hier ordnen.";
+"This Folder Is Empty" = "Dieser Ordner ist leer";
+"Create a subfolder here, or drag files onto this folder in the library." = "Lege hier einen Unterordner an oder ziehe in der Bibliothek Dateien auf diesen Ordner.";
+"New Folder …" = "Neuer Ordner …";
+"View" = "Darstellung";
+"Switch between tiles and list" = "Zwischen Kacheln und Liste wechseln";
+"Tiles" = "Kacheln";
+"List" = "Liste";
+"Empty" = "Leer";
+"1 item" = "1 Objekt";
+"%lld items" = "%lld Objekte";
+"Open" = "Öffnen";
+"Show in Finder" = "Im Finder zeigen";
+"Rename …" = "Umbenennen …";
+"Enclosing folder (⌘↑)" = "Übergeordneter Ordner (⌘↑)";
+"Enclosing Folder" = "Übergeordneter Ordner";
+"New folder (⇧⌘N)" = "Neuer Ordner (⇧⌘N)";
+"Move to Trash (⌘⌫)" = "In den Papierkorb legen (⌘⌫)";
+"Refresh (⌘R)" = "Aktualisieren (⌘R)";
+"Change the shared folder. Disconnecting leaves the files unchanged." = "Freigegebenen Ordner ändern. Beim Trennen bleiben die Dateien unverändert.";
+"Refresh" = "Aktualisieren";
+"Choose a Different Folder …" = "Anderen Ordner auswählen …";
+"Disconnect Folder" = "Ordner trennen";
+"Folder" = "Ordner";
+"Change Shared Folder" = "Freigegebenen Ordner ändern";
+"Folder %@" = "Ordner %@";
+
+/* NotesEditor.swift */
+"Comment missing" = "Kommentar fehlt";
+
+/* PDFExporter.swift */
+"No notes for this slide." = "Keine Mitschrift zu dieser Folie.";
+"SLIDE %lld / %lld" = "FOLIE %lld / %lld";
+"NOTES" = "MITSCHRIFT";
+"NOTES · CONTINUED %lld" = "MITSCHRIFT · FORTSETZUNG %lld";
+"SKETCH" = "SKIZZE";
+" · Continued %lld" = " · Fortsetzung %lld";
+"COMMENTS" = "KOMMENTARE";
+
+/* SlideAnnotation.swift */
+"Rectangle" = "Rechteck";
+"Square" = "Quadrat";
+"Circle" = "Kreis";
+"Oval" = "Oval";
+"Line" = "Linie";
+
+/* SlideComment.swift */
+"Passage" = "Textstelle";
+"Area" = "Bereich";
+"Rose" = "Rosé";
+"Peach" = "Pfirsich";
+"Lemon" = "Zitrone";
+"Mint" = "Mint";
+"Sky" = "Himmel";
+"Lavender" = "Lavendel";
+
+/* StudyDocument.swift */
+"Lecture.pdf" = "Vorlesung.pdf";
+
+/* StudyProject.swift */
+"This project needs a newer version of UniPDF." = "Dieses Projekt benötigt eine neuere Version von UniPDF.";
+"The project file contains invalid data. Open a different file or a backup." = "Die Projektdatei enthält ungültige Daten. Öffne eine andere Datei oder eine Sicherung.";
+"This file does not contain a readable PDF. Choose a different PDF." = "Diese Datei enthält kein lesbares PDF. Wähle ein anderes PDF.";
+"This PDF is protected. Unlock it in Preview first and import an unprotected copy." = "Dieses PDF ist geschützt. Entsperre es zuerst in Vorschau und importiere eine ungeschützte Kopie.";
+"The study PDF could not be created. Try again." = "Das Lern-PDF konnte nicht erstellt werden. Versuche es erneut.";
+"This image cannot be read. Choose a PNG, JPEG, HEIC or TIFF image." = "Dieses Bild kann nicht gelesen werden. Wähle ein Bild im Format PNG, JPEG, HEIC oder TIFF.";
+"Arrow" = "Pfeil";
+"Ellipse" = "Ellipse";
+"Graphite" = "Graphit";
+"Red" = "Rot";
+
+/* UniPDFApp.swift */
+"Library" = "Bibliothek";
+"UniPDF Help" = "UniPDF-Hilfe";
+"Your lecture. Your thoughts." = "Deine Vorlesung. Deine Gedanken.";
+"1. Open your lecture PDF with ⌘O or “Open Lecture PDF”.\n2. Choose a slide on the left and write your notes on the right. “Formula” and “Sketch” add more.\n3. ⌘S updates the open file in the same place. For a PDF, the original file is replaced by the slides with your notes.\n4. The PDF also holds the editable content. Open it in UniPDF again to keep writing. “Export Study PDF” creates an additional copy.\n\nStarted without a file, UniPDF opens the file you opened last or, if it no longer exists, the library.\n\nLibrary (⇧⌘L): give access to a folder and organize its subfolders and files. Double-click to go into a folder. Drag items onto a folder or onto the path at the top to move them. In the viewer, the same files are in the sidebar under “Files”.\n\nOn the slide: the tools above the slide offer a pen, text boxes, shapes and images. The arrow selects, moves and resizes them, ⌫ deletes. They stay editable when you save and appear in the study PDF.\n\nSeveral files share one window as tabs. Right-click a tab to move it to a new window.\n\nExisting .unipdf projects are still supported and are also updated in their current place.\n\nFormulas: x^{2}, a_{n}, \\frac{a}{b}, \\sqrt{x}, \\alpha, \\sum and \\int. Simple notation, not full LaTeX.\n\nEverything stays local on your Mac." = "1. Öffne dein Vorlesungs-PDF mit ⌘O oder „Vorlesungs-PDF öffnen“.\n2. Wähle links eine Folie und schreibe rechts deine Notizen. Unter „Formel“ und „Skizze“ kannst du weitere Inhalte ergänzen.\n3. ⌘S aktualisiert die geöffnete Datei am selben Speicherort. Bei einer PDF wird die ursprüngliche Datei durch Folien mit Mitschriften ersetzt.\n4. Die PDF enthält auch die bearbeitbaren Inhalte. Öffne sie wieder in UniPDF, um weiterzuschreiben. „Lern-PDF exportieren“ erstellt eine zusätzliche Kopie.\n\nOhne Datei gestartet öffnet UniPDF die zuletzt geöffnete Datei oder, falls es keine mehr gibt, die Bibliothek.\n\nBibliothek (⇧⌘L): Gib Zugriff auf einen Ordner und ordne darin Unterordner und Dateien. Doppelklick geht in einen Ordner. Ziehe Einträge auf einen Ordner oder auf den Pfad oben, um sie zu verschieben. Im Viewer findest du dieselben Dateien auch in der Seitenleiste unter „Dateien“.\n\nAuf der Folie: Die Werkzeuge über der Folie bieten Stift, Textfeld, Formen und Bilder. Mit dem Pfeil wählst, verschiebst und vergrößerst du sie, ⌫ löscht. Sie bleiben beim Speichern bearbeitbar und erscheinen im Lern-PDF.\n\nMehrere Dateien liegen als Tabs in einem Fenster. Rechtsklick auf einen Tab bewegt ihn in ein neues Fenster.\n\nBestehende .unipdf-Projekte bleiben unterstützt und werden ebenfalls an ihrem bisherigen Ort aktualisiert.\n\nFormeln: x^{2}, a_{n}, \\frac{a}{b}, \\sqrt{x}, \\alpha, \\sum und \\int. Einfache Notation, kein vollständiges LaTeX.\n\nAlles bleibt lokal auf deinem Mac.";
+"Changing slides: in the PDF area, → or ↓ for the next slide, ← or ↑ for the previous one. In text fields the arrows still move the cursor, and they move selected annotations. Press Esc to deselect. ⌘↑ and ⌘↓ stay available." = "Folien wechseln: Im PDF-Bereich → oder ↓ für die nächste, ← oder ↑ für die vorherige Folie. In Textfeldern bewegen die Pfeile weiterhin den Cursor; ausgewählte Anmerkungen werden damit verschoben. Mit Esc abwählen. ⌘↑ und ⌘↓ bleiben verfügbar.";
+"Highlighter: turn on the highlighter above the slide and drag over PDF text. You can also select text first and then click the highlighter. Its color is chosen separately. Press Esc to return to the selection tool; click a highlight and press ⌫ to delete it. Highlights stay editable in the saved PDF." = "Textmarker: Den Marker über der Folie aktivieren und über PDF-Text ziehen. Du kannst auch erst Text auswählen und dann den Marker anklicken. Die Farbe lässt sich separat wählen. Mit Esc zum Auswahlwerkzeug zurückkehren; eine Markierung anklicken und mit ⌫ löschen. Markierungen bleiben in der gespeicherten PDF bearbeitbar.";
+"Eraser: drag over pen strokes and highlights. “Precise” removes only what it touches, whole characters for highlights; “Stroke” deletes every stroke and highlight it touches entirely. Choose the mode and size in the row below the tools; ⌘Z takes back a whole stroke of the eraser. Click shapes, text boxes and images and press ⌫ to delete them." = "Radiergummi: Über Stiftstriche und Textmarkierungen ziehen. „Präzise“ entfernt nur Berührtes, bei Markierungen ganze Zeichen; „Strich“ löscht jeden berührten Strich und jede Markierung ganz. Modus und Größe wählst du in der Zeile unter den Werkzeugen; ⌘Z nimmt einen ganzen Zug zurück. Formen, Textfelder und Bilder anklicken und mit ⌫ löschen.";
+
+/* WorkspaceView.swift */
+"Your lecture.\nYour thoughts." = "Deine Vorlesung.\nDeine Gedanken.";
+"Read slides, understand how things connect and keep everything in one place." = "Folien lesen, Zusammenhänge verstehen und alles an einem Ort festhalten.";
+"You can also open PDFs and existing projects with ⌘O." = "PDFs und vorhandene Projekte öffnest du auch mit ⌘O.";
+"UniPDF" = "UniPDF";
+"Local on your Mac" = "Lokal auf deinem Mac";
+"Manage the folder with your lectures (⇧⌘L)" = "Ordner mit deinen Vorlesungen verwalten (⇧⌘L)";
+"Open Lecture PDF" = "Vorlesungs-PDF öffnen";
+"Lecture slides" = "Vorlesungsfolien";
+"Import your lecture’s PDF. Every slide has room for your thoughts." = "Importiere das PDF deiner Vorlesung. Jede Folie hat Platz für deine Gedanken.";
+"More than taking notes" = "Mehr als Mitschreiben";
+"Add notes, formulas and sketches. Everything stays linked to its slide." = "Ergänze Notizen, Formeln und Skizzen. Alles bleibt mit der passenden Folie verbunden.";
+"Save and keep studying" = "Speichern und weiterlernen";
+"⌘S updates your open PDF with all your notes. It stays editable in UniPDF." = "⌘S aktualisiert deine geöffnete PDF mit allen Mitschriften. In UniPDF bleibt sie weiter bearbeitbar.";
+"Search Document" = "Im Dokument suchen";
+"No results for “%@”" = "Keine Treffer für „%@“";
+"Slides" = "Folien";
+"%lld of %lld slides with notes" = "%lld von %lld Folien mit Mitschrift";
+"No results" = "Keine Treffer";
+"Over %lld results" = "Über %lld Treffer";
+"1 result" = "1 Treffer";
+"%lld results" = "%lld Treffer";
+"%@ on 1 slide" = "%@ auf 1 Folie";
+"%@ on %lld slides" = "%@ auf %lld Folien";
+"↩ next" = "↩ nächster";
+"Slide %lld" = "Folie %lld";
+"Insert Image" = "Bild einfügen";
+"Insert" = "Einfügen";
+"Slide %lld of %lld" = "Folie %lld von %lld";
+"Previous slide: ← or ↑ in the PDF area; also ⌘↑" = "Vorherige Folie: ← oder ↑ im PDF-Bereich; auch ⌘↑";
+"Previous Slide" = "Vorherige Folie";
+"Next slide: → or ↓ in the PDF area; also ⌘↓" = "Nächste Folie: → oder ↓ im PDF-Bereich; auch ⌘↓";
+"Next Slide" = "Nächste Folie";
+"Formula bar: formula blocks, symbols by topic, superscript and subscript" = "Formelleiste: Formelblöcke, Zeichen nach Themengebiet, hoch- und tiefgestellt";
+"Copy an AI prompt with the file path and the current slide (⌥⌘K)" = "KI-Prompt mit Dateipfad und aktueller Folie kopieren (⌥⌘K)";
+"Copy AI Prompt with File Path" = "KI-Prompt mit Dateipfad kopieren";
+"Font size of the notes" = "Schriftgröße der Mitschrift";
+"Formula" = "Formel";
+"Sketch" = "Skizze";
+"AI Prompt" = "KI-Prompt";
+"The prompt could not be copied to the clipboard. Try again." = "Der Prompt konnte nicht in die Zwischenablage kopiert werden. Versuche es erneut.";
+"Formatting of the notes" = "Formatierung der Mitschrift";
+"Formatting" = "Formatierung";
+"What do you want to remember?" = "Was möchtest du festhalten?";
+"Format like in a chat: **bold**, _italic_, ~strikethrough~, - bullets. Formulas go between $ … $ or come from “Formula”, sketches from “Sketch”." = "Formatiere wie im Chat: **fett**, _kursiv_, ~durchgestrichen~, - Stichpunkte. Formeln stehen zwischen $ … $ oder kommen über „Formel“ dazu, Skizzen über „Skizze“.";
+"Your own explanations, key ideas, open questions …" = "Eigene Erklärungen, wichtige Gedanken, offene Fragen …";
+"Notes for slide %lld" = "Mitschrift zu Folie %lld";
+"%lld words" = "%lld Wörter";
+"Save PDF: ⌘S" = "PDF speichern: ⌘S";
+"Save file: ⌘S" = "Datei speichern: ⌘S";
+"**bold** · _italic_ · ~strike~ · `code`" = "**fett** · _kursiv_ · ~durch~ · `Code`";
+"# Heading · - Bullet · 1. List · > Quote" = "# Überschrift · - Punkt · 1. Liste · > Zitat";
+"$x^{2}$ in a sentence · $$ … $$ as a block" = "$x^{2}$ im Satz · $$ … $$ als Block";
+"Strikethrough" = "Durchgestrichen";
+"Code" = "Code";
+"Bulleted List" = "Stichpunkte";
+"Numbered List" = "Nummerierte Liste";
+"Open the library (⇧⌘L)" = "Bibliothek öffnen (⇧⌘L)";
+"Lecture name" = "Name der Vorlesung";
+"Lecture Name" = "Name der Vorlesung";
+"Unsaved changes – save with ⌘S" = "Ungesicherte Änderungen – mit ⌘S sichern";
+"Everything saved" = "Alles gesichert";
+"Unsaved Changes" = "Ungesicherte Änderungen";
+"Everything Saved" = "Alles gesichert";
+"Show the notes (⌥⌘0)" = "Mitschrift einblenden (⌥⌘0)";
+"Hide the notes so the slide uses the full width (⌥⌘0)" = "Mitschrift ausblenden, die Folie nutzt dann die ganze Breite (⌥⌘0)";
+"Search slides, notes and text boxes (⌘F)" = "Folien, Mitschrift und Textfelder durchsuchen (⌘F)";
+"Update the open file in the same place (⌘S)" = "Geöffnete Datei am selben Speicherort aktualisieren (⌘S)";
+"Show the exported study PDF in the Finder" = "Exportiertes Lern-PDF im Finder zeigen";
+"Search" = "Suchen";
+"Save" = "Speichern";
+"%@ – Study PDF.pdf" = "%@ – Lernskript.pdf";
+"Export Study PDF" = "Lern-PDF exportieren";
+"Export" = "Exportieren";
+"Show Notes" = "Mitschrift einblenden";
+"Hide Notes" = "Mitschrift ausblenden";
+"Slide %lld, with notes" = "Folie %lld, mit Mitschrift";

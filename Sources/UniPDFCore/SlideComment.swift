@@ -6,12 +6,12 @@ public enum CommentColor: String, Codable, CaseIterable, Sendable {
 
     public var label: String {
         switch self {
-        case .rose: "Rosé"
-        case .peach: "Pfirsich"
-        case .lemon: "Zitrone"
-        case .mint: "Mint"
-        case .sky: "Himmel"
-        case .lavender: "Lavendel"
+        case .rose: String(localized: "Rose")
+        case .peach: String(localized: "Peach")
+        case .lemon: String(localized: "Lemon")
+        case .mint: String(localized: "Mint")
+        case .sky: String(localized: "Sky")
+        case .lavender: String(localized: "Lavender")
         }
     }
 
@@ -65,9 +65,9 @@ public struct SlideComment: Codable, Sendable, Equatable {
 
     /// What the tag in the notes shows: the beginning of the passage.
     public var label: String {
-        guard !isArea else { return "Bereich" }
+        guard !isArea else { return String(localized: "Area") }
         let words = quote.split(whereSeparator: \.isWhitespace).joined(separator: " ")
-        guard words.count > 28 else { return words.isEmpty ? "Textstelle" : words }
+        guard words.count > 28 else { return words.isEmpty ? String(localized: "Passage") : words }
         let cut = words.prefix(28)
         return (cut.lastIndex(of: " ").map { String(cut[..<$0]) } ?? String(cut)) + " …"
     }

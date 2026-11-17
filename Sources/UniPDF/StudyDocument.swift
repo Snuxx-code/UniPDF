@@ -15,12 +15,12 @@ struct StudyDocument: FileDocument {
 
     nonisolated init(configuration: ReadConfiguration) throws {
         guard let data = configuration.file.regularFileContents else { throw ProjectError.invalidData }
-        let filename = configuration.file.preferredFilename ?? configuration.file.filename ?? "Vorlesung.pdf"
+        let filename = configuration.file.preferredFilename ?? configuration.file.filename ?? String(localized: "Lecture.pdf")
         try self.init(data: data, contentType: configuration.contentType,
                       title: (filename as NSString).deletingPathExtension)
     }
 
-    nonisolated init(data: Data, contentType: UTType, title: String = "Vorlesung") throws {
+    nonisolated init(data: Data, contentType: UTType, title: String = String(localized: "Lecture")) throws {
         if contentType.conforms(to: .pdf) {
             project = try StudyPDF.open(data, title: title)
         } else {

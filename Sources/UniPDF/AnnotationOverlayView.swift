@@ -101,11 +101,11 @@ final class SlidePDFView: PDFView {
     override func menu(for event: NSEvent) -> NSMenu? {
         let menu = super.menu(for: event) ?? NSMenu()
         guard let text = currentSelection?.string, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return menu }
-        let comment = NSMenuItem(title: "Kommentieren", action: #selector(commentSelection(_:)), keyEquivalent: "m")
+        let comment = NSMenuItem(title: String(localized: "Comment"), action: #selector(commentSelection(_:)), keyEquivalent: "m")
         comment.keyEquivalentModifierMask = [.command, .option]
         comment.image = NSImage(systemSymbolName: "text.bubble", accessibilityDescription: nil)
         comment.target = self
-        let highlight = NSMenuItem(title: "Mit Textmarker hervorheben", action: #selector(highlightSelection(_:)), keyEquivalent: "")
+        let highlight = NSMenuItem(title: String(localized: "Highlight with Highlighter"), action: #selector(highlightSelection(_:)), keyEquivalent: "")
         highlight.image = NSImage(systemSymbolName: "highlighter", accessibilityDescription: nil)
         highlight.target = self
         menu.insertItem(comment, at: 0)
@@ -169,7 +169,7 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
         }
         setAccessibilityElement(true)
         setAccessibilityRole(.group)
-        setAccessibilityLabel("Anmerkungen auf der Folie")
+        setAccessibilityLabel(String(localized: "Annotations on the slide"))
     }
 
     @available(*, unavailable) required init?(coder: NSCoder) { fatalError("Not used from a coder") }
@@ -741,7 +741,7 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
         case .highlight:
             guard let pdfView, let page = pdfView.document?.page(at: pageIndex) else { return }
             guard let text = page.string, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-                session.annotationError = "Diese Folie enthält keinen auswählbaren PDF-Text. Für gescannte Folien kannst du den Stift verwenden."
+                session.annotationError = String(localized: "This slide has no selectable PDF text. For scanned slides, you can use the pen.")
                 return
             }
             pdfView.clearSelection()
@@ -910,9 +910,9 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
         window?.makeFirstResponder(self)
         select(hit.id)
         let menu = NSMenu()
-        menu.addItem(withTitle: "Ausschneiden", action: #selector(cut(_:)), keyEquivalent: "")
-        menu.addItem(withTitle: "Kopieren", action: #selector(copy(_:)), keyEquivalent: "")
-        menu.addItem(withTitle: "Löschen", action: #selector(delete(_:)), keyEquivalent: "")
+        menu.addItem(withTitle: String(localized: "Cut"), action: #selector(cut(_:)), keyEquivalent: "")
+        menu.addItem(withTitle: String(localized: "Copy"), action: #selector(copy(_:)), keyEquivalent: "")
+        menu.addItem(withTitle: String(localized: "Delete"), action: #selector(delete(_:)), keyEquivalent: "")
         NSMenu.popUpContextMenu(menu, with: event, for: self)
     }
 
@@ -947,7 +947,7 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
         var preview: String?
         if editor == nil, let hit = annotation(at: view), case .comment(let comment) = hit.content {
             let text = comment.text.trimmingCharacters(in: .whitespacesAndNewlines)
-            preview = text.isEmpty ? "Kommentar ohne Text – klicken, um ihn zu öffnen" : text
+            preview = text.isEmpty ? String(localized: "Comment without text – click to open it") : text
         }
         if toolTip != preview { toolTip = preview }
         moveEraserOutline(to: onSlide == pageIndex ? slidePoint(view) : nil)
@@ -1164,7 +1164,7 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
         // Every change goes through the document, whose binding already registers undo.
         textView.allowsUndo = false
         textView.string = string
-        textView.setAccessibilityLabel("Textfeld auf der Folie")
+        textView.setAccessibilityLabel(String(localized: "Text box on the slide"))
         editor = textView
         editing = annotation
         session.selectedAnnotation = annotation.id

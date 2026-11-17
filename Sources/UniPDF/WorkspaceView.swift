@@ -70,7 +70,7 @@ struct WorkspaceView: View {
                 importSourceWindow = nil
             }
         }
-        .alert("Das hat nicht geklappt", isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
+        .alert("That didn’t work", isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
             Button("OK") { errorMessage = nil }
         } message: { Text(errorMessage ?? "") }
         .onAppear {
@@ -117,33 +117,33 @@ struct WorkspaceView: View {
             VStack(alignment: .leading, spacing: 24) {
                 Label("UniPDF", systemImage: "book.closed").font(.title3.weight(.semibold)).foregroundStyle(accent)
                 Spacer()
-                Text("Deine Vorlesung.\nDeine Gedanken.")
+                Text("Your lecture.\nYour thoughts.")
                     .font(.system(size: 43, weight: .semibold, design: .serif)).tracking(-1)
                     .fixedSize(horizontal: false, vertical: true)
-                Text("Folien lesen, Zusammenhänge verstehen und alles an einem Ort festhalten.")
+                Text("Read slides, understand how things connect and keep everything in one place.")
                     .font(.title3).foregroundStyle(.secondary).lineSpacing(5).frame(maxWidth: 380, alignment: .leading)
                 HStack(spacing: 12) {
                     Button { importSourceWindow = NSApp.keyWindow; importing = true } label: {
-                        Label("Vorlesungs-PDF öffnen", systemImage: "plus").padding(.horizontal, 12).padding(.vertical, 7)
+                        Label("Open Lecture PDF", systemImage: "plus").padding(.horizontal, 12).padding(.vertical, 7)
                     }
                     .buttonStyle(.borderedProminent)
                     .keyboardShortcut("i", modifiers: .command)
                     Button { openWindow(id: LibraryCommands.windowID) } label: {
-                        Label("Bibliothek", systemImage: "folder").padding(.horizontal, 8).padding(.vertical, 7)
+                        Label("Library", systemImage: "folder").padding(.horizontal, 8).padding(.vertical, 7)
                     }
-                    .help("Ordner mit deinen Vorlesungen verwalten (⇧⌘L)")
+                    .help("Manage the folder with your lectures (⇧⌘L)")
                 }
                 .controlSize(.large)
-                Text("PDFs und vorhandene Projekte öffnest du auch mit ⌘O.")
+                Text("You can also open PDFs and existing projects with ⌘O.")
                     .font(.callout).foregroundStyle(.secondary)
                 Spacer()
-                Label("Lokal auf deinem Mac", systemImage: "internaldrive").font(.callout).foregroundStyle(.secondary)
+                Label("Local on your Mac", systemImage: "internaldrive").font(.callout).foregroundStyle(.secondary)
             }
             .padding(56).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
             VStack(alignment: .leading, spacing: 34) {
-                welcomeStep("doc.text", "Vorlesungsfolien", "Importiere das PDF deiner Vorlesung. Jede Folie hat Platz für deine Gedanken.")
-                welcomeStep("pencil.and.outline", "Mehr als Mitschreiben", "Ergänze Notizen, Formeln und Skizzen. Alles bleibt mit der passenden Folie verbunden.")
-                welcomeStep("square.and.arrow.down", "Speichern und weiterlernen", "⌘S aktualisiert deine geöffnete PDF mit allen Mitschriften. In UniPDF bleibt sie weiter bearbeitbar.")
+                welcomeStep("doc.text", "Lecture slides", "Import your lecture’s PDF. Every slide has room for your thoughts.")
+                welcomeStep("pencil.and.outline", "More than taking notes", "Add notes, formulas and sketches. Everything stays linked to its slide.")
+                welcomeStep("square.and.arrow.down", "Save and keep studying", "⌘S updates your open PDF with all your notes. It stays editable in UniPDF.")
             }
             .padding(48).frame(width: 390, alignment: .leading).frame(maxHeight: .infinity)
             .background(accent.opacity(0.06))
@@ -151,7 +151,7 @@ struct WorkspaceView: View {
         .background(Color(nsColor: .windowBackgroundColor))
     }
 
-    private func welcomeStep(_ symbol: String, _ title: String, _ body: String) -> some View {
+    private func welcomeStep(_ symbol: String, _ title: LocalizedStringKey, _ body: LocalizedStringKey) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Image(systemName: symbol).font(.system(size: 25, weight: .light)).foregroundStyle(accent).padding(.bottom, 4)
             Text(title).font(.headline)
@@ -182,19 +182,21 @@ struct WorkspaceView: View {
                                 .id(index)
                         }
                     } header: {
-                        Text("Folien")
+                        Text("Slides")
                     }
                 }
             }
             .listStyle(.sidebar)
-            .searchable(text: $search.query, isPresented: $search.isPresented, placement: .sidebar, prompt: "Im Dokument suchen")
+            .searchable(text: $search.query, isPresented: $search.isPresented, placement: .sidebar, prompt: "Search Document")
             .onSubmit(of: .search) { search.step(1) }
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 Text(search.isSearching ? searchSummary
-                     : "\(document.project.pages.values.filter { !$0.isEmpty }.count) von \(pdf.pageCount) Folien mit Mitschrift")
+                     : String(localized: "\(document.project.pages.values.filter { !$0.isEmpty }.count) of \(pdf.pageCount) slides with notes"))
                     .font(.caption2).monospacedDigit().foregroundStyle(.tertiary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 18).padding(.vertical, 10)
+                    // The list scrolls beneath the caption, which would otherwise sit on top of the previews.
+                    .background(.bar)
             }
             .onChange(of: session.selection) { if !search.isSearching { proxy.scrollTo(session.selection) } }
             .onChange(of: search.current) { if let current = search.current { proxy.scrollTo(search.hits[current].id) } }
@@ -206,7 +208,7 @@ struct WorkspaceView: View {
         // The library window may be closed, so the sidebar notices outside changes by itself.
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in fileTree.reload(fileStore) }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { _ in fileTree.reload(fileStore) }
-        .alert("Das hat nicht geklappt", isPresented: Binding(get: { fileTree.openError != nil }, set: { if !$0 { fileTree.openError = nil } })) {
+        .alert("That didn’t work", isPresented: Binding(get: { fileTree.openError != nil }, set: { if !$0 { fileTree.openError = nil } })) {
             Button("OK") { fileTree.openError = nil }
         } message: { Text(fileTree.openError ?? "") }
     }
@@ -216,7 +218,7 @@ struct WorkspaceView: View {
     /// Hits by slide, as in Preview's search.
     @ViewBuilder private var searchResults: some View {
         if search.hits.isEmpty {
-            Text("Keine Treffer für „\(search.query.trimmingCharacters(in: .whitespaces))“")
+            Text("No results for “\(search.query.trimmingCharacters(in: .whitespaces))”")
                 .font(.callout).foregroundStyle(.secondary)
         }
         let pages = Array(Set(search.hits.map(\.page))).sorted()
@@ -228,7 +230,7 @@ struct WorkspaceView: View {
                         .id(hit.id)
                 }
             } header: {
-                Text("Folie \(page + 1)")
+                Text("Slide \(page + 1)")
             }
         }
     }
@@ -236,9 +238,11 @@ struct WorkspaceView: View {
     private var searchSummary: String {
         let count = search.hits.count
         let slides = Set(search.hits.map(\.page)).count
-        if count == 0 { return "Keine Treffer" }
-        let hits = count >= TextSearch.limit ? "Über \(TextSearch.limit) Treffer" : count == 1 ? "1 Treffer" : "\(count) Treffer"
-        return hits + (slides == 1 ? " auf 1 Folie" : " auf \(slides) Folien") + " · ↩ nächster"
+        if count == 0 { return String(localized: "No results") }
+        let hits = count >= TextSearch.limit ? String(localized: "Over \(TextSearch.limit) results")
+            : count == 1 ? String(localized: "1 result") : String(localized: "\(count) results")
+        let found = slides == 1 ? String(localized: "\(hits) on 1 slide") : String(localized: "\(hits) on \(slides) slides")
+        return found + " · " + String(localized: "↩ next")
     }
 
     private func updateSearch() {
@@ -354,12 +358,12 @@ struct WorkspaceView: View {
                     Divider()
                     HStack(spacing: 18) {
                         Button { session.move(-1) } label: { Image(systemName: "chevron.left") }
-                            .disabled(session.selection == 0).help("Vorherige Folie: ← oder ↑ im PDF-Bereich; auch ⌘↑")
-                            .accessibilityLabel("Vorherige Folie").keyboardShortcut(.upArrow, modifiers: .command)
-                        Text("Folie \(session.selection + 1) von \(pdf.pageCount)").font(.callout.monospacedDigit())
+                            .disabled(session.selection == 0).help("Previous slide: ← or ↑ in the PDF area; also ⌘↑")
+                            .accessibilityLabel("Previous Slide").keyboardShortcut(.upArrow, modifiers: .command)
+                        Text("Slide \(session.selection + 1) of \(pdf.pageCount)").font(.callout.monospacedDigit())
                         Button { session.move(1) } label: { Image(systemName: "chevron.right") }
-                            .disabled(session.selection >= pdf.pageCount - 1).help("Nächste Folie: → oder ↓ im PDF-Bereich; auch ⌘↓")
-                            .accessibilityLabel("Nächste Folie").keyboardShortcut(.downArrow, modifiers: .command)
+                            .disabled(session.selection >= pdf.pageCount - 1).help("Next slide: → or ↓ in the PDF area; also ⌘↓")
+                            .accessibilityLabel("Next Slide").keyboardShortcut(.downArrow, modifiers: .command)
                     }.buttonStyle(.borderless).frame(maxWidth: .infinity).frame(height: 43)
                 }
                 .frame(minWidth: EditorWidthMemory.minimumPDFWidth, maxWidth: .infinity, maxHeight: .infinity)
@@ -378,20 +382,20 @@ struct WorkspaceView: View {
     private var editor: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Label("Mitschrift", systemImage: "square.and.pencil").font(.subheadline.weight(.semibold))
+                Label("Notes", systemImage: "square.and.pencil").font(.subheadline.weight(.semibold))
                 Spacer()
-                Text("Folie \(session.selection + 1)").font(.caption).foregroundStyle(.secondary)
+                Text("Slide \(session.selection + 1)").font(.caption).foregroundStyle(.secondary)
             }.padding(.horizontal, 22).frame(height: 47)
             Divider()
             HStack(spacing: 14) {
-                Button { showFormula.toggle() } label: { Label("Formel", systemImage: "function") }
+                Button { showFormula.toggle() } label: { Label("Formula", systemImage: "function") }
                     .foregroundStyle(showFormula ? accent : .secondary)
-                    .help("Formelleiste: Formelblöcke, Zeichen nach Themengebiet, hoch- und tiefgestellt")
-                Button { showDrawing.toggle() } label: { Label("Skizze", systemImage: "pencil.tip.crop.circle") }
+                    .help("Formula bar: formula blocks, symbols by topic, superscript and subscript")
+                Button { showDrawing.toggle() } label: { Label("Sketch", systemImage: "pencil.tip.crop.circle") }
                     .foregroundStyle(showDrawing ? accent : .secondary)
-                Button { createAIPrompt() } label: { Label("KI-Prompt", systemImage: "text.bubble") }
-                    .help("KI-Prompt mit Dateipfad und aktueller Folie kopieren (⌥⌘K)")
-                    .accessibilityLabel("KI-Prompt mit Dateipfad kopieren")
+                Button { createAIPrompt() } label: { Label("AI Prompt", systemImage: "text.bubble") }
+                    .help("Copy an AI prompt with the file path and the current slide (⌥⌘K)")
+                    .accessibilityLabel("Copy AI Prompt with File Path")
                     .keyboardShortcut("k", modifiers: [.command, .option])
                     .popover(isPresented: $showsAIPrompt) {
                         if let aiPrompt {
@@ -406,7 +410,7 @@ struct WorkspaceView: View {
                         Button("\(Int(size)) pt") { fontSize = size }
                     }
                 } label: { Image(systemName: "textformat.size") }
-                .menuStyle(.borderlessButton).fixedSize().help("Schriftgröße der Mitschrift")
+                .menuStyle(.borderlessButton).fixedSize().help("Font size of the notes")
             }
             .buttonStyle(.borderless).font(.callout).padding(.horizontal, 22).padding(.vertical, 13)
             if showFormula {
@@ -416,16 +420,16 @@ struct WorkspaceView: View {
             Divider()
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
-                    Text("Was möchtest du festhalten?")
+                    Text("What do you want to remember?")
                         .font(.system(size: 24, weight: .medium, design: .serif)).padding(.top, 4)
                     ZStack(alignment: .topLeading) {
                         if notes.wrappedValue.text.isEmpty {
-                            Text("Eigene Erklärungen, wichtige Gedanken, offene Fragen …")
+                            Text("Your own explanations, key ideas, open questions …")
                                 .font(.system(size: fontSize)).foregroundStyle(.secondary)
                                 .padding(.horizontal, 5).padding(.top, 1).allowsHitTesting(false)
                         }
                         NotesEditor(text: notes.text, fontSize: fontSize,
-                                    accessibilityLabel: "Mitschrift zu Folie \(session.selection + 1)", controller: notesEditor,
+                                    accessibilityLabel: String(localized: "Notes for slide \(session.selection + 1)"), controller: notesEditor,
                                     page: session.selection, searchQuery: search.isSearching ? search.query : "",
                                     reveal: session.pendingReveal, revealed: { session.pendingReveal = nil },
                                     comments: commentContext)
@@ -433,24 +437,24 @@ struct WorkspaceView: View {
                     }
                     // Formulas used to have a field of their own. They now belong in the text.
                     if !notes.wrappedValue.formula.isEmpty {
-                        sectionHeader("Formel", symbol: "function")
+                        sectionHeader("Formula", symbol: "function")
                         FormulaEditor(formula: notes.formula) { moveFormulaIntoNotes() }
                     }
                     if showDrawing {
-                        sectionHeader("Skizze", symbol: "pencil.tip")
+                        sectionHeader("Sketch", symbol: "pencil.tip")
                         DrawingEditor(elements: notes.drawing).id(session.selection)
                     }
                     if !showFormula && !showDrawing && notes.wrappedValue.drawing.isEmpty {
-                        Text(verbatim: "Formatiere wie im Chat: **fett**, _kursiv_, ~durchgestrichen~, - Stichpunkte. Formeln stehen zwischen $ … $ oder kommen über „Formel“ dazu, Skizzen über „Skizze“.")
+                        Text(verbatim: String(localized: "Format like in a chat: **bold**, _italic_, ~strikethrough~, - bullets. Formulas go between $ … $ or come from “Formula”, sketches from “Sketch”."))
                             .font(.callout).foregroundStyle(.secondary).lineSpacing(4)
                     }
                 }.padding(24)
             }
             Divider()
             HStack {
-                Text("\(notes.wrappedValue.text.split(whereSeparator: \.isWhitespace).count) Wörter")
+                Text("\(notes.wrappedValue.text.split(whereSeparator: \.isWhitespace).count) words")
                 Spacer()
-                Text(fileURL?.pathExtension.lowercased() == "pdf" ? "PDF speichern: ⌘S" : "Datei speichern: ⌘S")
+                Text(fileURL?.pathExtension.lowercased() == "pdf" ? String(localized: "Save PDF: ⌘S") : String(localized: "Save file: ⌘S"))
             }.font(.caption).foregroundStyle(.secondary).padding(.horizontal, 22).frame(height: 43)
         }
         .background(Color(nsColor: .textBackgroundColor))
@@ -458,23 +462,23 @@ struct WorkspaceView: View {
 
     private var formatMenu: some View {
         Menu {
-            Button("Fett") { notesEditor.toggle(.bold) }.keyboardShortcut("b")
-            Button("Kursiv") { notesEditor.toggle(.italic) }.keyboardShortcut("i")
-            Button("Durchgestrichen") { notesEditor.toggle(.strike) }
+            Button("Bold") { notesEditor.toggle(.bold) }.keyboardShortcut("b")
+            Button("Italic") { notesEditor.toggle(.italic) }.keyboardShortcut("i")
+            Button("Strikethrough") { notesEditor.toggle(.strike) }
             Button("Code") { notesEditor.toggle(.code) }
             Divider()
-            Button("Stichpunkte") { notesEditor.toggleList(numbered: false) }
-            Button("Nummerierte Liste") { notesEditor.toggleList(numbered: true) }
+            Button("Bulleted List") { notesEditor.toggleList(numbered: false) }
+            Button("Numbered List") { notesEditor.toggleList(numbered: true) }
             Divider()
-            Button("Formelblock") { notesEditor.insert(.block) }
+            Button("Formula Block") { notesEditor.insert(.block) }
             Divider()
-            Text("**fett** · _kursiv_ · ~durch~ · `Code`")
-            Text("# Überschrift · - Punkt · 1. Liste · > Zitat")
-            Text("$x^{2}$ im Satz · $$ … $$ als Block")
+            Text("**bold** · _italic_ · ~strike~ · `code`")
+            Text("# Heading · - Bullet · 1. List · > Quote")
+            Text("$x^{2}$ in a sentence · $$ … $$ as a block")
         } label: { Image(systemName: "bold.italic.underline") }
         .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
-        .help("Formatierung der Mitschrift")
-        .accessibilityLabel("Formatierung")
+        .help("Formatting of the notes")
+        .accessibilityLabel("Formatting")
     }
 
     /// Moves a formula from the old formula field into the notes, as a block.
@@ -488,7 +492,7 @@ struct WorkspaceView: View {
         notes.wrappedValue = value
     }
 
-    private func sectionHeader(_ title: String, symbol: String) -> some View {
+    private func sectionHeader(_ title: LocalizedStringKey, symbol: String) -> some View {
         VStack(alignment: .leading, spacing: 18) {
             Divider()
             Label(title, systemImage: symbol).font(.subheadline.weight(.semibold))
@@ -513,8 +517,8 @@ struct WorkspaceView: View {
         // The sidebar button comes with NavigationSplitView.
         ToolbarItem(placement: .navigation) {
             if session.document != nil {
-                Button { openWindow(id: LibraryCommands.windowID) } label: { Label("Bibliothek", systemImage: "folder") }
-                    .help("Bibliothek öffnen (⇧⌘L)")
+                Button { openWindow(id: LibraryCommands.windowID) } label: { Label("Library", systemImage: "folder") }
+                    .help("Open the library (⇧⌘L)")
             }
         }
     }
@@ -524,12 +528,12 @@ struct WorkspaceView: View {
             if session.document != nil {
                 HStack(spacing: 6) {
                     // As wide as the name: the hidden text gives the width, the field sits on top of it.
-                    Text(document.project.title.isEmpty ? "Name der Vorlesung" : document.project.title)
+                    Text(document.project.title.isEmpty ? String(localized: "Lecture name") : document.project.title)
                         .font(.headline).lineLimit(1).hidden()
                         .overlay {
-                            TextField("Name der Vorlesung", text: $document.project.title)
+                            TextField("Lecture name", text: $document.project.title)
                                 .textFieldStyle(.plain).font(.headline)
-                                .accessibilityLabel("Name der Vorlesung")
+                                .accessibilityLabel("Lecture Name")
                         }
                         .frame(minWidth: 40, maxWidth: 360)
                     saveStatus
@@ -553,33 +557,33 @@ struct WorkspaceView: View {
             }
         }
         .frame(width: 14, height: 14)
-        .help(hasUnsavedChanges ? "Ungesicherte Änderungen – mit ⌘S sichern" : "Alles gesichert")
+        .help(hasUnsavedChanges ? String(localized: "Unsaved changes – save with ⌘S") : String(localized: "Everything saved"))
         .accessibilityElement()
-        .accessibilityLabel(hasUnsavedChanges ? "Ungesicherte Änderungen" : "Alles gesichert")
+        .accessibilityLabel(hasUnsavedChanges ? String(localized: "Unsaved Changes") : String(localized: "Everything Saved"))
     }
 
     @ToolbarContentBuilder private var saveItems: some ToolbarContent {
         ToolbarItem(placement: .primaryAction) {
             if session.document != nil {
                 HStack(spacing: 12) {
-                    Button { search.open() } label: { Label("Suchen", systemImage: "magnifyingglass") }
-                        .help("Folien, Mitschrift und Textfelder durchsuchen (⌘F)")
+                    Button { search.open() } label: { Label("Search", systemImage: "magnifyingglass") }
+                        .help("Search slides, notes and text boxes (⌘F)")
                     Button {
                         NSApp.sendAction(#selector(NSDocument.save(_:)), to: nil, from: nil)
-                    } label: { Label("Speichern", systemImage: "square.and.arrow.down") }
-                    .help("Geöffnete Datei am selben Speicherort aktualisieren (⌘S)")
+                    } label: { Label("Save", systemImage: "square.and.arrow.down") }
+                    .help("Update the open file in the same place (⌘S)")
                     if let exportedURL {
                         Button { NSWorkspace.shared.activateFileViewerSelecting([exportedURL]) } label: {
-                            Label("Im Finder zeigen", systemImage: "checkmark.circle")
-                        }.help("Exportiertes Lern-PDF im Finder zeigen")
+                            Label("Show in Finder", systemImage: "checkmark.circle")
+                        }.help("Show the exported study PDF in the Finder")
                     }
-                    Button { exportPDF() } label: { Label("Lern-PDF exportieren", systemImage: "square.and.arrow.up") }
+                    Button { exportPDF() } label: { Label("Export Study PDF", systemImage: "square.and.arrow.up") }
                         .keyboardShortcut("e", modifiers: [.command, .shift])
                     Button { notesCollapsed.toggle() } label: {
-                        Label(notesCollapsed ? "Mitschrift einblenden" : "Mitschrift ausblenden", systemImage: "sidebar.right")
+                        Label(notesCollapsed ? String(localized: "Show Notes") : String(localized: "Hide Notes"), systemImage: "sidebar.right")
                     }
                     .keyboardShortcut("0", modifiers: [.command, .option])
-                    .help(notesCollapsed ? "Mitschrift einblenden (⌥⌘0)" : "Mitschrift ausblenden, die Folie nutzt dann die ganze Breite (⌥⌘0)")
+                    .help(notesCollapsed ? String(localized: "Show the notes (⌥⌘0)") : String(localized: "Hide the notes so the slide uses the full width (⌥⌘0)"))
                 }
             }
         }
@@ -588,9 +592,10 @@ struct WorkspaceView: View {
     private func exportPDF() {
         let panel = NSSavePanel()
         panel.allowedContentTypes = [.pdf]
-        panel.nameFieldStringValue = (document.project.title.isEmpty ? "Vorlesung" : document.project.title) + " – Lernskript.pdf"
-        panel.title = "Lern-PDF exportieren"
-        panel.prompt = "Exportieren"
+        let name = document.project.title.isEmpty ? String(localized: "Lecture") : document.project.title
+        panel.nameFieldStringValue = String(localized: "\(name) – Study PDF.pdf")
+        panel.title = String(localized: "Export Study PDF")
+        panel.prompt = String(localized: "Export")
         let save: (NSApplication.ModalResponse) -> Void = { response in
             guard response == .OK, let url = panel.url else { return }
             do {
@@ -606,8 +611,8 @@ struct WorkspaceView: View {
     private func chooseImage() {
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [.image]
-        panel.title = "Bild einfügen"
-        panel.prompt = "Einfügen"
+        panel.title = String(localized: "Insert Image")
+        panel.prompt = String(localized: "Insert")
         let insert: (NSApplication.ModalResponse) -> Void = { response in
             guard response == .OK, let url = panel.url else { return }
             do { session.overlay?.insertImage(try Data(contentsOf: url)) }
@@ -629,7 +634,7 @@ struct WorkspaceView: View {
     private func copyPrompt(_ text: String) -> Bool {
         NSPasteboard.general.clearContents()
         guard NSPasteboard.general.setString(text, forType: .string) else {
-            errorMessage = "Der Prompt konnte nicht in die Zwischenablage kopiert werden. Versuche es erneut."
+            errorMessage = String(localized: "The prompt could not be copied to the clipboard. Try again.")
             return false
         }
         return true
@@ -655,7 +660,7 @@ private struct SlideRow: View {
     var body: some View {
         Button(action: select) { content }
             .buttonStyle(.plain)
-            .accessibilityLabel("Folie \(index + 1)\(hasNotes ? ", mit Mitschrift" : "")")
+            .accessibilityLabel(hasNotes ? String(localized: "Slide \(index + 1), with notes") : String(localized: "Slide \(index + 1)"))
             .accessibilityAddTraits(isSelected ? .isSelected : [])
             .task(id: annotations) {
                 guard let page else { return }
@@ -680,7 +685,7 @@ private struct SlideRow: View {
             // A portrait page at full width would fill the list, so its height is capped.
             .frame(maxWidth: .infinity, maxHeight: 150)
             HStack(spacing: 4) {
-                Text("Folie \(index + 1)").font(.caption.monospacedDigit())
+                Text("Slide \(index + 1)").font(.caption.monospacedDigit())
                     .fontWeight(isSelected ? .semibold : .regular)
                     .foregroundStyle(isSelected ? accent : .primary)
                 Spacer(minLength: 0)

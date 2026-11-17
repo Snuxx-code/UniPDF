@@ -1,5 +1,6 @@
 import AppKit
 import CoreText
+import PDFKit
 import SwiftUI
 import UniPDFCore
 
@@ -21,20 +22,20 @@ enum PreviewHarness {
         let directory = URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent("build/Preview")
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let project = try demoProject()
-        try project.encoded().write(to: directory.appendingPathComponent("Beispiel.unipdf"))
-        try PDFExporter.export(project).write(to: directory.appendingPathComponent("Beispiel-Lernskript.pdf"))
+        try project.encoded().write(to: directory.appendingPathComponent("Example.unipdf"))
+        try PDFExporter.export(project).write(to: directory.appendingPathComponent("Example-Study-PDF.pdf"))
         let store = try demoLibrary(in: directory, pdf: PDFExporter.export(project, includingProject: false))
         for (name, document, size, appearance) in [
             ("welcome", StudyDocument(), NSSize(width: 1200, height: 780), NSAppearance.Name.aqua),
             ("workspace", StudyDocument(project: project), NSSize(width: 1320, height: 850), NSAppearance.Name.aqua),
             ("workspace-dark", StudyDocument(project: project), NSSize(width: 1000, height: 740), NSAppearance.Name.darkAqua)
         ] {
-            let sourceURL = document.project.pdfData == nil ? nil : directory.appendingPathComponent("Beispiel.unipdf")
+            let sourceURL = document.project.pdfData == nil ? nil : directory.appendingPathComponent("Example.unipdf")
             try capture(WorkspaceView(document: .constant(document), fileURL: sourceURL, fileStore: store), name: name,
                         size: size, appearance: appearance, directory: directory)
         }
         let context = try AIQuestionContext.create(project: project,
-            sourceURL: directory.appendingPathComponent("Beispiel.unipdf"), slideIndex: 0)
+            sourceURL: directory.appendingPathComponent("Example.unipdf"), slideIndex: 0)
         try capture(AIPromptPopover(context: context, copy: { _ in true }), name: "ai-prompt",
                     size: NSSize(width: 520, height: 580), appearance: .aqua, directory: directory)
         try capture(LibraryView(store: store), name: "library", size: NSSize(width: 720, height: 560),
@@ -80,15 +81,15 @@ enum PreviewHarness {
     }
 
     private static func demoLibrary(in directory: URL, pdf: Data) throws -> LibraryStore {
-        let root = directory.appendingPathComponent("Beispiel-Bibliothek", isDirectory: true)
+        let root = directory.appendingPathComponent("Example-Library", isDirectory: true)
         try? FileManager.default.removeItem(at: root)
         let semester = root.appendingPathComponent("Semester 1", isDirectory: true)
         try FileManager.default.createDirectory(at: semester, withIntermediateDirectories: true)
         try FileManager.default.createDirectory(at: root.appendingPathComponent("Semester 2", isDirectory: true), withIntermediateDirectories: true)
-        try pdf.write(to: semester.appendingPathComponent("Beispiel Vorlesung.pdf"))
-        try pdf.write(to: root.appendingPathComponent("Beispiel Vorlesung 1.pdf"))
-        try pdf.write(to: root.appendingPathComponent("Beispiel Vorlesung 2.pdf"))
-        try Data("Beispielnotiz".utf8).write(to: root.appendingPathComponent("Beispiel Notizen.txt"))
+        try pdf.write(to: semester.appendingPathComponent("Example Lecture.pdf"))
+        try pdf.write(to: root.appendingPathComponent("Example Lecture 1.pdf"))
+        try pdf.write(to: root.appendingPathComponent("Example Lecture 2.pdf"))
+        try Data("Example note".utf8).write(to: root.appendingPathComponent("Example Notes.txt"))
         return LibraryStore(root: root)
     }
 
@@ -99,9 +100,9 @@ enum PreviewHarness {
             throw ProjectError.exportFailed
         }
         let slides = [
-            ("Lineare Algebra", "Vektorräume & lineare Abbildungen", "Beispielvorlesung · Keine echten Kursunterlagen"),
-            ("Was ist ein Vektorraum?", "Eine Menge mit zwei Operationen.", "Vektoraddition  u + v     ·     Skalarmultiplikation  λ · v"),
-            ("Lineare Abbildungen", "Struktur bleibt erhalten.", "f(u + v) = f(u) + f(v)     ·     f(λv) = λf(v)")
+            ("Linear Algebra", "Vector spaces & linear maps", "Basis, dimension and subspaces"),
+            ("What is a vector space?", "A set with two operations.", "Vector addition  u + v     ·     Scalar multiplication  λ · v"),
+            ("Linear maps", "Structure is preserved.", "f(u + v) = f(u) + f(v)     ·     f(λv) = λf(v)")
         ]
         for (title, subtitle, detail) in slides {
             context.beginPDFPage(nil)
@@ -116,13 +117,36 @@ enum PreviewHarness {
             label(detail, x: 65, y: 180, size: 20, color: .darkGray)
             context.setFillColor(NSColor(srgbRed: 0.16, green: 0.4, blue: 0.34, alpha: 1).cgColor)
             context.fill(CGRect(x: 65, y: 275, width: 72, height: 4))
-            label("DEMOMATERIAL · UniPDF", x: 65, y: 45, size: 13, color: .darkGray)
+            label("DEMO MATERIAL · UniPDF", x: 65, y: 45, size: 13, color: .darkGray)
             context.endPDFPage()
         }
         context.closePDF()
+        let slideData = output as Data
+        guard let document = PDFDocument(data: slideData), let firstPage = document.page(at: 0) else { throw ProjectError.invalidPDF }
+        /// The passage as the text marker or a comment would take it from a selection on the first slide.
+        func passage(_ text: String, color: AnnotationColor = PDFTextHighlight.yellow) throws -> SlideAnnotation {
+            guard let selection = document.findString(text, withOptions: []).first,
+                  let annotation = PDFTextHighlight.annotation(for: selection, on: firstPage, color: color) else {
+                throw ProjectError.invalidPDF
+            }
+            return annotation
+        }
+        let highlight = try passage(slides[0].1)
+        guard case .highlight(let commentRects, _) = try passage(slides[0].2).content else { throw ProjectError.invalidPDF }
+        let comment = SlideAnnotation(content: .comment(SlideComment(rects: commentRects, quote: slides[0].2,
+            text: "A **basis** is a minimal spanning set. Its length is the dimension $\\dim V$.", color: .sky)))
+
         var notes = PageNotes()
-        notes.text = "Die Grundidee\nEin Vektor beschreibt mehr als eine Richtung. Auch Funktionen oder Polynome können Vektoren sein.\n\nMerken\nEntscheidend sind die Rechenregeln, nicht die Darstellung.\n\nOffene Frage\nWann bilden zwei Vektoren eine Basis?"
-        notes.formula = "f(u + v) = f(u) + f(v)"
+        notes.text = """
+        # The core idea
+        A **vector** is more than an arrow: _functions_ can be vectors too.
+
+        ## Remember
+        - Linear means: $f(u + v) = f(u) + f(v)$
+        - When do two vectors form a basis? \(CommentLinks.token(for: comment.id))
+
+        $$v = \\lambda_{1} b_{1} + \\lambda_{2} b_{2}$$
+        """
         notes.drawing = [
             InkElement(tool: .arrow, color: .graphite, points: [InkPoint(x: 100, y: 410), InkPoint(x: 100, y: 60)]),
             InkElement(tool: .arrow, color: .graphite, points: [InkPoint(x: 100, y: 410), InkPoint(x: 710, y: 410)]),
@@ -130,19 +154,21 @@ enum PreviewHarness {
             InkElement(tool: .arrow, color: .green, width: 5, points: [InkPoint(x: 100, y: 410), InkPoint(x: 300, y: 110)])
         ]
         let accent = AnnotationColor(InkColor.red)
-        // Fit the ellipse around the actual subtitle glyphs, with room at its curved ends.
-        let subtitle = NSAttributedString(string: slides[0].1, attributes: [.font: NSFont.systemFont(ofSize: 25, weight: .medium)])
-        let glyphs = CTLineGetBoundsWithOptions(CTLineCreateWithAttributedString(subtitle), .useGlyphPathBounds)
-        let textRect = CGRect(x: 65 + glyphs.minX, y: 540 - 330 - glyphs.maxY, width: glyphs.width, height: glyphs.height)
-        let padded = textRect.insetBy(dx: -8, dy: -6)
-        let ellipse = CGRect(x: padded.midX - padded.width * 0.6, y: padded.midY - padded.height,
-                             width: padded.width * 1.2, height: padded.height * 2)
+        // Fit the ellipse around the actual title glyphs, with room at its curved ends.
+        let title = NSAttributedString(string: slides[0].0, attributes: [.font: NSFont.systemFont(ofSize: 47, weight: .medium)])
+        let glyphs = CTLineGetBoundsWithOptions(CTLineCreateWithAttributedString(title), .useGlyphPathBounds)
+        let textRect = CGRect(x: 65 + glyphs.minX, y: 540 - 400 - glyphs.maxY, width: glyphs.width, height: glyphs.height)
+        let padded = textRect.insetBy(dx: -10, dy: -8)
+        let ellipse = CGRect(x: padded.midX - padded.width * 0.58, y: padded.midY - padded.height * 0.85,
+                             width: padded.width * 1.16, height: padded.height * 1.7)
         notes.annotations = [
+            highlight,
             SlideAnnotation(content: .shape(.ellipse, start: ellipse.origin,
                                            end: CGPoint(x: ellipse.maxX, y: ellipse.maxY), color: accent, width: 3)),
-            SlideAnnotation(content: .text("Beispiel: Anmerkung auf der Folie", frame: CGRect(x: 65, y: 300, width: 500, height: 34),
-                                           style: SlideTextStyle(size: 24, bold: true), color: accent))
+            SlideAnnotation(content: .text("Example: on the exam!", frame: CGRect(x: 560, y: 70, width: 360, height: 34),
+                                           style: SlideTextStyle(size: 24, bold: true), color: accent)),
+            comment
         ]
-        return StudyProject(title: "Lineare Algebra · Beispiel", pdfData: output as Data, pages: [0: notes])
+        return StudyProject(title: "Linear Algebra · Example", pdfData: slideData, pages: [0: notes])
     }
 }

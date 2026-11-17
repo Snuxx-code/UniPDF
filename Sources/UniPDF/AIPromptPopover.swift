@@ -10,15 +10,15 @@ struct AIPromptPopover: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                Text("Frage zu Folie \(context.slideNumber)").font(.headline)
+                Text("Question about slide \(context.slideNumber)").font(.headline)
                 Spacer()
-                if copied { Label("Prompt kopiert", systemImage: "checkmark").font(.caption).foregroundStyle(.secondary) }
+                if copied { Label("Prompt copied", systemImage: "checkmark").font(.caption).foregroundStyle(.secondary) }
             }
-            Text("Mit ⌘V in deinen KI-Chat einfügen. Du kannst deine Frage auch hier ergänzen.")
+            Text("Paste it into your AI chat with ⌘V. You can also add your question here.")
                 .font(.callout).foregroundStyle(.secondary)
-            TextField("Was möchtest du zu dieser Folie wissen?", text: $question, axis: .vertical)
+            TextField("What would you like to know about this slide?", text: $question, axis: .vertical)
                 .lineLimit(2...4).textFieldStyle(.roundedBorder)
-                .accessibilityLabel("Frage an die KI")
+                .accessibilityLabel("Question for the AI")
                 .onChange(of: question) { copied = false }
             ScrollView {
                 Text(context.text(question: question))
@@ -29,10 +29,10 @@ struct AIPromptPopover: View {
             .frame(height: 230)
             .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 8))
             HStack {
-                Text("Die PDF-Kopien liegen lokal im temporären Ordner.")
+                Text("The PDF copies are stored locally in the temporary folder.")
                     .font(.caption).foregroundStyle(.secondary)
                 Spacer()
-                Button(copied ? "Erneut kopieren" : "Prompt kopieren") {
+                Button(copied ? String(localized: "Copy Again") : String(localized: "Copy Prompt")) {
                     copied = copy(context.text(question: question))
                 }.buttonStyle(.borderedProminent)
             }

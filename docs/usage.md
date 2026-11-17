@@ -1,130 +1,136 @@
-# UniPDF verwenden
+# Using UniPDF
 
-[Zurück zur Übersicht](../README.md)
+[Back to the overview](../README.md) · [Deutsch](usage.de.md)
 
-## Benutzen
+## Getting started
 
-1. Mit **⌘O** direkt ein Vorlesungs-PDF öffnen. Alternativ **Ablage → Neu** und **Vorlesungs-PDF öffnen** wählen (⌘I).
-2. Links eine Folie auswählen. Rechts Notizen schreiben und formatieren, mit **Formel** Formeln einsetzen oder mit **Skizze** zeichnen.
-3. Mit **⌘S** oder **Speichern** die geöffnete Datei aktualisieren. Neben dem Namen der Vorlesung oben zeigt ein grauer Punkt ungesicherte Änderungen, ein grüner Haken, dass alles gesichert ist. Bei einer direkt geöffneten PDF wird die ursprüngliche Vorlesungsdatei am selben Pfad durch das Lern-PDF mit Mitschriften ersetzt. Jeder weitere Speichervorgang aktualisiert dieselbe Datei. Die nativen macOS-Sicherungs- und Wiederherstellungsfunktionen verwalten Dokumentänderungen.
-4. Dieselbe PDF später wieder in UniPDF öffnen und weiterbearbeiten. Sie enthält neben den sichtbaren Seiten die Originalfolien, Notizen, Formeln und Skizzen in ihren Metadaten. UniPDF stellt daraus den bearbeitbaren Zustand wieder her; wiederholtes Speichern fügt das Layout nicht mehrfach hinzu.
-5. **Lern-PDF exportieren** (⇧⌘E) erstellt bei Bedarf eine zusätzliche Kopie an einem gewählten Ort. Lange Mitschriften werden auf Fortsetzungsseiten verteilt. Die Folie wird zur Orientierung wiederholt; die Skizze erscheint auf der ersten Seite zur Folie.
+1. Open a lecture PDF directly with **⌘O**. Alternatively, choose **File → New** and **Open Lecture PDF** (⌘I).
+2. Choose a slide on the left. On the right, write and format notes, add formulas with **Formula** or draw with **Sketch**.
+3. Update the open file with **⌘S** or **Save**. Next to the lecture's name at the top, a grey dot means unsaved changes and a green check mark means everything is saved. For a PDF you opened directly, the original lecture file is replaced at the same path by the study PDF with your notes. Every later save updates the same file. The native macOS versions and revert features manage changes to the document.
+4. Open the same PDF in UniPDF later and keep working. Besides the visible pages, its metadata holds the original slides, notes, formulas and sketches. UniPDF restores the editable state from them; saving again does not add the layout a second time.
+5. **Export Study PDF** (⇧⌘E) creates an additional copy in a place you choose. Long notes continue on extra pages. The slide is repeated there for orientation; the sketch appears on the first page for the slide.
 
-Bestehende `.unipdf`-Projekte bleiben unterstützt. **⌘S** aktualisiert auch diese am bisherigen Speicherort. Um ein solches Projekt auf die PDF-Arbeitsweise umzustellen, einmal als PDF exportieren und anschließend die exportierte PDF öffnen. Soll sie die frühere Vorlesungsdatei ersetzen, beim Export deren Pfad auswählen.
+Existing `.unipdf` projects are still supported. **⌘S** also updates them in their current place. To move such a project to the PDF way of working, export it as a PDF once and then open the exported PDF. If it should replace the earlier lecture file, choose that file's path when exporting.
 
-Die bearbeitbaren Daten sind in der PDF eingebettet; es ist keine zusätzliche Projektdatei erforderlich. Andere PDF-Programme können beim erneuten Speichern Metadaten entfernen. Für die weitere Bearbeitung mit Mitschriften die Datei in UniPDF sichern.
+The editable data is embedded in the PDF; no additional project file is needed. Other PDF apps can remove metadata when they save. To keep editing your notes, save the file in UniPDF.
 
-Über die zwei Knöpfe neben dem Zoom (oder Darstellung → **Fortlaufend scrollen**, ⌥⌘J) wechselst du zwischen **Einzelseite** und **fortlaufendem Scrollen** durch alle Folien. Fortlaufend zeigen alle sichtbaren Folien ihre Anmerkungen. Wo du zeichnest, schreibst oder kommentierst, wird die Folie zur aktuellen, ohne dass die Ansicht springt, und die Mitschrift folgt. UniPDF merkt sich die Einstellung. Die Mitschrift lässt sich mit dem Knopf ganz rechts in der Werkzeugleiste oder mit **⌥⌘0** einklappen, dann nutzt die Folie die ganze Breite. UniPDF merkt sich das. Sie klappt von selbst wieder auf, wenn du einen Kommentar anlegst oder öffnest oder ein Suchtreffer in der Mitschrift liegt. Mit **⌘↑ / ⌘↓** zwischen Folien wechseln. Die Breite von PDF und Mitschrift lässt sich an der Trennlinie anpassen. UniPDF merkt sich die Breite der Mitschrift und die Fenstergröße auch über Neustarts hinweg; die Bibliothek hat ihre eigene Fenstergröße. Die Zeichenfläche unterstützt Stift, Linie, Pfeil, Rechteck und Ellipse, vier Farben und drei Strichstärken. Elemente lassen sich schrittweise entfernen und wiederherstellen.
+The two buttons next to the zoom (or View → **Scroll Continuously**, ⌥⌘J) switch between **single page** and **continuous scrolling** through all slides. When scrolling continuously, every visible slide shows its annotations. Wherever you draw, write or comment, that slide becomes the current one without the view jumping, and the notes follow. UniPDF remembers the setting. The notes can be collapsed with the button on the far right of the toolbar or with **⌥⌘0**, and the slide then uses the full width. UniPDF remembers that too. The notes open again by themselves when you create or open a comment or when a search result is in the notes. Change slides with **⌘↑ / ⌘↓**. The divider between the PDF and the notes can be dragged. UniPDF remembers the width of the notes and the window size across launches; the library has its own window size. The sketch area offers a pen, line, arrow, rectangle and ellipse, four colors and three line widths. Elements can be removed and restored step by step.
 
-## Auf der Folie markieren
+In the PDF area, **→ / ↓** go to the next slide and **← / ↑** to the previous one. At the first and last slide the selection stays where it is. **⌘↑ / ⌘↓** keep working as direct commands. While you type in notes, formulas and text boxes, the arrow keys move the text cursor. When an annotation is selected, they move the annotation; press **Esc** to deselect it and change slides again. In the file list, the arrows move through the list.
 
-Die Werkzeuge in der Kopfzeile des Folienbereichs legen Anmerkungen auf die Folie selbst, im Unterschied zur **Skizze**, die in der Mitschrift steht.
+## Marking up the slide
 
-- **Stift:** frei zeichnen, drei Strichstärken.
-- **Textmarker:** den Marker in der Kopfzeile des Folienbereichs aktivieren und über PDF-Text ziehen. Die ausgewählten Wörter und Zeilen werden hervorgehoben; die Farbe liegt wie bei einem echten Marker hinter der Schrift, sodass der Text dunkel und gut lesbar bleibt. Alternativ zuerst mit dem normalen PDF-Werkzeug Text auswählen und danach auf **Textmarker** klicken. Gelb, Grün, Pink und Blau stehen direkt bereit; über das Farbfeld kannst du eine eigene Farbe wählen. Die Markerfarbe wird unabhängig von der Stiftfarbe gespeichert. Mit **Esc** zum Auswahlwerkzeug zurückkehren; eine Markierung anklicken, um ihre Farbe zu ändern oder sie mit **⌫** zu löschen. Gescannten Folien ohne auswählbaren Text fehlt die nötige Textebene; dort kannst du den Stift verwenden.
-- **Radiergummi:** über Stiftstriche und Textmarkierungen ziehen. In der Zeile unter den Werkzeugen wählst du zwischen zwei Arten: **Präzise** entfernt nur, was er berührt; ein Strich zerfällt in die Teile daneben, und bei Markierungen verschwinden immer ganze Zeichen. **Strich** löscht jeden berührten Strich und jede berührte Markierung ganz. Ein Kreis zeigt seine Größe; **Klein**, **Mittel** und **Groß** stehen zur Wahl. Ein ganzer Zug lässt sich mit **⌘Z** auf einmal widerrufen. Formen, Textfelder und Bilder radiert er nicht weg; diese wählst du an und löschst sie mit **⌫**. Die Skizze in der Mitschrift hat weiter ihre eigenen Schritte zum Entfernen und Wiederherstellen.
-- **Textfeld:** auf die Folie klicken und tippen. Schriftart, Größe, Fett, Kursiv und Unterstrichen gelten für das ganze Textfeld. Ein leeres Textfeld verschwindet wieder. Doppelklick bearbeitet den Text später. Mit dem **Schloss** am Anfang der Textzeile bleibt das Textwerkzeug aktiv: Jeder weitere Klick auf die Folie beginnt sofort ein neues Textfeld, ein Klick auf ein vorhandenes bearbeitet es. **Esc** wechselt zurück zum Auswählen. Die Einstellung bleibt auch nach einem Neustart erhalten.
-- **Formen:** Rechteck, Quadrat, Kreis, Oval und Linie aufziehen. Der Form-Knopf zeichnet die zuletzt benutzte Form, der Pfeil rechts daneben wählt eine andere. **⇧** hält beim Rechteck und Oval die Proportionen und rastet Linien in 45°-Schritten ein.
-- **Bild:** Das Bildsymbol wählt eine Datei, **⌘V** setzt ein Bild aus der Zwischenablage ein, zum Beispiel einen Bildschirmausschnitt. Sehr große Bilder werden auf 2400 Pixel an der längsten Seite verkleinert.
-- **Farben:** vier feste Farben und eine beliebige Farbe aus dem Farbfeld. Ist der Folienbereich schmal, bleibt beim Text nur das Farbfeld.
+The tools in the header of the slide area put annotations on the slide itself, unlike the **Sketch**, which belongs to the notes.
 
-Mit dem Pfeil-Werkzeug wählst du eine Anmerkung aus, ziehst sie an eine andere Stelle oder änderst ihre Größe an den Griffen. Die Einstellungen in der Zeile unter den Werkzeugen gelten dann für die Auswahl. Pfeiltasten verschieben um einen Punkt, mit **⇧** um zehn. **⌫** oder das Papierkorb-Symbol löscht, **⌘X**, **⌘C** und **⌘V** funktionieren, **⌘Z** widerruft. **Esc** beendet ein Werkzeug oder hebt die Auswahl auf. Umrissene Formen reagieren nur auf ihre Linie, damit Text darin auswählbar bleibt; neben Anmerkungen lässt sich weiter PDF-Text markieren.
+- **Pen:** draw freely, three line widths.
+- **Highlighter:** turn on the highlighter in the header of the slide area and drag over PDF text. The selected words and lines are highlighted; like a real highlighter, the color sits behind the text, so the text stays dark and easy to read. Alternatively, select text with the normal PDF tool first and then click **Highlighter**. Yellow, green, pink and blue are ready to use; the color well lets you choose your own. The highlighter color is stored separately from the pen color. Press **Esc** to return to the selection tool; click a highlight to change its color or delete it with **⌫**. Scanned slides without selectable text lack the text layer this needs; use the pen there.
+- **Eraser:** drag over pen strokes and highlights. In the row below the tools you choose between two modes: **Precise** removes only what it touches; a stroke falls apart into the pieces on either side, and highlights always lose whole characters. **Stroke** deletes every stroke and highlight it touches entirely. A circle shows its size; **Small**, **Medium** and **Large** are available. **⌘Z** takes back a whole stroke of the eraser at once. It does not erase shapes, text boxes or images; select those and delete them with **⌫**. The sketch in the notes keeps its own steps for removing and restoring.
+- **Text box:** click on the slide and type. Font, size, bold, italic and underline apply to the whole text box. An empty text box disappears again. Double-click to edit the text later. With the **lock** at the start of the text row, the text tool stays active: every further click on the slide starts a new text box right away, and a click on an existing one edits it. **Esc** switches back to selecting. The setting is kept after a restart.
+- **Shapes:** drag out a rectangle, square, circle, oval or line. The shape button draws the shape you used last; the arrow next to it chooses a different one. **⇧** keeps the proportions of rectangles and ovals and snaps lines to 45° steps.
+- **Image:** the image symbol chooses a file, and **⌘V** inserts an image from the clipboard, such as a screenshot. Very large images are scaled down to 2400 pixels on their longest side.
+- **Colors:** four fixed colors and any color from the color well. When the slide area is narrow, text boxes show only the color well.
 
-Anmerkungen bleiben beim Zoomen und auf gedrehten Folien an ihrer Stelle und stehen dort aufrecht. Sie landen im Lern-PDF auf der Folie und bleiben nach dem erneuten Öffnen bearbeitbar; die Originalfolie selbst wird nicht verändert. Text bleibt im PDF durchsuchbar. Fehlt eine Schriftart auf einem anderen Mac, erscheint dort die Systemschrift. Die Kopie **Originalfolie** für den KI-Prompt zeigt die Folie ohne Anmerkungen, das Lernskript mit ihnen.
+With the arrow tool you select an annotation, drag it somewhere else or resize it by its handles. The settings in the row below the tools then apply to the selection. The arrow keys move it by one point, with **⇧** by ten. **⌫** or the trash symbol deletes it, **⌘X**, **⌘C** and **⌘V** work, and **⌘Z** undoes. **Esc** ends a tool or clears the selection. Outlined shapes respond only to their line, so that text inside them stays selectable; PDF text next to annotations can still be selected.
 
-Textmarkierungen bleiben beim Speichern und Exportieren sichtbar und nach dem Wiederöffnen bearbeitbar. Dateien mit dem Projektformat 3 benötigen eine UniPDF-Version mit Textmarker-Unterstützung. Ältere Dateien öffnen weiter und werden beim Speichern umgestellt.
+Annotations stay in place and upright when you zoom and on rotated slides. They appear on the slide in the study PDF and are still editable after reopening; the original slide itself is not changed. Text stays searchable in the PDF. If a font is missing on another Mac, the system font is used there. The **original slide** copy for the AI prompt shows the slide without annotations, the study PDF with them.
 
-## Start ohne Datei
+Highlights stay visible when saving and exporting and are editable after reopening. Files in project format 3 need a version of UniPDF that supports the highlighter. Older files still open and are converted when saved.
 
-Waren beim Beenden Dateien geöffnet, stellt macOS diese Tabs wieder her. Sonst öffnet UniPDF die zuletzt geöffnete Datei, auch wenn sie inzwischen umbenannt oder verschoben wurde. Gibt es sie nicht mehr oder liegt sie im Papierkorb, öffnet sich die Bibliothek. Dasselbe gilt für einen Klick auf das Dock-Symbol, wenn kein Fenster offen ist. Ein neues leeres Dokument gibt es weiter über **Ablage → Neu** oder **+** in der Tab-Leiste.
+## Starting without a file
 
-## Mehrere Dateien
+If files were open when you quit, macOS restores those tabs. Otherwise UniPDF opens the file you opened last, even if it has been renamed or moved since. If it no longer exists or is in the Trash, the library opens. The same happens when you click the Dock icon with no window open. A new empty document is still available with **File → New** or **+** in the tab bar.
 
-Geöffnete Dateien liegen als Tabs in einem Fenster, unabhängig von der Tab-Einstellung des Systems. Ein Klick auf einen Tab wechselt die Datei, **+** öffnet einen neuen Tab mit der Startseite. Rechtsklick auf einen Tab bietet **Tab in ein neues Fenster bewegen**; ebenso lässt sich ein Tab aus der Leiste ziehen. **Fenster → Alle Fenster zusammenführen** holt getrennte Fenster wieder zusammen. Die Bibliothek bleibt ein eigenes Fenster.
+## Several files
 
-## Bibliothek
+Open files share one window as tabs, regardless of the system's tab setting. Click a tab to switch files; **+** opens a new tab with the start page. Right-click a tab for **Move Tab to New Window**; you can also drag a tab out of the bar. **Window → Merge All Windows** brings separate windows back together. The library stays a window of its own.
 
-**Ablage → Bibliothek** (⇧⌘L) öffnet den Dateimanager. Mit **Ordner auswählen …** gibst du UniPDF Zugriff auf einen Ordner, zum Beispiel dein Studium. Der Ordner bleibt über Neustarts hinweg verbunden. Ordner und Dateien erscheinen als Kacheln oder als Liste, Dateien mit einem Vorschaubild ihrer ersten Seite. Der Umschalter steht rechts neben dem Pfad; die Wahl bleibt erhalten. Im Viewer öffnet der Ordner-Knopf neben dem Seitenleisten-Knopf die Bibliothek.
+## Library
 
-- **Navigieren:** Doppelklick geht in einen Ordner. Der Pfad oben und der Zurück-Pfeil (⌘↑) führen wieder hinauf. Pfeiltasten wählen eine Kachel aus, Return öffnet sie.
-- **Öffnen:** Doppelklick öffnet PDFs und `.unipdf`-Projekte in UniPDF, andere Dateien im passenden Programm.
-- **Ordnen:** Eine Kachel auf einen Ordner ziehen verschiebt sie, ebenso das Ziehen auf einen Eintrag im Pfad. Das Kontextmenü bietet **Umbenennen** und **Im Finder zeigen**; **Neuer Ordner** (⇧⌘N) legt den Ordner im aktuellen Ordner an.
-- **Entfernen:** **In den Papierkorb legen** (⌘⌫) fragt vorher nach; alles bleibt aus dem Papierkorb wiederherstellbar.
+**File → Library** (⇧⌘L) opens the file manager. **Choose Folder …** gives UniPDF access to a folder, such as the one for your studies. The folder stays connected across launches. Folders and files appear as tiles or as a list, files with a thumbnail of their first page. The switch is to the right of the path; your choice is kept. In the viewer, the folder button next to the sidebar button opens the library.
 
-Vorhandene Dateien werden nie überschrieben, und Änderungen bleiben auf den freigegebenen Ordner beschränkt. Geöffnete Dokumente folgen ihrer Datei beim Umbenennen und Verschieben. Symbolische Links erscheinen als Dateien und werden nicht betreten. Änderungen aus dem Finder erscheinen, sobald die App wieder aktiv wird, oder mit ⌘R. **Ordner trennen** vergisst nur den Ordner; die Dateien bleiben unverändert.
+- **Navigating:** double-click to go into a folder. The path at the top and the back arrow (⌘↑) take you back up. The arrow keys select a tile, Return opens it.
+- **Opening:** double-click opens PDFs and `.unipdf` projects in UniPDF, other files in their usual app.
+- **Organizing:** drag a tile onto a folder to move it, or onto an item in the path. The context menu offers **Rename** and **Show in Finder**; **New Folder** (⇧⌘N) creates the folder in the current folder.
+- **Removing:** **Move to Trash** (⌘⌫) asks first; everything can be restored from the Trash.
 
-In der Seitenleiste des Viewers steht über den Folien der einklappbare Abschnitt **Dateien**. Er zeigt denselben Ordner als Baum wie im Finder: Das Dreieck oder ein Klick auf den Ordner klappt ihn auf, ein Klick auf eine Datei öffnet sie in einem neuen Tab. Die geöffnete Datei ist fett hervorgehoben und ihr Ordner beim Start aufgeklappt. Die Seitenleiste lässt sich an ihrem Rand breiter ziehen und mit dem Seitenleisten-Knopf oben links ausblenden.
+Existing files are never overwritten, and changes stay within the shared folder. Open documents follow their file when it is renamed or moved. Symbolic links appear as files and are not followed. Changes made in the Finder appear as soon as the app is active again, or with ⌘R. **Disconnect Folder** only forgets the folder; the files stay unchanged.
 
-Das Vorschaubild zeigt die tatsächliche erste Seite der Datei, bei einer gespeicherten Lern-PDF also Folie und Mitschrift zusammen.
+In the viewer's sidebar, the collapsible **Files** section sits above the slides. It shows the same folder as a tree, as in the Finder: the triangle or a click on a folder expands it, and a click on a file opens it in a new tab. The open file is shown in bold, and its folder is expanded at launch. The sidebar can be widened at its edge and hidden with the sidebar button at the top left.
 
-## Eine Frage an die KI vorbereiten
+The thumbnail shows the file's actual first page, so for a saved study PDF it shows the slide and notes together.
 
-**KI-Prompt** neben **Formel** und **Skizze** anklicken (⌥⌘K). Der Prompt wird sofort in die Zwischenablage kopiert und als Vorschau angezeigt. Im Fragefeld eine eigene Frage ergänzen und mit **Prompt kopieren** erneut übernehmen. Anschließend mit **⌘V** in den gewünschten KI-Chat einfügen.
+## Preparing a question for an AI
 
-Der Prompt nennt den tatsächlichen Pfad der geöffneten Datei und die aktuelle Originalfoliennummer. Zusätzlich werden zwei lokale PDF-Kopien im temporären Ordner erzeugt: das aktuelle Lernskript einschließlich ungespeicherter Notizen und die ausgewählte Originalfolie einzeln. So stimmen Dateipfade und Folienzuordnung auch bei Fortsetzungsseiten. Die Originaldatei wird bei dieser Aktion nicht gespeichert oder verändert. Die Kopien enthalten sichtbare PDF-Seiten ohne das eingebettete bearbeitbare Projekt. Jeder Aufruf erzeugt eigene Kopien, sodass ein bereits kopierter Prompt auf denselben Stand verweist.
+Click **AI Prompt** next to **Formula** and **Sketch** (⌥⌘K). The prompt is copied to the clipboard right away and shown as a preview. Add your own question in the question field and copy it again with **Copy Prompt**. Then paste it into the AI chat of your choice with **⌘V**.
 
-Die Funktion versendet nichts automatisch. Eine KI mit lokalem Dateizugriff kann die genannten Pfade verwenden. Bei einer KI ohne lokalen Dateizugriff die PDF-Kopien zusätzlich anhängen. Temporäre Dateien können vom Betriebssystem später entfernt werden; der Prompt ist für die zeitnahe Verwendung gedacht.
+The prompt names the actual path of the open file and the current original slide number. It also creates two local PDF copies in the temporary folder: the current study PDF including unsaved notes, and the selected original slide on its own. That way, file paths and slide numbers match even with continuation pages. The original file is not saved or changed by this. The copies contain the visible PDF pages without the embedded editable project. Every use creates its own copies, so a prompt you already copied points to the same state.
 
-## Textstellen kommentieren
+Nothing is sent automatically. An AI with access to local files can use the paths. For an AI without local file access, attach the PDF copies as well. The system may remove temporary files later; the prompt is meant to be used soon. The prompt is written in the language you use UniPDF in and asks for an answer in that language.
 
-Ein Kommentar hängt an einer Stelle der Folie und steht als Tag in deiner Mitschrift.
+## Commenting on passages
 
-- **Anlegen:** Text auf der Folie auswählen und per Rechtsklick **Kommentieren** wählen, oder **⌥⌘M** drücken. Alternativ mit der **Sprechblase** in der Werkzeugleiste direkt über den Text ziehen. Es zählen immer ganze Wörter.
-- **Bereiche:** Beginnt der Zug mit der Sprechblase auf freier Fläche, etwa neben einer Grafik, entsteht ein Bereichskommentar. Mit **⌥** wird es immer ein Bereich, auch über Text. Auf Folien ohne Text gibt es nur Bereiche. Der Mauszeiger zeigt vorher, was passiert: über Text der Textcursor, auf freier Fläche und mit ⌥ ein Stift.
-- **Auf der Folie** ist die Stelle pastellfarben hinterlegt und mit einer etwas dunkleren Linie umrandet. Beim Verweilen mit der Maus erscheint der Kommentar.
-- **In der Mitschrift** erscheint ein Tag mit dem Anfang der Textstelle. Er steht dort, wo dein Cursor zuletzt war, sonst am Ende. Ein Klick auf den Tag klappt die **Karte** auf. Dort stehen das Zitat, dein Kommentar mit derselben Formatierung und denselben Formeln wie in der Mitschrift, die Farbe und das Datum.
-- **Verknüpft in beide Richtungen:** Ein Klick auf das Zitat in der Karte wählt die Stelle auf der Folie aus. Ein Klick auf die Stelle auf der Folie öffnet ihre Karte.
-- **Farben:** Neue Kommentare bekommen der Reihe nach Rosé, Pfirsich, Zitrone, Mint, Himmel und Lavendel. In der Zeile unter den Werkzeugen und in der Karte lässt sich die Farbe ändern.
-- **Löschen:** Wird der Tag aus der Mitschrift gelöscht, verschwindet auch die Markierung auf der Folie und umgekehrt, ebenso über **Löschen** in der Karte. Ein **⌘Z** holt beides zurück. Der Cursor springt über einen Tag hinweg, und **⌫** entfernt ihn immer ganz.
-- **Suche:** ⌘F findet auch den Text von Kommentaren. Ein Treffer öffnet die Karte.
-- **Lern-PDF:** Kommentierte Stellen tragen auf der Folie eine kleine Nummer. In der Mitschrift steht an der Stelle des Tags derselbe Tag wie in der App, mit Nummer und dem gekürzten Anfang der Textstelle. Unter der Mitschrift folgen alle Kommentare, jeweils mit ihrem Tag. Ein senkrechter Balken in der Farbe des Kommentars läuft über die ganze Länge, auch auf Fortsetzungsseiten.
+A comment belongs to a spot on the slide and appears as a tag in your notes.
 
-Kommentare speichert UniPDF in der PDF mit, wie Mitschrift und Anmerkungen. Ältere UniPDF-Versionen können Dateien mit Kommentaren nicht mehr öffnen.
+- **Creating:** select text on the slide and choose **Comment** from the context menu, or press **⌥⌘M**. Alternatively, drag over the text with the **speech bubble** in the toolbar. Whole words always count.
+- **Areas:** if the drag with the speech bubble starts on an empty spot, such as next to a graphic, you get an area comment. With **⌥** it is always an area, even over text. Slides without text only have areas. The pointer shows what will happen: over text the text cursor, on an empty spot and with ⌥ a pen.
+- **On the slide**, the spot has a pastel background and a slightly darker outline. Hovering over it shows the comment.
+- **In the notes**, a tag appears with the beginning of the passage. It goes where your cursor was last, otherwise at the end. A click on the tag expands the **card**. It shows the quote, your comment with the same formatting and formulas as the notes, the color and the date.
+- **Linked both ways:** a click on the quote in the card selects the spot on the slide. A click on the spot on the slide opens its card.
+- **Colors:** new comments take rose, peach, lemon, mint, sky and lavender in turn. The color can be changed in the row below the tools and in the card.
+- **Deleting:** if you delete the tag from the notes, the mark on the slide disappears too, and the other way round; the same goes for **Delete** in the card. A **⌘Z** brings both back. The cursor skips over a tag, and **⌫** always removes it entirely.
+- **Search:** ⌘F also finds the text of comments. A result opens the card.
+- **Study PDF:** commented spots carry a small number on the slide. In the notes, the tag's position shows the same tag as in the app, with its number and the shortened beginning of the passage. All comments follow below the notes, each with its tag. A vertical bar in the comment's color runs along its full length, including on continuation pages.
 
-## Im Dokument suchen
+UniPDF saves comments in the PDF, like notes and annotations. Older versions of UniPDF cannot open files with comments.
 
-Die **Lupe** oben rechts oder **⌘F** öffnet die Suche oben in der Seitenleiste. Sie durchsucht das ganze Dokument: den Text der Folien, deine Mitschrift und die Textfelder auf den Folien. Groß- und Kleinschreibung sowie Akzente spielen keine Rolle, „uber“ findet also auch „Über“.
+## Searching the document
 
-- Die Treffer stehen nach Folien geordnet in der Seitenleiste, mit dem gefundenen Wort im Satz. Ein Symbol zeigt, ob der Treffer im Folientext, in der Mitschrift oder in einem Textfeld steht.
-- Auf der Folie und in der Mitschrift sind alle Treffer gelb markiert.
-- Ein Klick auf einen Treffer öffnet die Folie und wählt die Fundstelle aus. Ein Treffer in einem Textfeld wählt das Textfeld aus.
-- **Return** oder **⌘G** springt zum nächsten Treffer, **⇧⌘G** zum vorherigen. Nach dem letzten geht es wieder von vorn los.
-- Ein ausgewählter Treffer im Folientext lässt sich direkt mit dem **Textmarker** hervorheben.
-- **Esc** oder das ✕ im Suchfeld beendet die Suche, dann erscheinen wieder die Folien.
+The **magnifying glass** at the top right or **⌘F** opens the search at the top of the sidebar. It searches the whole document: the text of the slides, your notes and the text boxes on the slides. Upper and lower case and accents do not matter, so "uber" also finds "Über".
 
-## Formatierung der Mitschrift
+- The results are listed by slide in the sidebar, with the found word in its sentence. A symbol shows whether the result is in the slide text, the notes or a text box.
+- All results are highlighted in yellow on the slide and in the notes.
+- A click on a result opens the slide and selects the spot. A result in a text box selects the text box.
+- **Return** or **⌘G** jumps to the next result, **⇧⌘G** to the previous one. After the last one it starts again from the top.
+- A selected result in the slide text can be highlighted directly with the **Highlighter**.
+- **Esc** or the ✕ in the search field ends the search, and the slides appear again.
 
-Die Mitschrift formatiert sich beim Tippen, ähnlich wie in Chat-Apps. Die Zeichen bleiben dabei blass sichtbar, im Lern-PDF verschwinden sie:
+## Formatting notes
 
-- `**fett**` oder `*fett*`, `_kursiv_`, `~durchgestrichen~` oder `~~durchgestrichen~~`, `` `Code` ``
-- `# Überschrift`, `## kleinere Überschrift`
-- `- Stichpunkt` (auch `*` oder `•`), der Strich erscheint als Punkt, und `1. Aufzählung`. **Tab** rückt den aktuellen oder die markierten Listenpunkte eine Ebene ein, **Umschalt+Tab** rückt sie wieder aus. **Return** übernimmt die aktuelle Ebene. Auf einem leeren Unterpunkt rückt Return eine Ebene aus; auf einem leeren Hauptpunkt beendet es die Liste. Die Einrückung bleibt beim Speichern und im Lern-PDF erhalten.
-- `> Zitat`
+The notes format themselves as you type, much like chat apps. The markers stay faintly visible; in the study PDF they disappear:
 
-**⌘B** und **⌘I** setzen die Zeichen um die Auswahl oder nehmen sie wieder weg. Das Menü mit dem **B I U**-Symbol enthält dieselben Befehle, Listen und eine Kurzübersicht. Die Mitschrift bleibt reiner Text: Ein KI-Prompt oder eine Kopie enthält die Zeichen so, wie du sie geschrieben hast.
+- `**bold**` or `*bold*`, `_italic_`, `~strikethrough~` or `~~strikethrough~~`, `` `code` ``
+- `# Heading`, `## smaller heading`
+- `- bullet` (also `*` or `•`), where the dash appears as a dot, and `1. numbered list`. **Tab** indents the current or the selected list items by one level, **Shift+Tab** outdents them again. **Return** keeps the current level. On an empty subitem, Return outdents by one level; on an empty top-level item, it ends the list. The indentation is kept when saving and in the study PDF.
+- `> quote`
 
-**Rechtschreibung und Autokorrektur:** In Mitschriften und Kommentartexten sind die macOS-Rechtschreibprüfung und automatische Wortkorrektur eingeschaltet. Deutsch und Englisch werden pro Absatz automatisch erkannt. Die Spracheinstellungen anderer Apps werden dabei nicht geändert. Formeln, Code und Kommentar-Verknüpfungen sind von Korrekturen ausgenommen. Über das native Kontextmenü **Rechtschreibung und Grammatik** lassen sich Prüfung und automatische Korrektur im Textfeld ausschalten.
+**⌘B** and **⌘I** add the markers around the selection or remove them again. The menu with the **B I U** symbol contains the same commands, lists and a quick reference. The notes stay plain text: an AI prompt or a copy contains the markers exactly as you wrote them.
 
-## Formeln
+**Spelling and autocorrection:** notes and comment texts use the macOS spell checker and automatic word correction. English and German are recognized automatically for each paragraph. The language settings of other apps are not changed. Formulas, code and comment links are left out of corrections. The native **Spelling and Grammar** context menu turns checking and automatic correction off for the text field.
 
-Formeln stehen mitten in der Mitschrift: im Satz zwischen `$ … $`, als eigener Block zwischen `$$ … $$`. Steht der Cursor nicht in der Formel, zeigt UniPDF sie gesetzt. Ein Klick darauf öffnet wieder die Schreibweise. Während du schreibst, zeigt ein Kästchen direkt darunter die fertige Formel und ändert sich mit jedem Zeichen. Ein Dollarzeichen hinter einer Zahl wie in „5$“ bleibt normaler Text.
+## Formulas
 
-**Formel** blendet die Formelleiste ein:
+Formulas sit right in the notes: between `$ … $` within a sentence, between `$$ … $$` as a block of their own. When the cursor is not in the formula, UniPDF shows it typeset. A click on it shows the notation again. While you type, a box right below shows the finished formula and changes with every character. A dollar sign after a number, as in "5$", stays normal text.
 
-- **Formelblock** fügt am Cursor einen neuen Block auf eigener Zeile ein.
-- Über das Auswahlmenü wählst du ein Themengebiet: Grundlagen, Mengenlehre, Logik, Analysis, Lineare Algebra, Stochastik, Griechisch oder Pfeile. Darunter stehen die häufigsten Zeichen und Vorlagen zum direkten Einsetzen. Das zuletzt gewählte Gebiet bleibt eingestellt.
-- **x²** und **xₙ** stellen hoch und tief. In einer Formel setzen sie `^{}` oder `_{}` am Cursor. Im normalen Text wird das Wort vor dem Cursor zur Basis einer neuen Formel: `x`, dann **x²** und `2` ergibt `$x^{2}$`.
-- **a⁄b** setzt einen Bruch.
+**Formula** shows the formula bar:
 
-Die Notation ist eine kleine, offline verfügbare Teilmenge von LaTeX:
+- **Formula Block** inserts a new block on its own line at the cursor.
+- The pop-up menu chooses a topic: Basics, Set Theory, Logic, Calculus, Linear Algebra, Probability, Greek or Arrows. Below it are the most common symbols and templates to insert directly. The last topic you chose stays selected.
+- **x²** and **xₙ** set superscript and subscript. In a formula they insert `^{}` or `_{}` at the cursor. In normal text, the word before the cursor becomes the base of a new formula: `x`, then **x²** and `2` gives `$x^{2}$`.
+- **a⁄b** inserts a fraction.
 
-- Potenzen und Indizes: `x^{2}`, `a_{n}`
-- Brüche, Wurzeln, Binomialkoeffizienten: `\frac{a}{b}`, `\sqrt{x}`, `\sqrt[3]{x}`, `\binom{n}{k}`
-- Zahlbereiche: `\mathbb{R}`, `\mathbb{N}`
-- Griechische Zeichen, Operatoren, Pfeile, Logik und Mengen, etwa `\alpha`, `\sum`, `\int`, `\lim`, `\Rightarrow`, `\forall`, `\in`, `\subseteq`, `\cup`, `\emptyset`
-- Funktionen wie `\sin`, `\ln`, `\det` erscheinen aufrecht. `\vec{v}`, `\bar{x}` und `\text{…}` werden ebenfalls unterstützt.
-- Unicode-Zeichen wie ∈ oder ℝ können direkt im Text stehen.
+The notation is a small subset of LaTeX that works offline:
 
-Dies ist kein vollständiges LaTeX. Brüche werden kompakt mit einem Bruchstrich „⁄“ angezeigt. Unbekannte Befehle bleiben als Text erhalten. Der Export verwendet dieselbe Darstellung wie die Mitschrift.
+- Powers and indices: `x^{2}`, `a_{n}`
+- Fractions, roots, binomial coefficients: `\frac{a}{b}`, `\sqrt{x}`, `\sqrt[3]{x}`, `\binom{n}{k}`
+- Number sets: `\mathbb{R}`, `\mathbb{N}`
+- Greek letters, operators, arrows, logic and sets, such as `\alpha`, `\sum`, `\int`, `\lim`, `\Rightarrow`, `\forall`, `\in`, `\subseteq`, `\cup`, `\emptyset`
+- Functions such as `\sin`, `\ln`, `\det` appear upright. `\vec{v}`, `\bar{x}` and `\text{…}` are supported as well.
+- Unicode characters such as ∈ or ℝ can be written directly in the text.
 
-Ältere Projekte hatten ein eigenes Formelfeld. Enthält eine Folie noch eine solche Formel, erscheint sie unter der Mitschrift. **In die Mitschrift übernehmen** setzt sie dort als Formelblock ein.
+This is not full LaTeX. Fractions are shown compactly with a fraction slash "⁄". Unknown commands stay as text. The export uses the same rendering as the notes.
+
+Older projects had a separate formula field. If a slide still has such a formula, it appears below the notes. **Move into Notes** inserts it there as a formula block.
+
+## Language
+
+UniPDF follows the language of your Mac: with German as your preferred language the app is German, otherwise English. To use a different language for UniPDF only, choose it under System Settings → General → Language & Region → Applications. The language also applies to the study PDF's labels and to the AI prompt.

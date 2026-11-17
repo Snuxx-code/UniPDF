@@ -16,11 +16,11 @@ public enum SlideShape: String, Codable, CaseIterable, Sendable {
     case rectangle, square, circle, ellipse, line
     public var label: String {
         switch self {
-        case .rectangle: "Rechteck"
-        case .square: "Quadrat"
-        case .circle: "Kreis"
-        case .ellipse: "Oval"
-        case .line: "Linie"
+        case .rectangle: String(localized: "Rectangle")
+        case .square: String(localized: "Square")
+        case .circle: String(localized: "Circle")
+        case .ellipse: String(localized: "Oval")
+        case .line: String(localized: "Line")
         }
     }
     public var symbol: String {

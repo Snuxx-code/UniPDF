@@ -24,7 +24,7 @@ struct CommentCard: View {
                 Button(action: jump) {
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
                         Image(systemName: comment.isArea ? "rectangle.dashed" : "text.quote")
-                        Text(comment.isArea ? "Bereich auf der Folie" : "„\(quote)“")
+                        Text(comment.isArea ? String(localized: "Area on the slide") : String(localized: "“\(quote)”"))
                             .italic()
                             .lineLimit(3)
                             .multilineTextAlignment(.leading)
@@ -33,8 +33,8 @@ struct CommentCard: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .help("Zur Stelle auf der Folie")
-                .accessibilityLabel(comment.isArea ? "Zum Bereich auf der Folie" : "Zur Textstelle: \(quote)")
+                .help("Go to the passage on the slide")
+                .accessibilityLabel(comment.isArea ? String(localized: "Go to the Area on the Slide") : String(localized: "Go to the passage: \(quote)"))
                 Spacer(minLength: 4)
                 Menu {
                     ForEach(CommentColor.allCases, id: \.self) { color in
@@ -46,21 +46,21 @@ struct CommentCard: View {
                     Circle().fill(strong).frame(width: 10, height: 10)
                 }
                 .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
-                .help("Farbe des Kommentars").accessibilityLabel("Farbe: \(comment.color.label)")
+                .help("Comment color").accessibilityLabel("Color: \(comment.color.label)")
                 Button(action: collapse) { Image(systemName: "chevron.up").font(.caption.weight(.bold)) }
                     .buttonStyle(.plain).foregroundStyle(ink)
-                    .help("Zuklappen").accessibilityLabel("Kommentar zuklappen")
+                    .help("Collapse").accessibilityLabel("Collapse Comment")
             }
             .font(.callout)
 
             ZStack(alignment: .topLeading) {
                 if comment.text.isEmpty {
-                    Text("Kommentar schreiben …")
+                    Text("Write a comment …")
                         .font(.system(size: fontSize)).foregroundStyle(.secondary)
                         .padding(.leading, 5).allowsHitTesting(false)
                 }
                 NotesEditor(text: Binding(get: { comment.text }, set: setText), fontSize: fontSize,
-                            accessibilityLabel: "Kommentar", controller: controller ?? NotesEditorController(),
+                            accessibilityLabel: String(localized: "Comment"), controller: controller ?? NotesEditorController(),
                             minimumHeight: 44)
             }
             .padding(8)
@@ -69,9 +69,9 @@ struct CommentCard: View {
             HStack {
                 Text(comment.created, format: .dateTime.day().month().year().hour().minute())
                 Spacer()
-                Button(role: .destructive, action: delete) { Label("Löschen", systemImage: "trash") }
+                Button(role: .destructive, action: delete) { Label("Delete", systemImage: "trash") }
                     .buttonStyle(.borderless)
-                    .help("Kommentar und Markierung auf der Folie löschen")
+                    .help("Delete the comment and its mark on the slide")
             }
             .font(.caption).foregroundStyle(.secondary)
         }

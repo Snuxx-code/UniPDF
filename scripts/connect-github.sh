@@ -14,7 +14,7 @@ if git remote get-url origin >/dev/null 2>&1; then
         if [[ "$existing_origin" == "https://github.com/Snuxx-code/UniPDF.git" && "$repository_url" == "git@github.com:Snuxx-code/UniPDF.git" ]]; then
             git remote set-url origin "$repository_url"
         else
-            print -u2 "Abbruch: origin zeigt bereits auf $existing_origin. Die bestehende Verbindung bleibt erhalten."
+            print -u2 "Stopped: origin already points to $existing_origin. The existing connection stays as it is."
             exit 1
         fi
     fi
@@ -23,7 +23,7 @@ else
 fi
 
 if ! git diff --cached --quiet; then
-    print -u2 "Abbruch: Es liegen bereits vorgemerkte Änderungen im Git-Index. Bitte diese zuerst separat committen oder aus dem Index nehmen."
+    print -u2 "Stopped: there are already staged changes in the Git index. Commit them separately or unstage them first."
     exit 1
 fi
 
@@ -52,7 +52,7 @@ fi
 
 local_branch="$(git branch --show-current)"
 if [[ -z "$local_branch" ]]; then
-    print -u2 "Abbruch: Bitte zuerst einen lokalen Branch auswählen."
+    print -u2 "Stopped: check out a local branch first."
     exit 1
 fi
 
@@ -67,11 +67,11 @@ fi
 
 if git show-ref --verify --quiet "refs/remotes/origin/$local_branch"; then
     if ! git merge-base --is-ancestor "origin/$local_branch" HEAD; then
-        print -u2 "Die lokale Arbeit ist committed. Der Remote-Branch enthält weitere Änderungen."
-        print -u2 "Bitte diese zuerst mit git pull --rebase origin $local_branch zusammenführen. Es wurde nichts überschrieben oder gepusht."
+        print -u2 "The local work is committed. The remote branch contains further changes."
+        print -u2 "Merge them first with git pull --rebase origin $local_branch. Nothing was overwritten or pushed."
         exit 1
     fi
 fi
 
 git push --set-upstream origin "$local_branch"
-print "UniPDF ist mit $repository_url verbunden und hochgeladen."
+print "UniPDF is connected to $repository_url and pushed."

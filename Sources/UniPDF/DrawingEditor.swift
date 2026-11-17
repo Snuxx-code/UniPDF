@@ -27,11 +27,11 @@ struct DrawingEditor: View {
                 Button {
                     if let element = elements.popLast() { removed.append(element) }
                 } label: { Image(systemName: "arrow.uturn.backward") }
-                .disabled(elements.isEmpty).help("Letztes Element entfernen").accessibilityLabel("Letztes Element entfernen")
+                .disabled(elements.isEmpty).help("Remove the last element").accessibilityLabel("Remove Last Element")
                 Button {
                     if let element = removed.popLast() { elements.append(element) }
                 } label: { Image(systemName: "arrow.uturn.forward") }
-                .disabled(removed.isEmpty).help("Element wiederherstellen").accessibilityLabel("Element wiederherstellen")
+                .disabled(removed.isEmpty).help("Restore the element").accessibilityLabel("Restore Element")
             }
             .buttonStyle(.borderless)
 
@@ -47,11 +47,11 @@ struct DrawingEditor: View {
                     .accessibilityAddTraits(color == option ? .isSelected : [])
                 }
                 Spacer()
-                Picker("Strichstärke", selection: $width) {
-                    Text("Fein").tag(2.5)
-                    Text("Mittel").tag(5.0)
-                    Text("Breit").tag(9.0)
-                }.labelsHidden().frame(width: 95).help("Strichstärke")
+                Picker("Line width", selection: $width) {
+                    Text("Fine").tag(2.5)
+                    Text("Medium").tag(5.0)
+                    Text("Bold").tag(9.0)
+                }.labelsHidden().frame(width: 95).help("Line width")
             }
 
             GeometryReader { geometry in
@@ -77,10 +77,10 @@ struct DrawingEditor: View {
                     })
                 .clipShape(RoundedRectangle(cornerRadius: 8))
                 .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.black.opacity(0.15)))
-                .accessibilityLabel("Zeichenfläche für \(tool.label). Mit Maus oder Trackpad zeichnen.")
+                .accessibilityLabel("Drawing area for \(tool.label). Draw with a mouse or trackpad.")
             }
             .aspectRatio(1.6, contentMode: .fit)
-            Text("Mit Maus, Trackpad oder Grafiktablett zeichnen.")
+            Text("Draw with a mouse, trackpad or graphics tablet.")
                 .font(.caption).foregroundStyle(.secondary)
         }
     }

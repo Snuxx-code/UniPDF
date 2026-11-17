@@ -40,7 +40,7 @@ public enum PDFExporter {
                 content.append(MathNotation.formatted(notes.formula, size: 16))
             }
             if content.length == 0 && notes.drawing.isEmpty {
-                content.append(NSAttributedString(string: "Keine Mitschrift zu dieser Folie.", attributes: [
+                content.append(NSAttributedString(string: String(localized: "No notes for this slide."), attributes: [
                     .font: NSFont.systemFont(ofSize: 11), .foregroundColor: NSColor.darkGray
                 ]))
             }
@@ -52,8 +52,8 @@ public enum PDFExporter {
                 context.setFillColor(NSColor.white.cgColor)
                 context.fill(mediaBox)
                 drawLabel(project.title, in: CGRect(x: 32, y: 548, width: 770, height: 20), size: 13, context: context)
-                drawLabel("FOLIE \(index + 1) / \(source.pageCount)", in: CGRect(x: 32, y: 518, width: 460, height: 16), size: 9, context: context)
-                drawLabel(continuation == 0 ? "MITSCHRIFT" : "MITSCHRIFT · FORTSETZUNG \(continuation)",
+                drawLabel(String(localized: "SLIDE \(index + 1) / \(source.pageCount)"), in: CGRect(x: 32, y: 518, width: 460, height: 16), size: 9, context: context)
+                drawLabel(continuation == 0 ? String(localized: "NOTES") : String(localized: "NOTES · CONTINUED \(continuation)"),
                           in: CGRect(x: 526, y: 518, width: 283, height: 16), size: 9, context: context)
                 let slideRect = CGRect(x: 32, y: 72, width: 460, height: 428)
                 let slideTransform = pageRef.getDrawingTransform(.cropBox, rect: slideRect, rotate: 0, preserveAspectRatio: true)
@@ -81,7 +81,7 @@ public enum PDFExporter {
                 if offset < content.length && visible.length == 0 { throw ProjectError.exportFailed }
                 offset += visible.length
                 if hasDrawing {
-                    drawLabel("SKIZZE", in: CGRect(x: 526, y: 226, width: 283, height: 16), size: 9, context: context)
+                    drawLabel(String(localized: "SKETCH"), in: CGRect(x: 526, y: 226, width: 283, height: 16), size: 9, context: context)
                     context.saveGState()
                     // Ink uses a top-left origin.
                     context.translateBy(x: 526, y: 220)
@@ -89,7 +89,7 @@ public enum PDFExporter {
                     InkRenderer.draw(notes.drawing, in: context, rect: CGRect(x: 0, y: 0, width: 283, height: 176.875))
                     context.restoreGState()
                 }
-                drawLabel("UniPDF · \(index + 1)" + (continuation > 0 ? " · Fortsetzung \(continuation)" : ""),
+                drawLabel("UniPDF · \(index + 1)" + (continuation > 0 ? String(localized: " · Continued \(continuation)") : ""),
                           in: CGRect(x: 32, y: 21, width: 775, height: 14), size: 8, context: context)
                 context.endPDFPage()
                 continuation += 1
@@ -117,7 +117,7 @@ public enum PDFExporter {
         let result = NSMutableAttributedString()
         let spacing = NSMutableParagraphStyle()
         spacing.paragraphSpacingBefore = 10
-        result.append(NSAttributedString(string: "\n\nKOMMENTARE", attributes: [
+        result.append(NSAttributedString(string: "\n\n" + String(localized: "COMMENTS"), attributes: [
             .font: NSFont.systemFont(ofSize: 9, weight: .medium), .foregroundColor: NSColor.darkGray, .paragraphStyle: spacing
         ]))
         for (index, (_, comment)) in comments.enumerated() {
