@@ -16,6 +16,7 @@ Load a lecture PDF, write notes beside each slide, and export slides and notes t
 
 ## Capabilities and Constraints
 Confirmed: typed notes, freehand drawings, geometric shapes, mathematical formulas, PDF export.
+Confirmed: Tab indents list items; Shift+Tab outdents them. Return continues the current level and an empty subitem returns to its parent level. Hierarchy survives PDF export. Notes and comments use native spelling correction with paragraph-level German/English recognition, protecting formulas, code and comment links without changing system language preferences.
 Confirmed: plain arrow keys navigate the PDF (right/down forward, left/up backward). Text inputs, file lists and selected annotations retain their normal arrow-key behavior.
 Confirmed: a button creates a prompt for asking an AI about the lecture, including the correct file path. The implementation copies the prompt locally, includes the current slide and an optional question, and creates fresh temporary PDF context copies without overwriting the lecture or automatically sending data.
 Confirmed saving behavior: saving a directly opened lecture PDF replaces that same PDF at its original path with the slides and notes. Repeated saves update the same file. Editable original slides, notes, formulas and drawings must survive reopening, without repeatedly nesting the study layout.

@@ -98,10 +98,12 @@ Die Mitschrift formatiert sich beim Tippen, ähnlich wie in Chat-Apps. Die Zeich
 
 - `**fett**` oder `*fett*`, `_kursiv_`, `~durchgestrichen~` oder `~~durchgestrichen~~`, `` `Code` ``
 - `# Überschrift`, `## kleinere Überschrift`
-- `- Stichpunkt` (auch `*` oder `•`), der Strich erscheint als Punkt, und `1. Aufzählung`. **Return** setzt die Liste fort, **Return** auf einem leeren Punkt beendet sie.
+- `- Stichpunkt` (auch `*` oder `•`), der Strich erscheint als Punkt, und `1. Aufzählung`. **Tab** rückt den aktuellen oder die markierten Listenpunkte eine Ebene ein, **Umschalt+Tab** rückt sie wieder aus. **Return** übernimmt die aktuelle Ebene. Auf einem leeren Unterpunkt rückt Return eine Ebene aus; auf einem leeren Hauptpunkt beendet es die Liste. Die Einrückung bleibt beim Speichern und im Lern-PDF erhalten.
 - `> Zitat`
 
 **⌘B** und **⌘I** setzen die Zeichen um die Auswahl oder nehmen sie wieder weg. Das Menü mit dem **B I U**-Symbol enthält dieselben Befehle, Listen und eine Kurzübersicht. Die Mitschrift bleibt reiner Text: Ein KI-Prompt oder eine Kopie enthält die Zeichen so, wie du sie geschrieben hast.
+
+**Rechtschreibung und Autokorrektur:** In Mitschriften und Kommentartexten sind die macOS-Rechtschreibprüfung und automatische Wortkorrektur eingeschaltet. Deutsch und Englisch werden pro Absatz automatisch erkannt. Die Spracheinstellungen anderer Apps werden dabei nicht geändert. Formeln, Code und Kommentar-Verknüpfungen sind von Korrekturen ausgenommen. Über das native Kontextmenü **Rechtschreibung und Grammatik** lassen sich Prüfung und automatische Korrektur im Textfeld ausschalten.
 
 ## Formeln
 
