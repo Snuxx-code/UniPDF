@@ -115,7 +115,12 @@ struct WorkspaceView: View {
     private var welcome: some View {
         HStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 24) {
-                Label("UniPDF", systemImage: "book.closed").font(.title3.weight(.semibold)).foregroundStyle(accent)
+                Label {
+                    Text("UniPDF").foregroundStyle(accent)
+                } icon: {
+                    BrandSymbol().fill(Brand.gradient).frame(width: 26, height: 26)
+                }
+                .font(.title3.weight(.semibold))
                 Spacer()
                 Text("Your lecture.\nYour thoughts.")
                     .font(.system(size: 43, weight: .semibold, design: .serif)).tracking(-1)
@@ -527,6 +532,8 @@ struct WorkspaceView: View {
         ToolbarItem(placement: .principal) {
             if session.document != nil {
                 HStack(spacing: 6) {
+                    // The brand mark, as beside the document title in the web app.
+                    BrandSymbol(small: true).fill(Brand.gradient).frame(width: 16, height: 16).accessibilityHidden(true)
                     // As wide as the name: the hidden text gives the width, the field sits on top of it.
                     Text(document.project.title.isEmpty ? String(localized: "Lecture name") : document.project.title)
                         .font(.headline).lineLimit(1).hidden()
@@ -679,9 +686,9 @@ private struct SlideRow: View {
             .aspectRatio(aspectRatio, contentMode: .fit)
             .clipShape(RoundedRectangle(cornerRadius: 4))
             .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(.black.opacity(0.12), lineWidth: 0.5))
-            // The open slide: a narrow green frame with a little air around the preview.
+            // The open slide: a narrow frame in the brand gradient with a little air around the preview.
             .padding(3)
-            .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(isSelected ? accent : .clear, lineWidth: 2.5))
+            .overlay { if isSelected { RoundedRectangle(cornerRadius: 7).strokeBorder(Brand.gradient, lineWidth: 2.5) } }
             // A portrait page at full width would fill the list, so its height is capped.
             .frame(maxWidth: .infinity, maxHeight: 150)
             HStack(spacing: 4) {

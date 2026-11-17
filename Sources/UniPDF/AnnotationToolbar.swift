@@ -111,7 +111,7 @@ struct SlideToolBar: View {
                 .font(.system(size: 14))
                 .foregroundStyle(selected ? Color.white : Color.primary)
                 .frame(width: 30, height: 30)
-                .background(selected ? accent : .clear, in: Circle())
+                .background { if selected { Circle().fill(Brand.gradient) } }
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
