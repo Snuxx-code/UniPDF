@@ -6,7 +6,7 @@ All images belong to the project. They only use the purpose-made and visibly lab
 
 | File | Origin |
 | --- | --- |
-| `unipdf-logo.png` | The app icon, created with `scripts/make-icon.swift`; PNG at 512 × 512 pixels. |
+| `unipdf-logo.png` | The app icon, created with `scripts/make-icon.swift`; PNG at 512 × 512 pixels. It uses the UniPDF symbol from the web app's brand kit in white on the brand gradient. |
 | `workspace-light.png` | Window of the running app in the light appearance, in English. |
 | `workspace-dark.png` | The same window in the dark appearance; GitHub shows it in dark mode. |
 | `library.png` | Library window of the running app with the sample folders and their thumbnails. |
