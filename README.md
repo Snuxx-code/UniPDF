@@ -23,7 +23,10 @@
   <a href="#development">Development</a>
 </p>
 
-<img src="docs/images/workspace-light.png" alt="UniPDF with the slide overview on the left, an annotated lecture slide in the middle and notes, a formula and a sketch on the right" width="1320">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/workspace-dark.png">
+  <img src="docs/images/workspace-light.png" alt="UniPDF with the slide overview on the left, an annotated lecture slide in the middle and notes, a formula and a sketch on the right" width="1320">
+</picture>
 
 ## What UniPDF does
 

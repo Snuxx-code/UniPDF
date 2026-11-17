@@ -23,7 +23,10 @@
   <a href="#entwicklung">Entwicklung</a>
 </p>
 
-<img src="docs/images/workspace-light.png" alt="UniPDF mit Folienübersicht links, einer markierten Vorlesungsfolie in der Mitte und Mitschrift, Formel und Skizze rechts" width="1320">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/workspace-dark.png">
+  <img src="docs/images/workspace-light.png" alt="UniPDF mit Folienübersicht links, einer markierten Vorlesungsfolie in der Mitte und Mitschrift, Formel und Skizze rechts" width="1320">
+</picture>
 
 ## Das kann UniPDF
 
