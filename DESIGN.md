@@ -55,6 +55,8 @@ Soft corners distinguish drawing surfaces and slide thumbnails. Shapes drawn by 
 
 Use native toolbar buttons, lists, text fields, menus, disclosure actions, open/save panels, and error alerts. Formula and sketch sections are optional additions to each slide. Slide labels expose whether a page contains notes. Every icon-only action has an accessibility label and a tooltip.
 
+Notes and comments use Tab and Shift+Tab to change list depth. Nested bullets shift by one hanging-indent step per level, matching the exported PDF. Native spelling indicators and correction suggestions recognize German and English per paragraph; mathematical notation, code and comment tags keep their exact source text.
+
 Highlighter uses the native highlighter symbol beside the pen in the slide annotation bar. Its settings offer a separate yellow, green, pink and blue palette plus a custom color. Dragging selects PDF text with an I-beam cursor and previews translucent rectangles per text line; an existing PDF text selection is highlighted immediately on activation. Selection, color changes and deletion use the established annotation controls.
 
 Highlights sit behind the slide's text: in the viewer they live in their own layer between the PDF and the other annotations, multiplied with the slide, and the exported PDF multiplies them as well, so dark text keeps its full contrast.

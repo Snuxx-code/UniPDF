@@ -28,6 +28,22 @@ struct NotesMarkupTests {
         #expect(parsed.spans.isEmpty)
     }
 
+    @Test func nestedListsKeepTheirIndentationAndWrappingInThePDFRepresentation() throws {
+        let source = "- Hauptpunkt\n  - Unterpunkt\n    1. Detail\n\t* Importiert"
+        let parsed = NotesMarkup.parse(source)
+        #expect(parsed.lines.map(\.indentationLevel) == [0, 1, 2, 1])
+        let rendered = NotesMarkup.rendered(source, appearance: .print(size: 12))
+        #expect(rendered.string == "•\tHauptpunkt\n•\tUnterpunkt\n1.\tDetail\n•\tImportiert")
+        let text = rendered.string as NSString
+        let step = NotesMarkup.listIndent(for: 12)
+        for (word, level) in [("Hauptpunkt", 0), ("Unterpunkt", 1), ("Detail", 2), ("Importiert", 1)] {
+            let paragraph = try #require(rendered.attribute(.paragraphStyle, at: text.range(of: word).location,
+                                                          effectiveRange: nil) as? NSParagraphStyle)
+            #expect(paragraph.firstLineHeadIndent == CGFloat(level) * step)
+            #expect(paragraph.headIndent == CGFloat(level + 1) * step)
+        }
+    }
+
     @Test func formulasAreFoundInlineAndAsBlocks() {
         let text = "Es gilt $x^{2} \\in ℝ$ und\n$$ \\frac{a}{b} $$\nEnde **fett**"
         let parsed = NotesMarkup.parse(text)

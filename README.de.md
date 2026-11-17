@@ -34,7 +34,7 @@ Links steht die Folie, rechts schreibst du mit. Beim Speichern wird daraus eine 
 
 | Funktion | Für deinen Lernalltag |
 | --- | --- |
-| **Mitschriften pro Folie** | Getippte Notizen neben der passenden Folie, formatiert wie im Chat mit `**fett**`, `_kursiv_` und `- Stichpunkten`. Die Trennlinie zwischen Folie und Mitschrift lässt sich verschieben, die Mitschrift ganz einklappen. |
+| **Mitschriften pro Folie** | Getippte Notizen neben der passenden Folie, formatiert wie im Chat mit `**fett**`, `_kursiv_` und `- Stichpunkten`, mit Unterpunkten per Tab und einer Autokorrektur, die Deutsch und Englisch erkennt. Die Trennlinie zwischen Folie und Mitschrift lässt sich verschieben, die Mitschrift ganz einklappen. |
 | **Direkt auf der Folie markieren** | PDF-Text mit dem Textmarker hervorheben oder mit Stift, Textfeldern, Formen und Bildern ergänzen. Der Radiergummi entfernt Teile von Strichen und Markierungen. Alles bleibt bearbeitbar. |
 | **Formeln und Skizzen** | Formeln mitten im Text zwischen `$ … $`, eine Formelleiste mit Zeichen nach Themengebiet und eine eigene Zeichenfläche mit Stift, Linien, Pfeilen und Formen. |
 | **Textstellen kommentieren** | Text markieren, Rechtsklick → **Kommentieren**: Die Stelle wird pastellfarben hinterlegt, in der Mitschrift erscheint ein Tag, der sich zur Kommentar-Karte aufklappen lässt. Auch Bereiche ohne Text lassen sich kommentieren. |

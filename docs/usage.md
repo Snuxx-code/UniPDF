@@ -100,10 +100,12 @@ The notes format themselves as you type, much like chat apps. The markers stay f
 
 - `**bold**` or `*bold*`, `_italic_`, `~strikethrough~` or `~~strikethrough~~`, `` `code` ``
 - `# Heading`, `## smaller heading`
-- `- bullet` (also `*` or `•`), where the dash appears as a dot, and `1. numbered list`. **Return** continues the list, **Return** on an empty item ends it.
+- `- bullet` (also `*` or `•`), where the dash appears as a dot, and `1. numbered list`. **Tab** indents the current or the selected list items by one level, **Shift+Tab** outdents them again. **Return** keeps the current level. On an empty subitem, Return outdents by one level; on an empty top-level item, it ends the list. The indentation is kept when saving and in the study PDF.
 - `> quote`
 
 **⌘B** and **⌘I** add the markers around the selection or remove them again. The menu with the **B I U** symbol contains the same commands, lists and a quick reference. The notes stay plain text: an AI prompt or a copy contains the markers exactly as you wrote them.
+
+**Spelling and autocorrection:** notes and comment texts use the macOS spell checker and automatic word correction. English and German are recognized automatically for each paragraph. The language settings of other apps are not changed. Formulas, code and comment links are left out of corrections. The native **Spelling and Grammar** context menu turns checking and automatic correction off for the text field.
 
 ## Formulas
 

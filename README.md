@@ -34,7 +34,7 @@ The slide is on the left, and you write on the right. When you save, it becomes 
 
 | Feature | For your studies |
 | --- | --- |
-| **Notes for every slide** | Typed notes next to the matching slide, formatted like a chat with `**bold**`, `_italic_` and `- bullets`. Drag the divider between slide and notes, or collapse the notes entirely. |
+| **Notes for every slide** | Typed notes next to the matching slide, formatted like a chat with `**bold**`, `_italic_` and `- bullets`, with nested bullets via Tab and spelling correction that recognizes English and German. Drag the divider between slide and notes, or collapse the notes entirely. |
 | **Mark up the slide itself** | Highlight PDF text with the highlighter, or add pen strokes, text boxes, shapes and images. The eraser removes parts of strokes and highlights. Everything stays editable. |
 | **Formulas and sketches** | Formulas right in the text between `$ … $`, a formula bar with symbols by topic, and a sketch area with pen, lines, arrows and shapes. |
 | **Comment on passages** | Select text, right-click → **Comment**: the passage gets a pastel background, and a tag appears in your notes that expands into a comment card. Areas without text can be commented on too. |
