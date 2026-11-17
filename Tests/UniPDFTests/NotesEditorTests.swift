@@ -31,6 +31,93 @@ struct NotesEditorTests {
         #expect(numbered.string == "3. Drei\n4. ")
     }
 
+    @Test func tabIndentsAndBacktabRestoresBulletWithUnicodeCaret() {
+        let original = "- Erklärung 🧠\n- Zweiter"
+        let caret = ("- Erklärung 🧠" as NSString).length
+        let view = editor(original, caret: caret)
+        view.insertTab(nil)
+        #expect(view.string == "  - Erklärung 🧠\n- Zweiter")
+        #expect(view.selectedRange() == NSRange(location: caret + 2, length: 0))
+        #expect(view.parsed.lines.first?.indentationLevel == 1)
+        view.insertBacktab(nil)
+        #expect(view.string == original)
+        #expect(view.selectedRange() == NSRange(location: caret, length: 0))
+        view.insertBacktab(nil)
+        #expect(view.string == original)
+    }
+
+    @Test func indentingASelectionLeavesTheFollowingLineAlone() {
+        let view = editor("- Eins\n2. Zwei\n- Drei")
+        let selected = ("- Eins\n2. Zwei\n" as NSString).length
+        view.setSelectedRange(NSRange(location: 0, length: selected))
+        view.insertTab(nil)
+        #expect(view.string == "  - Eins\n  2. Zwei\n- Drei")
+        #expect(view.parsed.lines.map(\.indentationLevel) == [1, 1, 0])
+        view.insertBacktab(nil)
+        #expect(view.string == "- Eins\n2. Zwei\n- Drei")
+    }
+
+    @Test func returnKeepsDepthAndEmptySubpointsOutdentBeforeEndingList() {
+        let view = editor("    - Unterpunkt")
+        view.insertNewline(nil)
+        #expect(view.string == "    - Unterpunkt\n    - ")
+        view.insertNewline(nil)
+        #expect(view.string == "    - Unterpunkt\n  - ")
+        view.insertNewline(nil)
+        #expect(view.string == "    - Unterpunkt\n- ")
+        view.insertNewline(nil)
+        #expect(view.string == "    - Unterpunkt\n")
+    }
+
+    @Test func importedTabIndentationCanBeOutdented() {
+        let view = editor("\t* Unterpunkt")
+        #expect(view.parsed.lines.first?.indentationLevel == 1)
+        view.insertBacktab(nil)
+        #expect(view.string == "* Unterpunkt")
+        let plain = editor("Normaler Text")
+        plain.insertTab(nil)
+        #expect(plain.string == "Normaler Text\t")
+    }
+
+    @Test func nestedBulletsMoveByOneVisibleIndentStep() throws {
+        let view = editor("- Hauptpunkt\n  - Unterpunkt\n    - Detail")
+        let layout = try #require(view.layoutManager)
+        layout.ensureLayout(for: try #require(view.textContainer))
+        let source = view.string as NSString
+        func x(_ word: String) -> CGFloat {
+            let glyph = layout.glyphIndexForCharacter(at: source.range(of: word).location)
+            return layout.boundingRect(forGlyphRange: NSRange(location: glyph, length: 1), in: view.textContainer!).minX
+        }
+        let step = NotesMarkup.listIndent(for: view.fontSize)
+        let offsets = [x("Hauptpunkt"), x("Unterpunkt"), x("Detail")]
+        #expect(abs(offsets[1] - offsets[0] - step) < 1, "Visible list positions: \(offsets)")
+        #expect(abs(offsets[2] - offsets[1] - step) < 1, "Visible list positions: \(offsets)")
+    }
+
+    @Test func indentationIsOneUndoableNativeEdit() throws {
+        let view = editor("- Punkt")
+        let window = NSWindow(contentRect: view.frame, styleMask: [.titled], backing: .buffered, defer: true)
+        window.contentView = view
+        let undo = try #require(view.undoManager)
+        undo.removeAllActions()
+        undo.beginUndoGrouping()
+        view.insertTab(nil)
+        undo.endUndoGrouping()
+        #expect(view.string == "  - Punkt")
+        undo.undo()
+        #expect(view.string == "- Punkt")
+        undo.redo()
+        #expect(view.string == "  - Punkt")
+    }
+
+    @Test func spellingIsEnabledWithoutChangingMarkupSubstitutionRules() {
+        let view = editor("Notizen")
+        #expect(view.isContinuousSpellCheckingEnabled)
+        #expect(view.isAutomaticSpellingCorrectionEnabled)
+        #expect(!view.isAutomaticDashSubstitutionEnabled)
+        #expect(!view.isAutomaticQuoteSubstitutionEnabled)
+    }
+
     @Test func bulletsShowADotButKeepTheDash() throws {
         let view = editor("- Punkt\n* Noch einer")
         let layoutManager = try #require(view.layoutManager)

@@ -28,6 +28,7 @@ public enum NotesMarkup {
         public var range: NSRange
         /// `## `, `- `, `1. ` or `> `, with the indent before it.
         public var marker: NSRange
+        public var indentationLevel = 0
     }
 
     /// A comment's tag, `[[kommentar:…]]`, which the editor shows as a coloured tag.
@@ -98,7 +99,9 @@ public enum NotesMarkup {
             guard isFree(NSRange(location: line.location, length: min(line.length, 1))) || line.length == 0 else { return }
             for (pattern, kind) in lineKinds {
                 guard let match = pattern.firstMatch(in: text, range: line), match.range.location == line.location else { continue }
-                parsed.lines.append(Line(kind: kind(match), range: line, marker: match.range))
+                let prefix = string.substring(with: match.range).prefix { $0 == " " || $0 == "\t" }
+                let columns = prefix.reduce(0) { $0 + ($1 == "\t" ? 2 : 1) }
+                parsed.lines.append(Line(kind: kind(match), range: line, marker: match.range, indentationLevel: (columns + 1) / 2))
                 break
             }
         }
@@ -170,10 +173,11 @@ public enum NotesMarkup {
                 paragraph.paragraphSpacingBefore = appearance.size * 0.5
                 text.addAttribute(.font, value: font(size: size, bold: true), range: line.range)
             case .bullet, .numbered:
-                let indent = listIndent(for: appearance.size)
-                paragraph.headIndent = indent
-                paragraph.tabStops = [NSTextTab(textAlignment: .left, location: indent)]
-                paragraph.defaultTabInterval = indent
+                let step = listIndent(for: appearance.size)
+                paragraph.firstLineHeadIndent = CGFloat(line.indentationLevel) * step
+                paragraph.headIndent = CGFloat(line.indentationLevel + 1) * step
+                paragraph.tabStops = [NSTextTab(textAlignment: .left, location: paragraph.headIndent)]
+                paragraph.defaultTabInterval = step
             case .quote:
                 paragraph.headIndent = appearance.size
                 paragraph.firstLineHeadIndent = 0

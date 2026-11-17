@@ -119,6 +119,7 @@ private extension NSAttributedString.Key {
     static let collapsedFormula = NSAttributedString.Key("UniPDFCollapsedFormula")
     /// On the dash or asterisk of a bullet: it shows as a dot. The text keeps the character as typed.
     static let bulletDot = NSAttributedString.Key("UniPDFBulletDot")
+    static let listIndentation = NSAttributedString.Key("UniPDFListIndentation")
 }
 
 /// What the notes show in place of hidden source: a set formula or a comment's tag.
@@ -408,6 +409,8 @@ final class NotesTextView: NSTextView, NSLayoutManagerDelegate {
         view.isAutomaticQuoteSubstitutionEnabled = false
         view.isAutomaticDashSubstitutionEnabled = false
         view.isAutomaticTextReplacementEnabled = false
+        view.isContinuousSpellCheckingEnabled = true
+        view.isAutomaticSpellingCorrectionEnabled = true
         view.smartInsertDeleteEnabled = false
         return view
     }
@@ -437,6 +440,11 @@ final class NotesTextView: NSTextView, NSLayoutManagerDelegate {
         for marker in NotesMarkup.markers(in: parsed) { storage.addAttribute(.foregroundColor, value: faint, range: marker) }
         for line in parsed.lines where line.kind == .bullet || line.kind == .numbered {
             storage.addAttribute(.foregroundColor, value: accent, range: line.marker)
+            let prefix = string.substring(with: line.marker).prefix { $0 == " " || $0 == "\t" }
+            if !prefix.isEmpty {
+                storage.addAttribute(.listIndentation, value: true,
+                                     range: NSRange(location: line.marker.location, length: prefix.utf16.count))
+            }
             if line.kind == .bullet {
                 let marker = string.substring(with: line.marker) as NSString
                 let dash = marker.rangeOfCharacter(from: CharacterSet(charactersIn: "-*"))
@@ -605,6 +613,11 @@ final class NotesTextView: NSTextView, NSLayoutManagerDelegate {
         var replaced: [CGGlyph]?
         for offset in 0..<glyphRange.length {
             let index = characterIndexes[offset]
+            if index < storage.length, storage.attribute(.listIndentation, at: index, effectiveRange: nil) != nil {
+                if adjusted == nil { adjusted = Array(UnsafeBufferPointer(start: properties, count: glyphRange.length)) }
+                adjusted?[offset] = .controlCharacter
+                continue
+            }
             if index < storage.length, storage.attribute(.bulletDot, at: index, effectiveRange: nil) != nil {
                 var dot: CGGlyph = 0
                 var character: UniChar = 0x2022
@@ -629,7 +642,9 @@ final class NotesTextView: NSTextView, NSLayoutManagerDelegate {
 
     func layoutManager(_ layoutManager: NSLayoutManager, shouldUse action: NSLayoutManager.ControlCharacterAction,
                        forControlCharacterAt charIndex: Int) -> NSLayoutManager.ControlCharacterAction {
-        rendering(at: charIndex, in: layoutManager) == nil ? action : .whitespace
+        if let storage = layoutManager.textStorage, charIndex < storage.length,
+           storage.attribute(.listIndentation, at: charIndex, effectiveRange: nil) != nil { return .whitespace }
+        return rendering(at: charIndex, in: layoutManager) == nil ? action : .whitespace
     }
 
     func layoutManager(_ layoutManager: NSLayoutManager, boundingBoxForControlGlyphAt glyphIndex: Int, for textContainer: NSTextContainer,
@@ -788,6 +803,78 @@ final class NotesTextView: NSTextView, NSLayoutManagerDelegate {
 
     // MARK: Writing
 
+    override func checkText(in range: NSRange, types: NSTextCheckingTypes,
+                            options: [NSSpellChecker.OptionKey: Any] = [:]) {
+        let source = string as NSString
+        guard range.location != NSNotFound, range.location <= source.length else { return }
+        let requested = NSIntersectionRange(range, NSRange(location: 0, length: source.length))
+        var position = requested.location
+        while position < NSMaxRange(requested) {
+            let paragraph = source.paragraphRange(for: NSRange(location: position, length: 0))
+            var options = options
+            options[.orthography] = NotesSpellChecking.orthography(for: source.substring(with: paragraph))
+            // Supply our per-paragraph language instead of the system's preferred-language subset.
+            super.checkText(in: NSIntersectionRange(paragraph, requested),
+                            types: types & ~NSTextCheckingResult.CheckingType.orthography.rawValue, options: options)
+            position = NSMaxRange(paragraph)
+        }
+    }
+
+    override func handleTextCheckingResults(_ results: [NSTextCheckingResult], forRange range: NSRange,
+                                            types: NSTextCheckingTypes, options: [NSSpellChecker.OptionKey: Any],
+                                            orthography: NSOrthography, wordCount: Int) {
+        super.handleTextCheckingResults(NotesSpellChecking.proseResults(results, in: string), forRange: range,
+                                        types: types, options: options, orthography: orthography, wordCount: wordCount)
+    }
+
+    override func insertTab(_ sender: Any?) {
+        if !changeListIndent(outdent: false) { super.insertTab(sender) }
+    }
+
+    override func insertBacktab(_ sender: Any?) {
+        if !changeListIndent(outdent: true) { super.insertBacktab(sender) }
+    }
+
+    /// Change the leading whitespace as one native edit, keeping selection offsets in UTF-16.
+    @discardableResult
+    private func changeListIndent(outdent: Bool) -> Bool {
+        guard !hasMarkedText() else { return false }
+        let source = string as NSString
+        let selection = selectedRange()
+        let touched = source.lineRange(for: NSRange(location: selection.location, length: max(selection.length - 1, 0)))
+        let lines = parsed.lines.filter {
+            ($0.kind == .bullet || $0.kind == .numbered) && NSLocationInRange($0.range.location, touched)
+        }
+        guard !lines.isEmpty else { return false }
+        var edits: [(range: NSRange, replacement: String)] = []
+        for line in lines {
+            let marker = source.substring(with: line.marker)
+            let removed = marker.first == "\t" ? 1 : marker.prefix(2).prefix { $0 == " " }.count
+            if !outdent || removed > 0 {
+                edits.append((NSRange(location: line.range.location, length: outdent ? removed : 0), outdent ? "" : "  "))
+            }
+        }
+        guard !edits.isEmpty else { return true }
+        func adjusted(_ location: Int) -> Int {
+            var delta = 0
+            for edit in edits {
+                let added = edit.replacement.utf16.count
+                if location >= NSMaxRange(edit.range) { delta += added - edit.range.length }
+                else if location > edit.range.location { return edit.range.location + delta + min(location - edit.range.location, added) }
+            }
+            return location + delta
+        }
+        let replacement = NSMutableString(string: source.substring(with: touched))
+        for edit in edits.reversed() {
+            replacement.replaceCharacters(in: NSRange(location: edit.range.location - touched.location, length: edit.range.length),
+                                           with: edit.replacement)
+        }
+        let start = adjusted(selection.location), end = adjusted(NSMaxRange(selection))
+        insertText(replacement as String, replacementRange: touched)
+        setSelectedRange(NSRange(location: start, length: end - start))
+        return true
+    }
+
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
         guard window?.firstResponder === self,
               event.modifierFlags.intersection([.command, .shift, .option, .control]) == .command else {
@@ -812,6 +899,7 @@ final class NotesTextView: NSTextView, NSLayoutManagerDelegate {
         let marker = string.substring(with: line.marker)
         let rest = string.substring(with: NSRange(location: NSMaxRange(line.marker), length: NSMaxRange(line.range) - NSMaxRange(line.marker)))
         if rest.trimmingCharacters(in: .whitespaces).isEmpty {
+            if line.indentationLevel > 0 { changeListIndent(outdent: true); return }
             insertText("", replacementRange: line.marker)
             return
         }
