@@ -10,14 +10,16 @@
 </p>
 
 <p align="center">
-  Native Mac-App &nbsp;·&nbsp; macOS 14+ &nbsp;·&nbsp; Lokal und offline
+  Native Mac-App &nbsp;·&nbsp; macOS 14+ &nbsp;·&nbsp; Lokal und offline &nbsp;·&nbsp; Deutsch und Englisch
 </p>
+
+<p align="center"><a href="README.md">English</a> · <strong>Deutsch</strong></p>
 
 <p align="center">
   <a href="#das-kann-unipdf">Funktionen</a> &nbsp;·&nbsp;
   <a href="#schnellstart">Schnellstart</a> &nbsp;·&nbsp;
   <a href="#tastenkürzel">Tastenkürzel</a> &nbsp;·&nbsp;
-  <a href="docs/usage.md">Bedienung</a> &nbsp;·&nbsp;
+  <a href="docs/usage.de.md">Bedienung</a> &nbsp;·&nbsp;
   <a href="#entwicklung">Entwicklung</a>
 </p>
 
@@ -61,7 +63,7 @@ zsh scripts/build-app.sh
 open build/UniPDF.app
 ```
 
-Alternativ `Package.swift` in Xcode öffnen und das Scheme **UniPDF** starten. Der Build erstellt `build/UniPDF.app` mit einer lokalen Ad-hoc-Signatur. Eine notarisierte Version oder ein App-Store-Paket gibt es derzeit nicht.
+Alternativ `Package.swift` in Xcode öffnen und das Scheme **UniPDF** starten; die App läuft dann nur auf Englisch, weil `build-app.sh` die Übersetzungen hinzufügt. Der Build erstellt `build/UniPDF.app` mit einer lokalen Ad-hoc-Signatur. Eine notarisierte Version oder ein App-Store-Paket gibt es derzeit nicht.
 
 ### Von der Vorlesung zum Lernskript
 
@@ -97,15 +99,15 @@ Die Pfeiltasten wechseln nur dann die Folie, wenn du gerade nicht schreibst. In 
 
 ## Mehr zur Bedienung
 
-Die [ausführliche Anleitung](docs/usage.md) erklärt alles im Detail:
+Die [ausführliche Anleitung](docs/usage.de.md) erklärt alles im Detail:
 
-- [Speichern und Wiederöffnen](docs/usage.md#benutzen), Einzelseite und fortlaufendes Scrollen
-- [Auf der Folie markieren](docs/usage.md#auf-der-folie-markieren): Stift, Textmarker, Radiergummi, Textfelder, Formen, Bilder
-- [Textstellen kommentieren](docs/usage.md#textstellen-kommentieren) und [im Dokument suchen](docs/usage.md#im-dokument-suchen)
-- [Formatierung der Mitschrift](docs/usage.md#formatierung-der-mitschrift) und [Formeln](docs/usage.md#formeln) mit der unterstützten Notation
-- [Bibliothek](docs/usage.md#bibliothek), [mehrere Dateien](docs/usage.md#mehrere-dateien) und [KI-Prompts](docs/usage.md#eine-frage-an-die-ki-vorbereiten)
+- [Speichern und Wiederöffnen](docs/usage.de.md#benutzen), Einzelseite und fortlaufendes Scrollen
+- [Auf der Folie markieren](docs/usage.de.md#auf-der-folie-markieren): Stift, Textmarker, Radiergummi, Textfelder, Formen, Bilder
+- [Textstellen kommentieren](docs/usage.de.md#textstellen-kommentieren) und [im Dokument suchen](docs/usage.de.md#im-dokument-suchen)
+- [Formatierung der Mitschrift](docs/usage.de.md#formatierung-der-mitschrift) und [Formeln](docs/usage.de.md#formeln) mit der unterstützten Notation
+- [Bibliothek](docs/usage.de.md#bibliothek), [mehrere Dateien](docs/usage.de.md#mehrere-dateien) und [KI-Prompts](docs/usage.de.md#eine-frage-an-die-ki-vorbereiten)
 
-Ältere `.unipdf`-Projekte werden weiterhin unterstützt.
+Ältere `.unipdf`-Projekte werden weiterhin unterstützt. UniPDF folgt der Sprache deines Macs, Deutsch oder Englisch ([mehr dazu](docs/usage.de.md#sprache)).
 
 ## Entwicklung
 
@@ -115,7 +117,12 @@ zsh scripts/build-app.sh
 
 # Tests ausführen
 zsh scripts/test.sh
+
+# Prüfen, ob jeder Text der Oberfläche übersetzt ist
+zsh scripts/check-localization.sh
 ```
+
+Die Texte im Code sind englisch. Die deutsche Übersetzung steht in [`Resources/de.lproj/Localizable.strings`](Resources/de.lproj/Localizable.strings); `check-localization.sh` meldet Texte ohne Übersetzung.
 
 Die Tests prüfen unter anderem das Speichern am Originalpfad, das Wiederöffnen bearbeitbarer PDFs, lange Mitschriften, die Suche und die Position von Anmerkungen auf gedrehten und beschnittenen Folien.
 
@@ -124,5 +131,6 @@ Die Tests prüfen unter anderem das Speichern am Originalpfad, das Wiederöffnen
 | [`Sources/UniPDF`](Sources/UniPDF) | Native Oberfläche, Dokumente und Bibliothek |
 | [`Sources/UniPDFCore`](Sources/UniPDFCore) | Projektmodell, PDF-Export und Rendering |
 | [`Tests`](Tests) | Tests für Dokumente, Export, Anmerkungen und Dateiverwaltung |
-| [`scripts`](scripts) | Build, App-Icon und Testlauf |
+| [`Resources`](Resources) | Info.plist und Übersetzungen |
+| [`scripts`](scripts) | Build, App-Icon, Testlauf und Übersetzungsprüfung |
 | [`docs`](docs) | Anleitung und Bilder für dieses README |

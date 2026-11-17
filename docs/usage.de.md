@@ -1,6 +1,6 @@
 # UniPDF verwenden
 
-[Zurück zur Übersicht](../README.md)
+[Zurück zur Übersicht](../README.de.md) · [English](usage.md)
 
 ## Benutzen
 
@@ -65,7 +65,7 @@ Das Vorschaubild zeigt die tatsächliche erste Seite der Datei, bei einer gespei
 
 Der Prompt nennt den tatsächlichen Pfad der geöffneten Datei und die aktuelle Originalfoliennummer. Zusätzlich werden zwei lokale PDF-Kopien im temporären Ordner erzeugt: das aktuelle Lernskript einschließlich ungespeicherter Notizen und die ausgewählte Originalfolie einzeln. So stimmen Dateipfade und Folienzuordnung auch bei Fortsetzungsseiten. Die Originaldatei wird bei dieser Aktion nicht gespeichert oder verändert. Die Kopien enthalten sichtbare PDF-Seiten ohne das eingebettete bearbeitbare Projekt. Jeder Aufruf erzeugt eigene Kopien, sodass ein bereits kopierter Prompt auf denselben Stand verweist.
 
-Die Funktion versendet nichts automatisch. Eine KI mit lokalem Dateizugriff kann die genannten Pfade verwenden. Bei einer KI ohne lokalen Dateizugriff die PDF-Kopien zusätzlich anhängen. Temporäre Dateien können vom Betriebssystem später entfernt werden; der Prompt ist für die zeitnahe Verwendung gedacht.
+Die Funktion versendet nichts automatisch. Eine KI mit lokalem Dateizugriff kann die genannten Pfade verwenden. Bei einer KI ohne lokalen Dateizugriff die PDF-Kopien zusätzlich anhängen. Temporäre Dateien können vom Betriebssystem später entfernt werden; der Prompt ist für die zeitnahe Verwendung gedacht. Der Prompt ist in der Sprache geschrieben, in der du UniPDF verwendest, und bittet um eine Antwort in dieser Sprache.
 
 ## Textstellen kommentieren
 
@@ -128,3 +128,7 @@ Die Notation ist eine kleine, offline verfügbare Teilmenge von LaTeX:
 Dies ist kein vollständiges LaTeX. Brüche werden kompakt mit einem Bruchstrich „⁄“ angezeigt. Unbekannte Befehle bleiben als Text erhalten. Der Export verwendet dieselbe Darstellung wie die Mitschrift.
 
 Ältere Projekte hatten ein eigenes Formelfeld. Enthält eine Folie noch eine solche Formel, erscheint sie unter der Mitschrift. **In die Mitschrift übernehmen** setzt sie dort als Formelblock ein.
+
+## Sprache
+
+UniPDF folgt der Sprache deines Macs: Ist Deutsch deine bevorzugte Sprache, ist die App deutsch, sonst englisch. Um nur UniPDF in einer anderen Sprache zu verwenden, wähle sie unter Systemeinstellungen → Allgemein → Sprache & Region → Apps. Die Sprache gilt auch für die Beschriftungen im Lern-PDF und für den KI-Prompt.
