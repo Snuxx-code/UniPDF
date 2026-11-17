@@ -195,6 +195,8 @@ struct WorkspaceView: View {
                     .font(.caption2).monospacedDigit().foregroundStyle(.tertiary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 18).padding(.vertical, 10)
+                    // The list scrolls beneath the caption, which would otherwise sit on top of the previews.
+                    .background(.bar)
             }
             .onChange(of: session.selection) { if !search.isSearching { proxy.scrollTo(session.selection) } }
             .onChange(of: search.current) { if let current = search.current { proxy.scrollTo(search.hits[current].id) } }
