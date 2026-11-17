@@ -1,5 +1,6 @@
 import AppKit
 import CoreText
+import PDFKit
 import SwiftUI
 import UniPDFCore
 
@@ -99,7 +100,7 @@ enum PreviewHarness {
             throw ProjectError.exportFailed
         }
         let slides = [
-            ("Lineare Algebra", "Vektorräume & lineare Abbildungen", "Beispielvorlesung · Keine echten Kursunterlagen"),
+            ("Lineare Algebra", "Vektorräume & lineare Abbildungen", "Basis, Dimension und Unterräume"),
             ("Was ist ein Vektorraum?", "Eine Menge mit zwei Operationen.", "Vektoraddition  u + v     ·     Skalarmultiplikation  λ · v"),
             ("Lineare Abbildungen", "Struktur bleibt erhalten.", "f(u + v) = f(u) + f(v)     ·     f(λv) = λf(v)")
         ]
@@ -120,9 +121,32 @@ enum PreviewHarness {
             context.endPDFPage()
         }
         context.closePDF()
+        let slideData = output as Data
+        guard let document = PDFDocument(data: slideData), let firstPage = document.page(at: 0) else { throw ProjectError.invalidPDF }
+        /// The passage as the text marker or a comment would take it from a selection on the first slide.
+        func passage(_ text: String, color: AnnotationColor = PDFTextHighlight.yellow) throws -> SlideAnnotation {
+            guard let selection = document.findString(text, withOptions: []).first,
+                  let annotation = PDFTextHighlight.annotation(for: selection, on: firstPage, color: color) else {
+                throw ProjectError.invalidPDF
+            }
+            return annotation
+        }
+        let highlight = try passage(slides[0].1)
+        guard case .highlight(let commentRects, _) = try passage(slides[0].2).content else { throw ProjectError.invalidPDF }
+        let comment = SlideAnnotation(content: .comment(SlideComment(rects: commentRects, quote: slides[0].2,
+            text: "Eine **Basis** ist ein minimales Erzeugendensystem. Ihre Länge ist die Dimension $\\dim V$.", color: .sky)))
+
         var notes = PageNotes()
-        notes.text = "Die Grundidee\nEin Vektor beschreibt mehr als eine Richtung. Auch Funktionen oder Polynome können Vektoren sein.\n\nMerken\nEntscheidend sind die Rechenregeln, nicht die Darstellung.\n\nOffene Frage\nWann bilden zwei Vektoren eine Basis?"
-        notes.formula = "f(u + v) = f(u) + f(v)"
+        notes.text = """
+        # Die Grundidee
+        Ein **Vektor** ist mehr als ein Pfeil: Auch _Funktionen_ können Vektoren sein.
+
+        ## Merken
+        - Linear heißt: $f(u + v) = f(u) + f(v)$
+        - Wann bilden zwei Vektoren eine Basis? \(CommentLinks.token(for: comment.id))
+
+        $$v = \\lambda_{1} b_{1} + \\lambda_{2} b_{2}$$
+        """
         notes.drawing = [
             InkElement(tool: .arrow, color: .graphite, points: [InkPoint(x: 100, y: 410), InkPoint(x: 100, y: 60)]),
             InkElement(tool: .arrow, color: .graphite, points: [InkPoint(x: 100, y: 410), InkPoint(x: 710, y: 410)]),
@@ -130,19 +154,21 @@ enum PreviewHarness {
             InkElement(tool: .arrow, color: .green, width: 5, points: [InkPoint(x: 100, y: 410), InkPoint(x: 300, y: 110)])
         ]
         let accent = AnnotationColor(InkColor.red)
-        // Fit the ellipse around the actual subtitle glyphs, with room at its curved ends.
-        let subtitle = NSAttributedString(string: slides[0].1, attributes: [.font: NSFont.systemFont(ofSize: 25, weight: .medium)])
-        let glyphs = CTLineGetBoundsWithOptions(CTLineCreateWithAttributedString(subtitle), .useGlyphPathBounds)
-        let textRect = CGRect(x: 65 + glyphs.minX, y: 540 - 330 - glyphs.maxY, width: glyphs.width, height: glyphs.height)
-        let padded = textRect.insetBy(dx: -8, dy: -6)
-        let ellipse = CGRect(x: padded.midX - padded.width * 0.6, y: padded.midY - padded.height,
-                             width: padded.width * 1.2, height: padded.height * 2)
+        // Fit the ellipse around the actual title glyphs, with room at its curved ends.
+        let title = NSAttributedString(string: slides[0].0, attributes: [.font: NSFont.systemFont(ofSize: 47, weight: .medium)])
+        let glyphs = CTLineGetBoundsWithOptions(CTLineCreateWithAttributedString(title), .useGlyphPathBounds)
+        let textRect = CGRect(x: 65 + glyphs.minX, y: 540 - 400 - glyphs.maxY, width: glyphs.width, height: glyphs.height)
+        let padded = textRect.insetBy(dx: -10, dy: -8)
+        let ellipse = CGRect(x: padded.midX - padded.width * 0.58, y: padded.midY - padded.height * 0.85,
+                             width: padded.width * 1.16, height: padded.height * 1.7)
         notes.annotations = [
+            highlight,
             SlideAnnotation(content: .shape(.ellipse, start: ellipse.origin,
                                            end: CGPoint(x: ellipse.maxX, y: ellipse.maxY), color: accent, width: 3)),
-            SlideAnnotation(content: .text("Beispiel: Anmerkung auf der Folie", frame: CGRect(x: 65, y: 300, width: 500, height: 34),
-                                           style: SlideTextStyle(size: 24, bold: true), color: accent))
+            SlideAnnotation(content: .text("Beispiel: prüfungsrelevant!", frame: CGRect(x: 560, y: 70, width: 360, height: 34),
+                                           style: SlideTextStyle(size: 24, bold: true), color: accent)),
+            comment
         ]
-        return StudyProject(title: "Lineare Algebra · Beispiel", pdfData: output as Data, pages: [0: notes])
+        return StudyProject(title: "Lineare Algebra · Beispiel", pdfData: slideData, pages: [0: notes])
     }
 }
