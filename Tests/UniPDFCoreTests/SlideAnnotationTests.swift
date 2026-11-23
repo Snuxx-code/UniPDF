@@ -148,9 +148,12 @@ private struct RenderedPage {
 }
 
 @Suite @MainActor struct SlideAnnotationExportTests {
-    /// The study page's slide area, which a slide fills centered and without being enlarged.
+    /// The study page's slide area: a landscape slide sits in it centered and without being enlarged;
+    /// a portrait slide fills the page's height on the left.
     private func displayedRect(of size: CGSize) -> CGRect {
-        let area = CGRect(x: 32, y: 72, width: 460, height: 428)
+        let layout = PDFExporter.Layout.for(size, page: PDFExporter.pageSize)
+        if layout.fills { return layout.slide }
+        let area = layout.slide
         let scale = min(area.width / size.width, area.height / size.height, 1)
         return CGRect(x: area.midX - size.width * scale / 2, y: area.midY - size.height * scale / 2,
                       width: size.width * scale, height: size.height * scale)
