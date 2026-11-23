@@ -63,9 +63,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         UserDefaults.standard.register(defaults: ["NSShowAppCentricOpenPanelInsteadOfUntitledFile": false])
     }
 
-    // Clicking the Dock icon with all windows closed behaves like a start without a file.
+    // Clicking the Dock icon brings a window minimized to the Dock back, a document before the library.
+    // Only with every window closed does it behave like a start without a file.
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
-        if !hasVisibleWindows { Self.openLastFileOrLibrary() }
+        guard !hasVisibleWindows else { return false }
+        let minimized = sender.windows.filter { $0.isMiniaturized && $0.canBecomeMain }
+        if let window = minimized.first(where: { NSDocumentController.shared.document(for: $0) != nil }) ?? minimized.first {
+            window.deminiaturize(nil)
+            window.makeKeyAndOrderFront(nil)
+        } else {
+            Self.openLastFileOrLibrary()
+        }
         return false
     }
 
