@@ -11,6 +11,18 @@ enum AutoSave {
     static var isOn: Bool { UserDefaults.standard.object(forKey: key) as? Bool ?? true }
     /// Posted when Claude changed a lecture: it is saved a moment later, also while UniPDF is in the background.
     static let changedByClaude = Notification.Name("UniPDFChangedByClaude")
+
+    /// When a key was last pressed in UniPDF. Saving waits for a pause in typing: a save takes a moment,
+    /// and what is typed meanwhile must not be counted as saved.
+    @MainActor static var lastKey = Date.distantPast
+    @MainActor private static var monitor: Any?
+    @MainActor static func watchTyping() {
+        guard monitor == nil else { return }
+        monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            lastKey = Date()
+            return event
+        }
+    }
 }
 
 /// The menu item in the File menu, after Save.
@@ -26,19 +38,27 @@ struct AutoSaveCommands: Commands {
 
 /// Saves the document of its window by itself and reports while it does.
 struct AutoSaver: NSViewRepresentable {
+    /// Counts every change to the document, so that one made while a save runs keeps it unsaved.
+    let revision: () -> Int
     let onSaving: (Bool) -> Void
 
-    func makeNSView(context: Context) -> NSView { SaverView(onSaving: onSaving) }
-    func updateNSView(_ view: NSView, context: Context) { (view as? SaverView)?.onSaving = onSaving }
+    func makeNSView(context: Context) -> NSView { SaverView(revision: revision, onSaving: onSaving) }
+    func updateNSView(_ view: NSView, context: Context) {
+        (view as? SaverView)?.onSaving = onSaving
+        (view as? SaverView)?.revision = revision
+    }
 
     private final class SaverView: NSView {
+        var revision: () -> Int
         var onSaving: (Bool) -> Void
         private var timer: Timer?
         private var saving = false
 
-        init(onSaving: @escaping (Bool) -> Void) {
+        init(revision: @escaping () -> Int, onSaving: @escaping (Bool) -> Void) {
+            self.revision = revision
             self.onSaving = onSaving
             super.init(frame: .zero)
+            AutoSave.watchTyping()
         }
 
         @available(*, unavailable)
@@ -53,7 +73,7 @@ struct AutoSaver: NSViewRepresentable {
             let timer = Timer(timeInterval: AutoSave.interval, repeats: true) { [weak self] _ in MainActor.assumeIsolated { self?.saveIfNeeded() } }
             RunLoop.main.add(timer, forMode: .common)
             self.timer = timer
-            NotificationCenter.default.addObserver(self, selector: #selector(saveIfNeeded),
+            NotificationCenter.default.addObserver(self, selector: #selector(saveOnLeaving),
                                                    name: NSApplication.willResignActiveNotification, object: nil)
             NotificationCenter.default.addObserver(self, selector: #selector(saveSoon),
                                                    name: AutoSave.changedByClaude, object: nil)
@@ -69,14 +89,29 @@ struct AutoSaver: NSViewRepresentable {
             soon = timer
         }
 
-        @objc private func saveIfNeeded() {
+        /// Leaving UniPDF ends the typing, so it saves at once.
+        @objc private func saveOnLeaving() { saveIfNeeded(waitForPause: false) }
+
+        @objc private func saveIfNeeded() { saveIfNeeded(waitForPause: true) }
+
+        private func saveIfNeeded(waitForPause: Bool) {
             guard AutoSave.isOn, !saving, let window,
                   let document = NSDocumentController.shared.document(for: window),
                   document.isDocumentEdited, let url = document.fileURL, let type = document.fileType else { return }
+            // In the middle of a sentence it waits until the typing pauses.
+            if waitForPause, Date().timeIntervalSince(AutoSave.lastKey) < 2 {
+                saveSoon()
+                return
+            }
             saving = true
             report(true)
             let started = Date()
+            let before = revision()
             document.save(to: url, ofType: type, for: .saveOperation) { [weak self] _ in
+                // What changed while the file was written is not in it: the document stays unsaved, so that
+                // it is saved next time and macOS does not load the older file over it, as it would where a
+                // synced folder such as OneDrive touches the file after the save.
+                if let self, self.revision() != before { document.updateChangeCount(.changeDone) }
                 // Shown at least a moment, so that a quick save does not merely flicker.
                 let rest = max(0, 0.8 - Date().timeIntervalSince(started))
                 DispatchQueue.main.asyncAfter(deadline: .now() + rest) {

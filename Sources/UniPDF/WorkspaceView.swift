@@ -13,6 +13,8 @@ struct WorkspaceView: View {
     @State private var showsToolSettings = false
     @State private var hasUnsavedChanges = false
     @State private var autoSaving = false
+    /// Counts the document's changes, for saving by itself.
+    @State private var revision = 0
     /// This lecture as Claude's tools reach it, while it is open.
     @State private var claude: ClaudeWorkspace?
     @State private var importing = false
@@ -111,7 +113,11 @@ struct WorkspaceView: View {
         }
         .onChange(of: fileURL) { connectClaude() }
         .onChange(of: search.query) { updateSearch() }
-        .onChange(of: document.project.pages) { if search.isSearching { updateSearch() } }
+        .onChange(of: document.project.pages) {
+            revision += 1
+            if search.isSearching { updateSearch() }
+        }
+        .onChange(of: document.project.title) { revision += 1 }
         .onChange(of: session.selection) {
             // A card stays open only on its own slide, such as one a search hit opened.
             if let id = notesEditor.expandedComment, !notes.wrappedValue.annotations.contains(where: { $0.id == id }) {
@@ -585,7 +591,7 @@ struct WorkspaceView: View {
                 .padding(.leading, 10).padding(.trailing, 6)
                 .background(HiddenWindowTitle())
                 .background(DocumentEditedObserver { hasUnsavedChanges = $0 })
-                .background(AutoSaver { autoSaving = $0 })
+                .background(AutoSaver(revision: { revision }) { autoSaving = $0 })
             } else { Text("UniPDF").font(.headline) }
         }
     }

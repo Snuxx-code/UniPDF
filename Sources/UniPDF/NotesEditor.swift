@@ -77,7 +77,14 @@ struct NotesEditor: NSViewRepresentable {
         view.controller = controller
         view.setAccessibilityLabel(accessibilityLabel)
         var changed = false
-        if view.string != text, !view.hasMarkedText() { view.string = text; changed = true }
+        if view.string != text, !view.hasMarkedText() {
+            if context.coordinator.isOlderTyping(text) {
+                // An older state of what was just typed, as a document reloaded from its file brings it:
+                // the typing stays and goes back into the document.
+                let typed = view.string, binding = $text
+                DispatchQueue.main.async { if binding.wrappedValue != typed { binding.wrappedValue = typed } }
+            } else { view.string = text; changed = true }
+        }
         if view.fontSize != fontSize { view.fontSize = fontSize; changed = true }
         let accent = NSColor(Color.studyAccent(for: colorScheme))
         if view.accent != accent { view.accent = accent; changed = true }
@@ -105,11 +112,34 @@ struct NotesEditor: NSViewRepresentable {
 
     final class Coordinator: NSObject, NSTextViewDelegate {
         var text: Binding<String>
-        init(text: Binding<String>) { self.text = text }
+        /// The states the user typed through in the last seconds, to tell a stale copy of them from a real change.
+        private var typed: [(text: String, at: Date)] = []
+        private var lastUndo = Date.distantPast
+
+        init(text: Binding<String>) {
+            self.text = text
+            super.init()
+            for name in [NSNotification.Name.NSUndoManagerDidUndoChange, .NSUndoManagerDidRedoChange] {
+                NotificationCenter.default.addObserver(self, selector: #selector(undone), name: name, object: nil)
+            }
+        }
+
+        @objc private func undone() { lastUndo = Date() }
 
         func textDidChange(_ notification: Notification) {
             guard let view = notification.object as? NotesTextView else { return }
+            let now = Date()
+            typed.removeAll { now.timeIntervalSince($0.at) > 3 }
+            typed.append((text.wrappedValue, now))
             if text.wrappedValue != view.string { text.wrappedValue = view.string }
+        }
+
+        /// Whether `incoming` is a state the user typed through just now, and not one brought by undo,
+        /// Claude or another slide: then it is stale, and the typing must not be lost to it.
+        func isOlderTyping(_ incoming: String) -> Bool {
+            let now = Date()
+            guard let last = typed.last, now.timeIntervalSince(last.at) < 3, last.at > lastUndo else { return false }
+            return typed.contains { $0.text == incoming && now.timeIntervalSince($0.at) < 3 }
         }
     }
 }
