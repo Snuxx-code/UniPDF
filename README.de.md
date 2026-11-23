@@ -43,6 +43,7 @@ Links steht die Folie, rechts schreibst du mit. Beim Speichern wird daraus eine 
 | **Alles in einer PDF** | Folien, Anmerkungen, Kommentare und Mitschriften gemeinsam speichern oder als zusätzliche Lern-PDF exportieren. |
 | **Bibliothek und Tabs** | Vorlesungen in Ordnern verwalten, als Kacheln oder Liste, und mehrere Dateien als Tabs parallel öffnen. |
 | **KI-Prompt vorbereiten** | Eine Frage mit dem richtigen Dateipfad und der aktuellen Folie kopieren. Du entscheidest, in welchen KI-Chat sie kommt. |
+| **Live mit Claude arbeiten** | Claude Desktop oder Claude Code verbinden: Claude liest Folien und Mitschrift, kommentiert Textstellen, markiert und ergänzt deine Notizen – direkt in der geöffneten Vorlesung, jeder Schritt mit ⌘Z zurücknehmbar. |
 
 UniPDF arbeitet komplett lokal mit **SwiftUI, AppKit, PDFKit und CoreText** und hat keine externen Paketabhängigkeiten. Auch der KI-Prompt wird nur in die Zwischenablage kopiert und nie automatisch versendet.
 
@@ -77,6 +78,28 @@ Alternativ `Package.swift` in Xcode öffnen und das Scheme **UniPDF** starten; d
 
 > [!IMPORTANT]
 > **⌘S ersetzt die geöffnete Vorlesungs-PDF am selben Pfad** durch die Version mit deinen Mitschriften. Jeder weitere Speichervorgang aktualisiert diese Datei. Die Originalfolien und alle bearbeitbaren Inhalte stecken in den Metadaten der PDF, deshalb verschachtelt wiederholtes Speichern die Lernseiten nicht. Andere PDF-Programme können diese Metadaten beim Speichern entfernen. Zum Weiterbearbeiten die Datei also in UniPDF sichern.
+
+## Claude in UniPDF
+
+UniPDF lässt sich über das Model Context Protocol (MCP) mit Claude verbinden. Claude arbeitet dann an der Vorlesung, die in UniPDF geöffnet ist, und du siehst zu: Es liest Folien und Mitschrift, kommentiert Textstellen, markiert sie, ergänzt die Mitschrift und springt zu einer Folie. Jede Änderung kommt sofort an, lässt sich mit **⌘Z** zurücknehmen und wird gesichert wie deine eigenen.
+
+**Claude Desktop:** UniPDF in `~/Library/Application Support/Claude/claude_desktop_config.json` eintragen und Claude neu starten:
+
+```json
+{
+  "mcpServers": {
+    "unipdf": { "command": "/Applications/UniPDF.app/Contents/MacOS/UniPDF", "args": ["--mcp"] }
+  }
+}
+```
+
+**Claude Code:**
+
+```sh
+claude mcp add --scope user unipdf -- /Applications/UniPDF.app/Contents/MacOS/UniPDF --mcp
+```
+
+UniPDF mit der Vorlesung geöffnet lassen. `UniPDF --mcp` öffnet kein Fenster, sondern reicht Claudes Anfragen nur an die laufende App weiter, über einen Socket in `~/Library/Application Support/UniPDF`, den nur dein Benutzer öffnen kann. Nichts verlässt deinen Mac außer dem, was du im Chat mit Claude teilst. Die Werkzeuge heißen `open_documents`, `read_slide`, `current_selection`, `add_comment`, `edit_comment`, `delete_comment`, `add_notes`, `highlight_text` und `go_to_slide`; Claude ergänzt deine Mitschrift, überschreibt oder löscht sie aber nie; Kommentare kann es anlegen, ändern und entfernen, auch bestehende.
 
 ## Tastenkürzel
 

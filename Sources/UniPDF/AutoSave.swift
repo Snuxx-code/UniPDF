@@ -9,6 +9,8 @@ enum AutoSave {
     static let key = "autoSave"
     static let interval: TimeInterval = 15
     static var isOn: Bool { UserDefaults.standard.object(forKey: key) as? Bool ?? true }
+    /// Posted when Claude changed a lecture: it is saved a moment later, also while UniPDF is in the background.
+    static let changedByClaude = Notification.Name("UniPDFChangedByClaude")
 }
 
 /// The menu item in the File menu, after Save.
@@ -53,6 +55,18 @@ struct AutoSaver: NSViewRepresentable {
             self.timer = timer
             NotificationCenter.default.addObserver(self, selector: #selector(saveIfNeeded),
                                                    name: NSApplication.willResignActiveNotification, object: nil)
+            NotificationCenter.default.addObserver(self, selector: #selector(saveSoon),
+                                                   name: AutoSave.changedByClaude, object: nil)
+        }
+
+        private var soon: Timer?
+
+        /// After a change by Claude: one save shortly after the last of a run of changes.
+        @objc private func saveSoon() {
+            soon?.invalidate()
+            let timer = Timer(timeInterval: 2, repeats: false) { [weak self] _ in MainActor.assumeIsolated { self?.saveIfNeeded() } }
+            RunLoop.main.add(timer, forMode: .common)
+            soon = timer
         }
 
         @objc private func saveIfNeeded() {

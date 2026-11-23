@@ -13,6 +13,8 @@ struct WorkspaceView: View {
     @State private var showsToolSettings = false
     @State private var hasUnsavedChanges = false
     @State private var autoSaving = false
+    /// This lecture as Claude's tools reach it, while it is open.
+    @State private var claude: ClaudeWorkspace?
     @State private var importing = false
     @State private var importSourceWindow: NSWindow?
     @State private var errorMessage: String?
@@ -101,7 +103,13 @@ struct WorkspaceView: View {
                 notesCollapsed = false
                 notesEditor.expand(id)
             }
+            connectClaude()
         }
+        .onDisappear {
+            if let claude { ClaudeBridge.shared.unregister(claude) }
+            claude = nil
+        }
+        .onChange(of: fileURL) { connectClaude() }
         .onChange(of: search.query) { updateSearch() }
         .onChange(of: document.project.pages) { if search.isSearching { updateSearch() } }
         .onChange(of: session.selection) {
@@ -273,6 +281,34 @@ struct WorkspaceView: View {
         }
         if case .comment(let id) = hit.source { notesEditor.expand(id) }
         session.pendingReveal = SearchReveal(page: hit.page, source: hit.source, range: hit.range)
+    }
+
+    // MARK: Claude
+
+    /// Lets Claude's tools read and change this lecture; every change goes through the document, like one by hand.
+    private func connectClaude() {
+        if let claude { ClaudeBridge.shared.unregister(claude) }
+        let session = session, editor = notesEditor, url = fileURL
+        let workspace = ClaudeWorkspace(
+            title: { document.project.title },
+            fileURL: { url },
+            pdf: { session.document },
+            currentSlide: { session.selection },
+            showSlide: { index in session.selection = index },
+            notes: { index in document.project.pages[index] ?? PageNotes() },
+            setNotes: { index, value in notes(for: index).wrappedValue = value },
+            slideSelection: { session.view?.currentSelection?.string },
+            notesSelection: {
+                guard let view = editor.notesView, view.selectedRange().length > 0 else { return nil }
+                return (view.string as NSString).substring(with: view.selectedRange())
+            },
+            window: { session.view?.window },
+            showComment: { _, id in
+                notesCollapsed = false
+                editor.expand(id)
+            })
+        ClaudeBridge.shared.register(workspace)
+        claude = workspace
     }
 
     // MARK: Comments

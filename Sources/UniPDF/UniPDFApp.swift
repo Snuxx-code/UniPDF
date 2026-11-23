@@ -114,6 +114,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Claude's tools reach the open lectures through UniPDF's local socket.
+        ClaudeBridge.shared.start()
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
         // False when the app was started by opening a file, which only arrives after this point.
