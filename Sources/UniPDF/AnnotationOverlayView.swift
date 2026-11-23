@@ -236,7 +236,7 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
             session.selectedKind = .stroke
             session.style.color = color
             session.style.lineWidth = width
-        case .text(_, _, let style, let color):
+        case .text(_, _, let style, let color, _):
             session.selectedKind = .text
             session.style.color = color
             session.style.text = style
@@ -373,9 +373,11 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
                 result.content = .ink(points: points, color: style.color, width: style.lineWidth)
             case .shape(let shape, let start, let end, _, _):
                 result.content = .shape(shape, start: start, end: end, color: style.color, width: style.lineWidth)
-            case .text(let string, var frame, _, _):
+            case .text(let string, var frame, _, _, let autoWidth):
+                // A growing box takes the width of its text in the new style.
+                if autoWidth == true { frame.size.width = Self.grownWidth(string, style: style.text, at: frame.minX, slideWidth: slideSize?.width) }
                 frame.size.height = AnnotationRenderer.textHeight(string, style: style.text, width: frame.width)
-                result.content = .text(string, frame: frame, style: style.text, color: style.color)
+                result.content = .text(string, frame: frame, style: style.text, color: style.color, autoWidth: autoWidth)
             case .image:
                 break
             case .highlight(let rects, _):
@@ -686,7 +688,7 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
     /// The topmost text box at a point, and whether the point is on its edge rather than on its text.
     private func textBox(at view: CGPoint) -> (annotation: SlideAnnotation, onBorder: Bool)? {
         for annotation in annotations.reversed() {
-            guard case .text(_, let frame, _, _) = annotation.content else { continue }
+            guard case .text(_, let frame, _, _, _) = annotation.content else { continue }
             let rect = viewRect(frame)
             let border = borderWidth(of: rect)
             guard rect.insetBy(dx: -6, dy: -6).contains(view) else { continue }
@@ -1033,7 +1035,7 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
                 width = box.width * factor
                 height = box.height * factor
             }
-            if case .text(let string, _, let style, _) = original.content {
+            if case .text(let string, _, let style, _, _) = original.content {
                 // The width sets the line breaks; the height follows from them.
                 width = max(width, 30)
                 let frame = CGRect(x: atMaxX ? anchor.x : anchor.x - width, y: box.minY, width: width,
@@ -1092,7 +1094,7 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
         guard let selected, let data = try? JSONEncoder().encode(selected) else { return }
         board.clearContents()
         board.setData(data, forType: Self.pasteboardType)
-        if case .text(let string, _, _, _) = selected.content { board.setString(string, forType: .string) }
+        if case .text(let string, _, _, _, _) = selected.content { board.setString(string, forType: .string) }
     }
 
     @objc func cut(_ sender: Any?) {
@@ -1127,15 +1129,26 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
 
     private func textWidth(for size: CGSize) -> CGFloat { size.width / 3 }
 
+    /// About two words of the box's type: where a new text box starts.
+    static func startWidth(_ style: SlideTextStyle) -> CGFloat { CGFloat(style.size) * 5.5 }
+
+    /// The width of a growing box: its longest line, at least the start width, at most up to the slide's edge.
+    static func grownWidth(_ string: String, style: SlideTextStyle, at x: CGFloat, slideWidth: CGFloat?) -> CGFloat {
+        let width = max(startWidth(style), AnnotationRenderer.textWidth(string, style: style))
+        guard let slideWidth else { return width }
+        return min(width, max(slideWidth - x, 20))
+    }
+
     private func beginNewText(at point: CGPoint) {
         guard let size = slideSize else { return }
         let style = session.style.text
         let lineHeight = AnnotationRenderer.textHeight("", style: style, width: size.width)
-        let width = textWidth(for: size)
+        // One line, about two words wide; it grows as it is written.
+        let width = min(Self.startWidth(style), size.width)
         // The first line sits where the click was.
         let frame = CGRect(x: min(point.x, max(size.width - width, 0)), y: max(point.y - lineHeight / 2, 0), width: width, height: lineHeight)
         select(nil)
-        beginEditing(SlideAnnotation(content: .text("", frame: frame, style: style, color: session.style.color)))
+        beginEditing(SlideAnnotation(content: .text("", frame: frame, style: style, color: session.style.color, autoWidth: true)))
     }
 
     /// Puts the caret where the click was, instead of selecting all; a double click selects the word.
@@ -1148,7 +1161,7 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
     }
 
     private func beginEditing(_ annotation: SlideAnnotation) {
-        guard case .text(let string, _, _, _) = annotation.content else { return }
+        guard case .text(let string, _, _, _, _) = annotation.content else { return }
         endEditing()
         drag = nil
         let textView = NSTextView(frame: .zero)
@@ -1179,7 +1192,7 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
     /// Positions the editor over its box. It lays out in slide points, scaled like the slide,
     /// so that the line breaks are the ones that get drawn and exported.
     private func syncEditor(with annotation: SlideAnnotation) {
-        guard let editor, case .text(let string, let frame, let style, let color) = annotation.content else { return }
+        guard let editor, case .text(let string, let frame, let style, let color, _) = annotation.content else { return }
         editing = annotation
         if editor.string != string { editor.string = string }
         editor.frame = viewRect(frame)
@@ -1193,11 +1206,18 @@ final class AnnotationOverlayView: NSView, NSTextViewDelegate, NSMenuItemValidat
     }
 
     func textDidChange(_ notification: Notification) {
-        guard let editor, let current = editing, case .text(_, var frame, let style, let color) = current.content else { return }
+        guard let editor, let current = editing, case .text(_, var frame, let style, let color, var autoWidth) = current.content else { return }
         let string = editor.string
+        if autoWidth == true, let size = slideSize {
+            // Grows with the longest line, up to the slide's edge; there the text wraps, and the width stays.
+            let room = max(size.width - frame.minX, 20)
+            let natural = AnnotationRenderer.textWidth(string, style: style)
+            frame.size.width = min(max(Self.startWidth(style), natural), room)
+            if natural > room { autoWidth = nil }
+        }
         frame.size.height = AnnotationRenderer.textHeight(string, style: style, width: frame.width)
         var updated = current
-        updated.content = .text(string, frame: frame, style: style, color: color)
+        updated.content = .text(string, frame: frame, style: style, color: color, autoWidth: autoWidth)
         syncEditor(with: updated)
         // Written while typing, so that saving mid-sentence loses nothing. Blank boxes are not kept.
         if string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { annotations.removeAll { $0.id == updated.id } }

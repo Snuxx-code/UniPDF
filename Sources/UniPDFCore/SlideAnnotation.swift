@@ -55,7 +55,8 @@ public struct SlideAnnotation: Codable, Sendable, Equatable, Identifiable {
     public enum Content: Codable, Sendable, Equatable {
         case ink(points: [CGPoint], color: AnnotationColor, width: Double)
         case shape(SlideShape, start: CGPoint, end: CGPoint, color: AnnotationColor, width: Double)
-        case text(String, frame: CGRect, style: SlideTextStyle, color: AnnotationColor)
+        /// `autoWidth`: a box that grows with its text until its width is set by hand, as in the web app; nil otherwise.
+        case text(String, frame: CGRect, style: SlideTextStyle, color: AnnotationColor, autoWidth: Bool? = nil)
         case image(Data, frame: CGRect)
         case highlight(rects: [CGRect], color: AnnotationColor)
         /// Linked to a tag in the notes of the same slide.
@@ -79,7 +80,7 @@ public struct SlideAnnotation: Codable, Sendable, Equatable, Identifiable {
             return CGRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
         case .shape(_, let start, let end, _, _):
             return CGRect(x: min(start.x, end.x), y: min(start.y, end.y), width: abs(end.x - start.x), height: abs(end.y - start.y))
-        case .text(_, let frame, _, _), .image(_, let frame):
+        case .text(_, let frame, _, _, _), .image(_, let frame):
             return frame
         case .highlight(let rects, _):
             return rects.reduce(CGRect.null) { $0.union($1) }
@@ -106,7 +107,7 @@ public struct SlideAnnotation: Codable, Sendable, Equatable, Identifiable {
             return !points.isEmpty && points.allSatisfy(valid) && color.isValid && valid(width: width)
         case .shape(_, let start, let end, let color, let width):
             return valid(start) && valid(end) && color.isValid && valid(width: width)
-        case .text(_, let frame, let style, let color):
+        case .text(_, let frame, let style, let color, _):
             return valid(frame) && color.isValid && style.size.isFinite && (1...1000).contains(style.size)
         case .image(let data, let frame):
             return !data.isEmpty && valid(frame)
@@ -125,8 +126,8 @@ public struct SlideAnnotation: Codable, Sendable, Equatable, Identifiable {
             result.content = .ink(points: points.map(shift), color: color, width: width)
         case .shape(let shape, let start, let end, let color, let width):
             result.content = .shape(shape, start: shift(start), end: shift(end), color: color, width: width)
-        case .text(let string, let frame, let style, let color):
-            result.content = .text(string, frame: frame.offsetBy(dx: delta.dx, dy: delta.dy), style: style, color: color)
+        case .text(let string, let frame, let style, let color, let autoWidth):
+            result.content = .text(string, frame: frame.offsetBy(dx: delta.dx, dy: delta.dy), style: style, color: color, autoWidth: autoWidth)
         case .image(let data, let frame):
             result.content = .image(data, frame: frame.offsetBy(dx: delta.dx, dy: delta.dy))
         case .highlight(let rects, let color):
@@ -151,8 +152,10 @@ public struct SlideAnnotation: Codable, Sendable, Equatable, Identifiable {
             result.content = .ink(points: points.map(map), color: color, width: width)
         case .shape(let shape, let start, let end, let color, let width):
             result.content = .shape(shape, start: map(start), end: map(end), color: color, width: width)
-        case .text(let string, _, let style, let color):
-            result.content = .text(string, frame: rect, style: style, color: color)
+        case .text(let string, let frame, let style, let color, let autoWidth):
+            // A width set by hand stays: the text wraps in it from then on.
+            let keepsGrowing = autoWidth == true && abs(rect.width - frame.width) < 0.5
+            result.content = .text(string, frame: rect, style: style, color: color, autoWidth: keepsGrowing ? true : nil)
         case .image(let data, _):
             result.content = .image(data, frame: rect)
         case .highlight(let rects, let color):

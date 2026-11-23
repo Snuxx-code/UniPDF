@@ -129,7 +129,7 @@ public enum AnnotationRenderer {
                 context.addPath(outline)
                 context.strokePath()
                 context.restoreGState()
-            case .text(let string, let frame, let style, let color):
+            case .text(let string, let frame, let style, let color, _):
                 let previous = NSGraphicsContext.current
                 NSGraphicsContext.current = NSGraphicsContext(cgContext: context, flipped: true)
                 // Real text, so that it stays selectable and searchable in the exported PDF.
@@ -193,6 +193,17 @@ public enum AnnotationRenderer {
     }
 
     /// The height a text box needs at `width`; at least one line.
+    /// The width of a text's longest line, for a box that grows with its text.
+    public static func textWidth(_ string: String, style: SlideTextStyle) -> CGFloat {
+        let widths = (string.isEmpty ? [" "] : string.components(separatedBy: "\n")).map { line in
+            attributedText(line.isEmpty ? " " : line, style: style, color: AnnotationColor(red: 0, green: 0, blue: 0))
+                .boundingRect(with: CGSize(width: CGFloat.greatestFiniteMagnitude, height: .greatestFiniteMagnitude),
+                              options: [.usesLineFragmentOrigin, .usesFontLeading]).width
+        }
+        // A little room, so that the last letter never wraps.
+        return ceil((widths.max() ?? 0) + 2)
+    }
+
     public static func textHeight(_ string: String, style: SlideTextStyle, width: CGFloat) -> CGFloat {
         let text = attributedText(string.isEmpty ? " " : string + (string.hasSuffix("\n") ? " " : ""), style: style, color: AnnotationColor(red: 0, green: 0, blue: 0))
         return ceil(text.boundingRect(with: CGSize(width: width, height: .greatestFiniteMagnitude),
