@@ -448,3 +448,7 @@
 "Show Notes" = "Mitschrift einblenden";
 "Hide Notes" = "Mitschrift ausblenden";
 "Slide %lld, with notes" = "Folie %lld, mit Mitschrift";
+
+"Save Automatically" = "Automatisch sichern";
+"Saving automatically" = "Wird automatisch gesichert";
+"Saving Automatically" = "Wird automatisch gesichert";

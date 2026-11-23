@@ -14,6 +14,7 @@ struct UniPDFApp: App {
         .defaultSize(width: 1320, height: 850)
         .commands {
             LibraryCommands()
+            AutoSaveCommands()
             DocumentSearchCommands()
             CommandGroup(replacing: .help) {
                 Button("UniPDF Help") {
