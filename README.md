@@ -137,3 +137,7 @@ The texts in the code are English. The German translation lives in [`Resources/d
 | [`Resources`](Resources) | Info.plist and translations |
 | [`scripts`](scripts) | Build, app icon, test run and translation check |
 | [`docs`](docs) | Guide and images for this README |
+
+## License
+
+UniPDF is open source under the [MIT License](LICENSE).

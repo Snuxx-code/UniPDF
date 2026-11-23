@@ -137,3 +137,7 @@ Die Tests prüfen unter anderem das Speichern am Originalpfad, das Wiederöffnen
 | [`Resources`](Resources) | Info.plist und Übersetzungen |
 | [`scripts`](scripts) | Build, App-Icon, Testlauf und Übersetzungsprüfung |
 | [`docs`](docs) | Anleitung und Bilder für dieses README |
+
+## Lizenz
+
+UniPDF ist Open Source unter der [MIT-Lizenz](LICENSE).
