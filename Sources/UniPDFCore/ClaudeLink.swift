@@ -147,7 +147,7 @@ public enum ClaudeTools {
         tool("delete_comment", "Removes a comment: its mark on the slide and its tag in the notes.",
              ["document": document, "slide": slide, "id": ["type": "string", "description": "The comment's id."]],
              required: ["slide", "id"]),
-        tool("add_notes", "Adds a paragraph to the notes of a slide, in their markup: # heading, **bold**, _italic_, - bullets (indented with two spaces per level), $formula$, $$ block formula $$. It never replaces what is written.",
+        tool("add_notes", "Adds a paragraph to the notes of a slide, in their markup: # heading, **bold**, _italic_, - bullets (indented with two spaces per level), - [ ] task, $formula$, $$ block formula $$, [text](https://…) link, ``` code block ```, --- rule, and boxes: a line > [!DEFINITION], > [!MERKE], > [!BEISPIEL], > [!PRÜFUNG] or > [!ACHTUNG], then the box's text in lines starting with > . It never replaces what is written.",
              ["document": document, "slide": slide,
               "text": ["type": "string", "description": "What to add."],
               "after": ["type": "string", "description": "Text in the notes after whose line it goes. Left out, it goes at the end."]],

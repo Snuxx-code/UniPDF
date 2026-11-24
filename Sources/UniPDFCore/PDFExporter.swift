@@ -115,10 +115,12 @@ public enum PDFExporter {
                 let textBottom: CGFloat = hasDrawing ? 257 : 55
                 let textRect = CGRect(x: column.minX, y: textBottom, width: column.width, height: 500 - textBottom)
                 let frame = CTFramesetterCreateFrame(framesetter, CFRange(location: offset, length: 0), CGPath(rect: textRect, transform: nil), nil)
-                // Beneath the text: the tags' pastel and the bars beside the comments.
+                // Beneath the text: the fills of boxes and code, the tags' pastel and the bars beside the comments.
+                drawBlocks(frame, content: content, in: textRect, context: context)
                 drawCommentDecorations(frame, content: content, in: textRect, context: context)
                 context.textMatrix = .identity
                 CTFrameDraw(frame, context)
+                drawRulesAndLinks(frame, content: content, in: textRect, context: context)
                 let visible = CTFrameGetVisibleStringRange(frame)
                 if offset < content.length && visible.length == 0 { throw ProjectError.exportFailed }
                 offset += visible.length
@@ -191,6 +193,62 @@ public enum PDFExporter {
             result.append(footnote)
         }
         return result
+    }
+
+    /// The lines of a frame with where they sit on the page.
+    private static func placedLines(_ frame: CTFrame, in rect: CGRect) -> [(line: CTLine, origin: CGPoint, ascent: CGFloat, descent: CGFloat)] {
+        let lines = CTFrameGetLines(frame) as? [CTLine] ?? []
+        var origins = [CGPoint](repeating: .zero, count: lines.count)
+        CTFrameGetLineOrigins(frame, CFRange(location: 0, length: 0), &origins)
+        return zip(lines, origins).map { line, origin in
+            var ascent: CGFloat = 0, descent: CGFloat = 0, leading: CGFloat = 0
+            CTLineGetTypographicBounds(line, &ascent, &descent, &leading)
+            return (line, CGPoint(x: rect.minX + origin.x, y: rect.minY + origin.y), ascent, descent)
+        }
+    }
+
+    /// The fills behind code blocks and boxes, across the column, with their padding around the lines.
+    static func drawBlocks(_ frame: CTFrame, content: NSAttributedString, in rect: CGRect, context: CGContext) {
+        var blocks: [(block: NotesMarkup.Block, top: CGFloat, bottom: CGFloat)] = []
+        for placed in placedLines(frame, in: rect) {
+            let range = CTLineGetStringRange(placed.line)
+            guard range.location < content.length,
+                  let block = content.attribute(NotesMarkup.blockKey, at: range.location, effectiveRange: nil) as? NotesMarkup.Block else { continue }
+            let top = placed.origin.y + placed.ascent, bottom = placed.origin.y - placed.descent
+            if let last = blocks.last, last.block === block { blocks[blocks.count - 1].bottom = bottom }
+            else { blocks.append((block, top, bottom)) }
+        }
+        for (block, top, bottom) in blocks {
+            let box = CGRect(x: rect.minX, y: bottom - block.padding, width: rect.width, height: top - bottom + 2 * block.padding)
+            context.setFillColor(block.fill.cgColor)
+            context.addPath(CGPath(roundedRect: box, cornerWidth: 6, cornerHeight: 6, transform: nil))
+            context.fillPath()
+        }
+    }
+
+    /// A rule across the column, and links that open when clicked in the PDF.
+    static func drawRulesAndLinks(_ frame: CTFrame, content: NSAttributedString, in rect: CGRect, context: CGContext) {
+        for placed in placedLines(frame, in: rect) {
+            let range = CTLineGetStringRange(placed.line)
+            guard range.length > 0, range.location < content.length else { continue }
+            if content.attribute(NotesMarkup.ruleKey, at: range.location, effectiveRange: nil) != nil {
+                let y = placed.origin.y + (placed.ascent - placed.descent) / 2
+                context.setStrokeColor(NSColor(white: 0.78, alpha: 1).cgColor)
+                context.setLineWidth(0.6)
+                context.move(to: CGPoint(x: rect.minX, y: y))
+                context.addLine(to: CGPoint(x: rect.maxX, y: y))
+                context.strokePath()
+            }
+            for run in CTLineGetGlyphRuns(placed.line) as? [CTRun] ?? [] {
+                let runRange = CTRunGetStringRange(run)
+                guard runRange.location < content.length,
+                      let url = content.attribute(NotesMarkup.linkKey, at: runRange.location, effectiveRange: nil) as? URL else { continue }
+                var ascent: CGFloat = 0, descent: CGFloat = 0
+                let width = CTRunGetTypographicBounds(run, CFRange(location: 0, length: 0), &ascent, &descent, nil)
+                let x = placed.origin.x + CTLineGetOffsetForStringIndex(placed.line, runRange.location, nil)
+                context.setURL(url as CFURL, for: CGRect(x: x, y: placed.origin.y - descent, width: width, height: ascent + descent))
+            }
+        }
     }
 
     /// Paints the pastel of the tags and the bars of the footnotes on one page, before its text.

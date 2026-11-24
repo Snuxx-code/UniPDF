@@ -492,10 +492,7 @@ struct WorkspaceView: View {
                         sectionHeader("Sketch", symbol: "pencil.tip")
                         DrawingEditor(elements: notes.drawing).id(session.selection)
                     }
-                    if !showFormula && !showDrawing && notes.wrappedValue.drawing.isEmpty {
-                        Text(verbatim: String(localized: "Format like in a chat: **bold**, _italic_, ~strikethrough~, - bullets. Formulas go between $ … $ or come from “Formula”, sketches from “Sketch”."))
-                            .font(.callout).foregroundStyle(.secondary).lineSpacing(4)
-                    }
+                    FormatBar(controller: notesEditor) { showFormula.toggle() }
                 }.padding(24)
             }
             Divider()

@@ -26,6 +26,12 @@ final class NotesEditorController {
     func insert(_ insertion: FormulaInsertion) { textView?.insert(insertion) }
     func toggle(_ style: NotesMarkup.Style) { textView?.toggle(style) }
     func toggleList(numbered: Bool) { textView?.toggleList(numbered: numbered) }
+    func toggleHeading() { textView?.toggleHeading() }
+    func toggleTask() { textView?.toggleTask() }
+    func insertCallout(_ kind: NotesMarkup.CalloutKind) { textView?.insertCallout(kind) }
+    func insertLink() { textView?.insertLink() }
+    func insertCodeBlock() { textView?.insertCodeBlock() }
+    func insertRule() { textView?.insertRule() }
 }
 
 /// The notes as plain text, formatted while writing as in chat apps: markers stay visible but faint,
@@ -150,6 +156,8 @@ private extension NSAttributedString.Key {
     /// On the dash or asterisk of a bullet: it shows as a dot. The text keeps the character as typed.
     static let bulletDot = NSAttributedString.Key("UniPDFBulletDot")
     static let listIndentation = NSAttributedString.Key("UniPDFListIndentation")
+    /// On markdown characters away from the line being written: they take no room.
+    static let hiddenMarker = NSAttributedString.Key("UniPDFHiddenMarker")
 }
 
 /// What the notes show in place of hidden source: a set formula or a comment's tag.
@@ -257,6 +265,80 @@ private final class TagRendering: InlineRendering {
     }
 }
 
+/// A task's box in place of `- [ ]`: a click ticks it.
+private final class CheckboxRendering: InlineRendering {
+    let checked: Bool
+    let color: NSColor
+    let side: CGFloat
+    /// Where the box's characters stand, for the click.
+    let box: NSRange
+
+    init(checked: Bool, color: NSColor, size: CGFloat, box: NSRange) {
+        self.checked = checked; self.color = color; self.box = box
+        side = (size * 0.85).rounded()
+        super.init(width: side + size * 0.45, ascent: side * 0.82, descent: side * 0.18, isBlock: false)
+    }
+
+    func square(x: CGFloat, baseline y: CGFloat) -> NSRect {
+        NSRect(x: x + 1, y: y - ascent, width: side, height: side)
+    }
+
+    override func draw(in context: CGContext, x: CGFloat, baseline y: CGFloat) {
+        let rect = square(x: x, baseline: y)
+        let path = NSBezierPath(roundedRect: rect.insetBy(dx: 0.75, dy: 0.75), xRadius: 4, yRadius: 4)
+        path.lineWidth = 1.5
+        if checked {
+            color.setFill()
+            NSBezierPath(roundedRect: rect, xRadius: 4, yRadius: 4).fill()
+            let tick = NSBezierPath()
+            tick.move(to: NSPoint(x: rect.minX + rect.width * 0.26, y: rect.midY + rect.height * 0.02))
+            tick.line(to: NSPoint(x: rect.minX + rect.width * 0.43, y: rect.maxY - rect.height * 0.28))
+            tick.line(to: NSPoint(x: rect.maxX - rect.width * 0.24, y: rect.minY + rect.height * 0.3))
+            tick.lineWidth = 1.7
+            tick.lineCapStyle = .round
+            tick.lineJoinStyle = .round
+            NSColor.white.setStroke()
+            tick.stroke()
+        } else {
+            color.setStroke()
+            path.stroke()
+        }
+    }
+}
+
+/// The head of a box in place of `> [!DEFINITION]`: its symbol and its name in its colour.
+private final class CalloutRendering: InlineRendering {
+    let line: CTLine
+    let icon: NSImage?
+    let iconSize: CGFloat
+
+    init(kind: NotesMarkup.CalloutKind, size: CGFloat) {
+        let color = kind.color.nsColor
+        let font = NSFont.systemFont(ofSize: size * 0.85, weight: .semibold)
+        line = CTLineCreateWithAttributedString(NSAttributedString(string: kind.label, attributes: [.font: font, .foregroundColor: color]))
+        var ascent: CGFloat = 0, descent: CGFloat = 0, leading: CGFloat = 0
+        let textWidth = CTLineGetTypographicBounds(line, &ascent, &descent, &leading)
+        iconSize = size * 0.85
+        icon = NSImage(systemSymbolName: kind.symbol, accessibilityDescription: nil)?
+            .withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: iconSize * 0.9, weight: .semibold).applying(.init(paletteColors: [color])))
+        super.init(width: iconSize + 5 + textWidth, ascent: ascent, descent: descent, isBlock: false)
+    }
+
+    override func draw(in context: CGContext, x: CGFloat, baseline y: CGFloat) {
+        if let icon {
+            let height = icon.size.height * iconSize / max(icon.size.width, 1)
+            icon.draw(in: NSRect(x: x, y: y - ascent / 2 - height / 2 - 1, width: iconSize, height: height))
+        }
+        context.saveGState()
+        context.translateBy(x: x + iconSize + 5, y: y)
+        context.scaleBy(x: 1, y: -1)
+        context.textMatrix = .identity
+        context.textPosition = .zero
+        CTLineDraw(line, context)
+        context.restoreGState()
+    }
+}
+
 /// What a slide's comments need in the notes: the comments, the open card, and what the card can do.
 struct CommentContext {
     var comments: [UUID: SlideComment]
@@ -316,6 +398,26 @@ final class NotesTextView: NSTextView, NSLayoutManagerDelegate {
     /// Between a change of the text and its new styling, the parsed tags are out of date.
     private var pendingEdit = false
     private var expandingTag = false
+    /// The lines the markers showed on at the last styling.
+    private var styledActive: NSRange?
+
+    /// The lines the selection touches while the notes are being written; elsewhere markers hide.
+    var activeLines: NSRange? {
+        guard window?.firstResponder === self, let storage = textStorage else { return nil }
+        let selection = selectedRange()
+        guard NSMaxRange(selection) <= storage.length else { return nil }
+        let string = storage.string as NSString
+        var lines = string.lineRange(for: selection)
+        // Without the last line break: the caret at a line's end is not on the next line.
+        if lines.length > 0, NSMaxRange(lines) > NSMaxRange(selection) || selection.length == 0,
+           string.character(at: NSMaxRange(lines) - 1) == 10 { lines.length -= 1 }
+        return lines
+    }
+
+    /// Pieces that act as one character: comment tags and the boxes of tasks.
+    private var atomicRanges: [NSRange] {
+        parsed.comments.map(\.range) + checkboxPlacements.map(\.range)
+    }
 
     /// Opens, moves and sizes the card of the expanded comment beneath its tag's line.
     func layoutCard() {
@@ -401,12 +503,12 @@ final class NotesTextView: NSTextView, NSLayoutManagerDelegate {
     /// A tag is one piece: an edit that touches part of it takes all of it.
     override func shouldChangeText(in range: NSRange, replacementString: String?) -> Bool {
         if !expandingTag {
-            let touched = parsed.comments.filter {
-                let overlap = NSIntersectionRange($0.range, range).length
-                return overlap > 0 && overlap < $0.range.length
+            let touched = atomicRanges.filter {
+                let overlap = NSIntersectionRange($0, range).length
+                return overlap > 0 && overlap < $0.length
             }
             if !touched.isEmpty {
-                let whole = touched.reduce(range) { NSUnionRange($0, $1.range) }
+                let whole = touched.reduce(range) { NSUnionRange($0, $1) }
                 expandingTag = true
                 insertText(replacementString ?? "", replacementRange: whole)
                 expandingTag = false
@@ -447,7 +549,7 @@ final class NotesTextView: NSTextView, NSLayoutManagerDelegate {
 
     private var markupAppearance: NotesMarkup.Appearance {
         NotesMarkup.Appearance(size: fontSize, color: .textColor, secondaryColor: .secondaryLabelColor,
-                               codeBackground: NSColor.textColor.withAlphaComponent(0.07), lineSpacing: 5)
+                               codeBackground: NSColor.textColor.withAlphaComponent(0.07), lineSpacing: 5, accent: accent)
     }
 
     // MARK: Styling
@@ -467,7 +569,48 @@ final class NotesTextView: NSTextView, NSLayoutManagerDelegate {
         storage.beginEditing()
         NotesMarkup.style(storage, parsed: parsed, appearance: markupAppearance)
         let faint = NSColor.tertiaryLabelColor
-        for marker in NotesMarkup.markers(in: parsed) { storage.addAttribute(.foregroundColor, value: faint, range: marker) }
+        // As on the web: the finished text, and the markers only on the lines being written.
+        let active = activeLines
+        styledActive = active
+        func isActive(_ range: NSRange) -> Bool {
+            guard let active else { return false }
+            return range.location <= NSMaxRange(active) && active.location <= NSMaxRange(range)
+        }
+        let inactiveHeaders = parsed.callouts.map(\.header).filter { !isActive($0) }
+        let alwaysShown = Set(parsed.lines.filter { $0.kind == .bullet }.map(\.marker.location))
+        for marker in NotesMarkup.markers(in: parsed) where !alwaysShown.contains(marker.location) {
+            if inactiveHeaders.contains(where: { NSIntersectionRange($0, marker).length > 0 }) { continue }
+            storage.addAttribute(isActive(marker) ? .foregroundColor : .hiddenMarker,
+                                 value: isActive(marker) ? faint : true as Any, range: marker)
+        }
+        for callout in parsed.callouts where !isActive(callout.header) {
+            storage.addAttribute(.collapsedFormula, value: CalloutRendering(kind: callout.kind, size: fontSize), range: callout.header)
+        }
+        for rule in parsed.rules where rule.length > 0 && !isActive(rule) {
+            storage.addAttribute(.hiddenMarker, value: true, range: rule)
+        }
+        for block in parsed.codeBlocks where !isActive(block.range) {
+            // The fences shrink to the padding of the fill.
+            for fence in [block.opening] + (block.closing.map { [$0] } ?? []) {
+                if fence.length > 0 { storage.addAttribute(.hiddenMarker, value: true, range: fence) }
+                let range = string.paragraphRange(for: NSRange(location: fence.location, length: 0))
+                guard range.length > 0, let style = (storage.attribute(.paragraphStyle, at: range.location, effectiveRange: nil)
+                                                       as? NSParagraphStyle)?.mutableCopy() as? NSMutableParagraphStyle else { continue }
+                // The gap outside the fill and its padding inside, in one fixed height: line spacing would add to it unevenly.
+                style.minimumLineHeight = NotesMarkup.blockGap(for: fontSize) + NotesMarkup.blockPadding(for: fontSize)
+                style.maximumLineHeight = style.minimumLineHeight
+                style.lineSpacing = 0
+                style.paragraphSpacingBefore = 0
+                style.paragraphSpacing = 0
+                storage.addAttribute(.paragraphStyle, value: style, range: range)
+            }
+        }
+        for line in parsed.lines {
+            guard let box = line.checkbox else { continue }
+            let dash = string.substring(with: line.marker).prefix { $0 == " " || $0 == "\t" }.utf16.count
+            let range = NSRange(location: line.marker.location + dash, length: NSMaxRange(box) - line.marker.location - dash)
+            storage.addAttribute(.collapsedFormula, value: CheckboxRendering(checked: line.isChecked, color: accent, size: fontSize, box: box), range: range)
+        }
         for line in parsed.lines where line.kind == .bullet || line.kind == .numbered {
             storage.addAttribute(.foregroundColor, value: accent, range: line.marker)
             let prefix = string.substring(with: line.marker).prefix { $0 == " " || $0 == "\t" }
@@ -475,7 +618,7 @@ final class NotesTextView: NSTextView, NSLayoutManagerDelegate {
                 storage.addAttribute(.listIndentation, value: true,
                                      range: NSRange(location: line.marker.location, length: prefix.utf16.count))
             }
-            if line.kind == .bullet {
+            if line.kind == .bullet, line.checkbox == nil {
                 let marker = string.substring(with: line.marker) as NSString
                 let dash = marker.rangeOfCharacter(from: CharacterSet(charactersIn: "-*"))
                 if dash.location != NSNotFound {
@@ -576,16 +719,17 @@ final class NotesTextView: NSTextView, NSLayoutManagerDelegate {
     override func setSelectedRanges(_ ranges: [NSValue], affinity: NSSelectionAffinity, stillSelecting: Bool) {
         // The caret steps over a tag, and a selection takes it whole.
         var ranges = ranges
-        if !pendingEdit, !parsed.comments.isEmpty {
+        let atomic = pendingEdit ? [] : atomicRanges
+        if !atomic.isEmpty {
             let previous = selectedRange().location
             ranges = ranges.map { value in
                 var range = value.rangeValue
-                for tag in parsed.comments {
-                    let start = tag.range.location, end = NSMaxRange(tag.range)
+                for piece in atomic {
+                    let start = piece.location, end = NSMaxRange(piece)
                     if range.length == 0, range.location > start, range.location < end {
                         range.location = previous <= start ? end : start
-                    } else if range.length > 0, NSIntersectionRange(range, tag.range).length > 0 {
-                        range = NSUnionRange(range, tag.range)
+                    } else if range.length > 0, NSIntersectionRange(range, piece).length > 0 {
+                        range = NSUnionRange(range, piece)
                     }
                 }
                 return NSValue(range: range)
@@ -597,7 +741,8 @@ final class NotesTextView: NSTextView, NSLayoutManagerDelegate {
         guard textStorage != nil, !hasMarkedText() else { return }
         let selection = selectedRange()
         let now = parsed.formulas.filter { isEditing($0, selection: selection) }.map(\.range)
-        if now != expanded { restyle() }
+        // Not while the mouse is still down: the line would move under it and the click become a selection.
+        if now != expanded || (!pendingEdit && !stillSelecting && activeLines != styledActive) { restyle() }
         controller?.isInFormula = NotesMarkup.formula(containing: selection.location, in: parsed) != nil
     }
 
@@ -622,7 +767,16 @@ final class NotesTextView: NSTextView, NSLayoutManagerDelegate {
 
     override func becomeFirstResponder() -> Bool {
         controller?.textView = self
-        return super.becomeFirstResponder()
+        let became = super.becomeFirstResponder()
+        if became { DispatchQueue.main.async { [weak self] in self?.restyle() } }
+        return became
+    }
+
+    override func resignFirstResponder() -> Bool {
+        let resigned = super.resignFirstResponder()
+        // Away from the notes, they show finished.
+        if resigned { DispatchQueue.main.async { [weak self] in self?.restyle() } }
+        return resigned
     }
 
     // MARK: Layout of set formulas
@@ -643,6 +797,12 @@ final class NotesTextView: NSTextView, NSLayoutManagerDelegate {
         var replaced: [CGGlyph]?
         for offset in 0..<glyphRange.length {
             let index = characterIndexes[offset]
+            if index < storage.length, storage.attribute(.hiddenMarker, at: index, effectiveRange: nil) != nil,
+               storage.attribute(.collapsedFormula, at: index, effectiveRange: nil) == nil {
+                if adjusted == nil { adjusted = Array(UnsafeBufferPointer(start: properties, count: glyphRange.length)) }
+                adjusted?[offset] = .null
+                continue
+            }
             if index < storage.length, storage.attribute(.listIndentation, at: index, effectiveRange: nil) != nil {
                 if adjusted == nil { adjusted = Array(UnsafeBufferPointer(start: properties, count: glyphRange.length)) }
                 adjusted?[offset] = .controlCharacter
@@ -705,7 +865,97 @@ final class NotesTextView: NSTextView, NSLayoutManagerDelegate {
         for placement in tagPlacements(layoutManager) {
             placement.rendering.draw(in: context, x: placement.x, baseline: placement.baseline)
         }
+        for placement in placements(of: CalloutRendering.self) {
+            placement.rendering.draw(in: context, x: placement.x, baseline: placement.baseline)
+        }
+        for placement in checkboxPlacements {
+            placement.rendering.draw(in: context, x: placement.x, baseline: placement.baseline)
+        }
         drawPreviews(in: context, layoutManager: layoutManager, length: storage.length)
+    }
+
+    /// Where renderings of one kind were laid out: the characters they stand for and their baseline.
+    private func placements<Rendering: InlineRendering>(of type: Rendering.Type) -> [(rendering: Rendering, range: NSRange, x: CGFloat, baseline: CGFloat)] {
+        guard let layoutManager, let storage = textStorage else { return [] }
+        var result: [(Rendering, NSRange, CGFloat, CGFloat)] = []
+        let origin = textContainerOrigin
+        storage.enumerateAttribute(.collapsedFormula, in: NSRange(location: 0, length: storage.length)) { value, range, _ in
+            guard let rendering = value as? Rendering else { return }
+            let glyph = layoutManager.glyphIndexForCharacter(at: range.location)
+            let line = layoutManager.lineFragmentRect(forGlyphAt: glyph, effectiveRange: nil)
+            let position = layoutManager.location(forGlyphAt: glyph)
+            result.append((rendering, range, origin.x + line.minX + position.x, origin.y + line.minY + position.y))
+        }
+        return result
+    }
+
+    private var checkboxPlacements: [(rendering: CheckboxRendering, range: NSRange, x: CGFloat, baseline: CGFloat)] {
+        placements(of: CheckboxRendering.self)
+    }
+
+    /// Where the tasks' boxes are, for clicks and the pointer.
+    var checkboxRects: [NSRect] {
+        checkboxPlacements.map { $0.rendering.square(x: $0.x, baseline: $0.baseline) }
+    }
+
+    /// The rect of a run of lines, across the notes' width.
+    private func blockRect(_ range: NSRange, layoutManager: NSLayoutManager) -> NSRect? {
+        guard let textContainer, let storage = textStorage, NSMaxRange(range) <= storage.length else { return nil }
+        // Hidden characters at the start of a line are laid out at the end of the line before; the block starts after them.
+        var start = range.location
+        while start < NSMaxRange(range), storage.attribute(.hiddenMarker, at: start, effectiveRange: nil) != nil { start += 1 }
+        var end = max(NSMaxRange(range), min(start + 1, storage.length))
+        // Likewise a hidden last line, such as a closing fence: its own line is the break after it.
+        if end == NSMaxRange(range), end > start, end < storage.length,
+           storage.attribute(.hiddenMarker, at: end - 1, effectiveRange: nil) != nil { end += 1 }
+        guard end > start else { return nil }
+        let glyphs = layoutManager.glyphRange(forCharacterRange: NSRange(location: start, length: end - start), actualCharacterRange: nil)
+        var union: NSRect?
+        layoutManager.enumerateLineFragments(forGlyphRange: glyphs) { rect, _, _, _, _ in union = union?.union(rect) ?? rect }
+        guard let union else { return nil }
+        let inset = textContainer.lineFragmentPadding
+        return NSRect(x: textContainerOrigin.x + inset, y: textContainerOrigin.y + union.minY,
+                      width: max(bounds.width - 2 * (textContainerOrigin.x + inset), 0), height: union.height)
+    }
+
+    /// The fills of boxes and code blocks, beneath the text.
+    override func drawBackground(in rect: NSRect) {
+        super.drawBackground(in: rect)
+        guard let layoutManager, let storage = textStorage else { return }
+        let gap = NotesMarkup.blockGap(for: fontSize)
+        let ranges = parsed.codeBlocks.map(\.range) + parsed.callouts.map(\.range)
+        for range in ranges where range.length > 0 && NSMaxRange(range) <= storage.length {
+            guard let block = storage.attribute(NotesMarkup.blockKey, at: range.location, effectiveRange: nil) as? NotesMarkup.Block,
+                  var box = blockRect(range, layoutManager: layoutManager) else { continue }
+            box.origin.y += gap
+            box.size.height -= 2 * gap
+            guard box.intersects(rect), box.height > 0 else { continue }
+            block.fill.setFill()
+            NSBezierPath(roundedRect: box, xRadius: 8, yRadius: 8).fill()
+        }
+        drawRulesAndLanguages(layoutManager: layoutManager, length: storage.length)
+    }
+
+    /// A line for each rule, and the language of a code block in its corner, both away from the line being written.
+    private func drawRulesAndLanguages(layoutManager: NSLayoutManager, length: Int) {
+        let active = styledActive
+        func isActive(_ range: NSRange) -> Bool {
+            guard let active else { return false }
+            return range.location <= NSMaxRange(active) && active.location <= NSMaxRange(range)
+        }
+        for rule in parsed.rules where NSMaxRange(rule) <= length && !isActive(rule) {
+            guard let rect = blockRect(rule.length > 0 ? rule : NSRange(location: rule.location, length: 0), layoutManager: layoutManager) else { continue }
+            NSColor.separatorColor.setFill()
+            NSRect(x: rect.minX, y: (rect.midY - 1).rounded(), width: rect.width, height: 1).fill()
+        }
+        let gap = NotesMarkup.blockGap(for: fontSize)
+        for block in parsed.codeBlocks where !block.language.isEmpty && NSMaxRange(block.range) <= length && !isActive(block.range) {
+            guard let rect = blockRect(block.range, layoutManager: layoutManager) else { continue }
+            let label = NSAttributedString(string: block.language, attributes: [
+                .font: NSFont.systemFont(ofSize: max(fontSize * 0.72, 10)), .foregroundColor: NSColor.tertiaryLabelColor])
+            let size = label.size()
+            label.draw(at: NSPoint(x: rect.maxX - size.width - 10, y: rect.minY + gap + 4))
+        }
     }
 
     /// Beneath the formula being written, in the room its paragraph spacing keeps free.
@@ -745,9 +995,44 @@ final class NotesTextView: NSTextView, NSLayoutManagerDelegate {
         return true
     }
 
+    /// A click on a task's box ticks it or clears it, as one step to undo.
+    @discardableResult
+    func toggleCheckbox(at point: NSPoint) -> Bool {
+        guard let hit = checkboxPlacements.first(where: {
+            $0.rendering.square(x: $0.x, baseline: $0.baseline).insetBy(dx: -3, dy: -3).contains(point)
+        }) else { return false }
+        let box = hit.rendering.box
+        let inside = NSRange(location: box.location + 1, length: 1)
+        guard NSMaxRange(inside) <= (string as NSString).length else { return false }
+        let selection = selectedRange()
+        expandingTag = true
+        insertText(hit.rendering.checked ? " " : "x", replacementRange: inside)
+        expandingTag = false
+        setSelectedRange(selection)
+        return true
+    }
+
+    /// The link at a point of the text, if there is one.
+    func link(at point: NSPoint) -> URL? {
+        guard let layoutManager, let textContainer, let storage = textStorage, storage.length > 0 else { return nil }
+        let local = NSPoint(x: point.x - textContainerOrigin.x, y: point.y - textContainerOrigin.y)
+        var fraction: CGFloat = 0
+        let glyph = layoutManager.glyphIndex(for: local, in: textContainer, fractionOfDistanceThroughGlyph: &fraction)
+        guard layoutManager.boundingRect(forGlyphRange: NSRange(location: glyph, length: 1), in: textContainer).contains(local) else { return nil }
+        let index = layoutManager.characterIndexForGlyph(at: glyph)
+        guard index < storage.length else { return nil }
+        return storage.attribute(NotesMarkup.linkKey, at: index, effectiveRange: nil) as? URL
+    }
+
     override func mouseDown(with event: NSEvent) {
         let point = convert(event.locationInWindow, from: nil)
         if toggleTag(at: point) { return }
+        if toggleCheckbox(at: point) { return }
+        // ⌘-click opens a link; a plain click places the caret in it, to edit it.
+        if event.modifierFlags.contains(.command), let url = link(at: point) {
+            NSWorkspace.shared.open(url)
+            return
+        }
         // A click on a set formula opens its source, with the caret before the closing dollar signs.
         if let hit = drawnFormulas.first(where: { $0.rect.contains(point) }) {
             window?.makeFirstResponder(self)
@@ -773,6 +1058,7 @@ final class NotesTextView: NSTextView, NSLayoutManagerDelegate {
             }
         }
         let excluded = tagRects.map(\.rect) + drawnFormulas.map(\.rect) + (card.map { [$0.view.frame] } ?? [])
+            + checkboxPlacements.map { $0.rendering.square(x: $0.x, baseline: $0.baseline) }
         return lines.flatMap { line in
             // What lies on the line comes out of it, leaving the pieces of text beside it.
             excluded.filter { $0.intersects(line) }.sorted { $0.minX < $1.minX }.reduce(into: [line]) { pieces, cut in
@@ -788,9 +1074,18 @@ final class NotesTextView: NSTextView, NSLayoutManagerDelegate {
         for rect in textCursorRects { addCursorRect(rect, cursor: .iBeam) }
     }
 
+    /// Whether the pointer at `point` is over text that can be edited: the notes' own, or the open card's comment.
+    func isOverEditableText(_ point: NSPoint) -> Bool {
+        if let card, card.view.frame.contains(point) {
+            guard let editor = Self.firstNotesView(in: card.view) else { return false }
+            return editor.isOverEditableText(editor.convert(point, from: self))
+        }
+        return textCursorRects.contains { $0.contains(point) }
+    }
+
     /// The text view also sets its cursor while the mouse moves; this keeps it to the text.
     private func updateCursor(at point: NSPoint) {
-        (textCursorRects.contains { $0.contains(point) } ? NSCursor.iBeam : NSCursor.arrow).set()
+        (isOverEditableText(point) ? NSCursor.iBeam : NSCursor.arrow).set()
     }
 
     override func cursorUpdate(with event: NSEvent) {
@@ -799,10 +1094,8 @@ final class NotesTextView: NSTextView, NSLayoutManagerDelegate {
 
     override func mouseMoved(with event: NSEvent) {
         super.mouseMoved(with: event)
-        let point = convert(event.locationInWindow, from: nil)
-        // Over the card, its own views decide.
-        if let card, card.view.frame.contains(point) { return }
-        updateCursor(at: point)
+        // Also over the open card: NSTextView has just set the text cursor everywhere.
+        updateCursor(at: convert(event.locationInWindow, from: nil))
     }
 
     // MARK: Size
@@ -937,6 +1230,8 @@ final class NotesTextView: NSTextView, NSLayoutManagerDelegate {
         if line.kind == .numbered, let digits = marker.firstRange(of: /\d+/), let number = Int(marker[digits]) {
             next.replaceSubrange(digits, with: String(number + 1))
         }
+        // The next task starts open.
+        if line.checkbox != nil { next = next.replacingOccurrences(of: "[x]", with: "[ ]").replacingOccurrences(of: "[X]", with: "[ ]") }
         insertText("\n" + next, replacementRange: selection)
     }
 
@@ -977,6 +1272,105 @@ final class NotesTextView: NSTextView, NSLayoutManagerDelegate {
             else { result.append((numbered ? "\(number). " : "- ") + stripped); number += 1 }
         }
         insertText(result.joined(separator: "\n"), replacementRange: lineRange)
+    }
+
+    /// Replaces the whole lines the selection touches, as one step to undo.
+    private func replaceLines(_ transform: (_ lines: [String]) -> [String]) {
+        window?.makeFirstResponder(self)
+        let string = self.string as NSString
+        var range = string.lineRange(for: selectedRange())
+        // Without the last break, which belongs to the next line's start.
+        if range.length > 0, string.character(at: NSMaxRange(range) - 1) == 10 { range.length -= 1 }
+        let result = transform(string.substring(with: range).components(separatedBy: "\n")).joined(separator: "\n")
+        insertText(result, replacementRange: range)
+        setSelectedRange(NSRange(location: range.location + (result as NSString).length, length: 0))
+    }
+
+    /// The lines at the caret become headings, or plain text again.
+    func toggleHeading() {
+        replaceLines { lines in
+            let headed = lines.allSatisfy { $0.isEmpty || $0.hasPrefix("#") }
+            return lines.map { line in
+                let plain = line.replacing(/^#{1,6}[ \t]*/, with: "")
+                return headed || line.isEmpty ? plain : "## " + plain
+            }
+        }
+    }
+
+    /// The lines at the caret become tasks, or plain text again.
+    func toggleTask() {
+        replaceLines { lines in
+            let tasks = lines.allSatisfy { $0.isEmpty || $0.contains(/^[ \t]*[-*•][ \t]+\[[ xX]\]/) }
+            return lines.map { line in
+                guard !line.isEmpty else { return line }
+                let indent = String(line.prefix { $0 == " " || $0 == "\t" })
+                let plain = String(line.dropFirst(indent.count)).replacing(/^([-*•][ \t]+)?(\[[ xX]\][ \t]*)?/, with: "")
+                return indent + (tasks ? plain : "- [ ] " + plain)
+            }
+        }
+    }
+
+    /// Puts `block` on lines of its own: in place of the caret's line if it is empty, otherwise after it.
+    /// `caret` counts within the block; the selection, if any, is replaced.
+    private func insertBlock(_ block: String, caret: Int, select length: Int = 0) {
+        window?.makeFirstResponder(self)
+        let string = self.string as NSString
+        let selection = selectedRange()
+        var range = selection
+        var text = block
+        var offset = caret
+        if selection.length == 0 {
+            let line = string.lineRange(for: selection)
+            var content = line
+            if content.length > 0, string.character(at: NSMaxRange(content) - 1) == 10 { content.length -= 1 }
+            if string.substring(with: content).trimmingCharacters(in: .whitespaces).isEmpty {
+                range = content
+            } else {
+                range = NSRange(location: NSMaxRange(content), length: 0)
+                text = "\n" + block
+                offset += 1
+            }
+        } else {
+            // Around a selection within a line, the block still stands on lines of its own.
+            if range.location > 0, string.character(at: range.location - 1) != 10 { text = "\n" + text; offset += 1 }
+            if NSMaxRange(range) < string.length, string.character(at: NSMaxRange(range)) != 10 { text += "\n" }
+        }
+        insertText(text, replacementRange: range)
+        setSelectedRange(NSRange(location: range.location + offset, length: length))
+    }
+
+    /// A box: its head, then the selection or the caret on its first line.
+    func insertCallout(_ kind: NotesMarkup.CalloutKind) {
+        let head = "> [!" + kind.marker + "]\n"
+        let selected = (string as NSString).substring(with: selectedRange())
+        let body = selected.isEmpty ? "> " : selected.components(separatedBy: "\n").map { "> " + $0 }.joined(separator: "\n")
+        insertBlock(head + body, caret: (head + body as NSString).length)
+    }
+
+    /// A link around the selection, with the caret where the address goes; without one, "Text" selected to overwrite.
+    func insertLink() {
+        window?.makeFirstResponder(self)
+        let selection = selectedRange()
+        let selected = (string as NSString).substring(with: selection)
+        if selected.isEmpty {
+            insertText("[Text](https://)", replacementRange: selection)
+            setSelectedRange(NSRange(location: selection.location + 1, length: 4))
+        } else {
+            let link = "[" + selected + "](https://)"
+            insertText(link, replacementRange: selection)
+            setSelectedRange(NSRange(location: selection.location + (link as NSString).length - 1, length: 0))
+        }
+    }
+
+    /// A code block around the selection, or an empty one with the caret inside.
+    func insertCodeBlock() {
+        let selected = (string as NSString).substring(with: selectedRange())
+        let block = "```\n" + selected + "\n```"
+        insertBlock(block, caret: 4 + (selected as NSString).length)
+    }
+
+    func insertRule() {
+        insertBlock("---\n", caret: 4)
     }
 
     func insert(_ insertion: FormulaInsertion) {
