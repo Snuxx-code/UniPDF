@@ -14,6 +14,7 @@ struct UniPDFApp: App {
         .defaultSize(width: 1320, height: 850)
         .commands {
             LibraryCommands()
+            AutoSaveCommands()
             DocumentSearchCommands()
             CommandGroup(replacing: .help) {
                 Button("UniPDF Help") {
@@ -62,9 +63,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         UserDefaults.standard.register(defaults: ["NSShowAppCentricOpenPanelInsteadOfUntitledFile": false])
     }
 
-    // Clicking the Dock icon with all windows closed behaves like a start without a file.
+    // Clicking the Dock icon brings a window minimized to the Dock back, a document before the library.
+    // Only with every window closed does it behave like a start without a file.
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
-        if !hasVisibleWindows { Self.openLastFileOrLibrary() }
+        guard !hasVisibleWindows else { return false }
+        let minimized = sender.windows.filter { $0.isMiniaturized && $0.canBecomeMain }
+        if let window = minimized.first(where: { NSDocumentController.shared.document(for: $0) != nil }) ?? minimized.first {
+            window.deminiaturize(nil)
+            window.makeKeyAndOrderFront(nil)
+        } else {
+            Self.openLastFileOrLibrary()
+        }
         return false
     }
 
@@ -105,6 +114,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Claude's tools reach the open lectures through UniPDF's local socket.
+        ClaudeBridge.shared.start()
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
         // False when the app was started by opening a file, which only arrives after this point.

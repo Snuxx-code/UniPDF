@@ -415,7 +415,6 @@
 "Formatting of the notes" = "Formatierung der Mitschrift";
 "Formatting" = "Formatierung";
 "What do you want to remember?" = "Was möchtest du festhalten?";
-"Format like in a chat: **bold**, _italic_, ~strikethrough~, - bullets. Formulas go between $ … $ or come from “Formula”, sketches from “Sketch”." = "Formatiere wie im Chat: **fett**, _kursiv_, ~durchgestrichen~, - Stichpunkte. Formeln stehen zwischen $ … $ oder kommen über „Formel“ dazu, Skizzen über „Skizze“.";
 "Your own explanations, key ideas, open questions …" = "Eigene Erklärungen, wichtige Gedanken, offene Fragen …";
 "Notes for slide %lld" = "Mitschrift zu Folie %lld";
 "%lld words" = "%lld Wörter";
@@ -448,3 +447,22 @@
 "Show Notes" = "Mitschrift einblenden";
 "Hide Notes" = "Mitschrift ausblenden";
 "Slide %lld, with notes" = "Folie %lld, mit Mitschrift";
+
+"Save Automatically" = "Automatisch sichern";
+"Saving automatically" = "Wird automatisch gesichert";
+"Saving Automatically" = "Wird automatisch gesichert";
+
+/* Boxes in the notes, > [!…] */
+"Definition" = "Definition";
+"Remember" = "Merke";
+"Example" = "Beispiel";
+"Exam" = "Prüfung";
+"Caution" = "Achtung";
+
+/* Format buttons beneath the notes */
+"Heading" = "Überschrift";
+"Bullet" = "Stichpunkt";
+"Task" = "Aufgabe";
+"Box" = "Kasten";
+"Link" = "Link";
+"Rule" = "Linie";

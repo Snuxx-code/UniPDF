@@ -43,6 +43,7 @@ The slide is on the left, and you write on the right. When you save, it becomes 
 | **Everything in one PDF** | Save slides, annotations, comments and notes together, or export them as an additional study PDF. |
 | **Library and tabs** | Organize lectures in folders, as tiles or a list, and open several files side by side as tabs. |
 | **Prepare an AI prompt** | Copy a question with the right file path and the current slide. You decide which AI chat it goes into. |
+| **Work with Claude, live** | Connect Claude Desktop or Claude Code, and Claude reads your slides and notes, comments on passages, highlights and adds to your notes – right in the open lecture, each step undoable with ⌘Z. |
 
 UniPDF works entirely locally with **SwiftUI, AppKit, PDFKit and CoreText** and has no external package dependencies. The AI prompt, too, is only copied to the clipboard and never sent anywhere automatically.
 
@@ -77,6 +78,28 @@ Alternatively, open `Package.swift` in Xcode and run the **UniPDF** scheme; the 
 
 > [!IMPORTANT]
 > **⌘S replaces the open lecture PDF at the same path** with the version that contains your notes. Every later save updates this file. The original slides and all editable content are stored in the PDF's metadata, so saving again does not nest the study pages. Other PDF apps can remove this metadata when they save, so save the file in UniPDF to keep editing it.
+
+## Claude in UniPDF
+
+UniPDF can be connected to Claude through the Model Context Protocol (MCP). Claude then works on the lecture that is open in UniPDF while you watch: it reads slides and notes, comments on passages, highlights them, adds to the notes and goes to a slide. Every change arrives at once, can be taken back with **⌘Z** and is saved like your own.
+
+**Claude Desktop:** add UniPDF to `~/Library/Application Support/Claude/claude_desktop_config.json` and restart Claude:
+
+```json
+{
+  "mcpServers": {
+    "unipdf": { "command": "/Applications/UniPDF.app/Contents/MacOS/UniPDF", "args": ["--mcp"] }
+  }
+}
+```
+
+**Claude Code:**
+
+```sh
+claude mcp add --scope user unipdf -- /Applications/UniPDF.app/Contents/MacOS/UniPDF --mcp
+```
+
+Keep UniPDF open with the lecture. `UniPDF --mcp` opens no window: it only passes Claude's requests to the running app through a socket in `~/Library/Application Support/UniPDF` that only your user can open. Nothing leaves your Mac except what you share with Claude in the chat. The tools are `open_documents`, `read_slide`, `current_selection`, `add_comment`, `edit_comment`, `delete_comment`, `add_notes`, `highlight_text` and `go_to_slide`; Claude adds to your notes but never rewrites or deletes them; besides its own, it can change or remove existing comments.
 
 ## Keyboard shortcuts
 

@@ -137,7 +137,8 @@ private func allText(on page: PDFPage) throws -> PDFSelection {
             space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
         context.drawPDFPage(output)
         let reference = try #require(page.pageRef)
-        let transform = reference.getDrawingTransform(.cropBox, rect: CGRect(x: 32, y: 72, width: 460, height: 428), rotate: 0, preserveAspectRatio: true)
+        let layout = PDFExporter.Layout.for(page.displayedSlideSize, page: PDFExporter.pageSize)
+        let transform = PDFExporter.slideTransform(reference, displayed: page.displayedSlideSize, layout: layout)
         let expected = selection.selectionsByLine().map { $0.bounds(for: page).applying(transform).insetBy(dx: -2, dy: -2) }
         let bytes = try #require(context.data).assumingMemoryBound(to: UInt8.self)
         var markedPixels = 0

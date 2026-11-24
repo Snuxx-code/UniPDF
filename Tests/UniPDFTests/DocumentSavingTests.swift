@@ -434,7 +434,7 @@ import UniPDFCore
         board.setString("Eingefügter Text", forType: .string)
         harness.canvas.overlay.paste(from: board)
         harness.update()
-        guard case .text(let string, _, _, _)? = harness.committed.last?.content else { Issue.record("Not a text"); return }
+        guard case .text(let string, _, _, _, _)? = harness.committed.last?.content else { Issue.record("Not a text"); return }
         #expect(string == "Eingefügter Text")
     }
 

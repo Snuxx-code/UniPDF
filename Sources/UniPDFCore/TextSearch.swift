@@ -34,7 +34,7 @@ public enum TextSearch {
             hits += find(needle, in: pageTexts[page], page: page, source: .slide, limit: limit - hits.count)
             let notes = pages[page] ?? PageNotes()
             for annotation in notes.annotations {
-                guard case .text(let string, _, _, _) = annotation.content else { continue }
+                guard case .text(let string, _, _, _, _) = annotation.content else { continue }
                 hits += find(needle, in: string, page: page, source: .textBox(annotation.id), limit: limit - hits.count)
             }
             for (id, comment) in CommentLinks.ordered(notes) {

@@ -26,6 +26,12 @@ struct NotesEditorTests {
         // An empty item ends the list.
         #expect(view.string == "- Erster\n")
 
+        let task = editor("- [x] Erledigt")
+        task.insertNewline(nil)
+        #expect(task.string == "- [x] Erledigt\n- [ ] ")
+        task.insertNewline(nil)
+        #expect(task.string == "- [x] Erledigt\n")
+
         let numbered = editor("3. Drei")
         numbered.insertNewline(nil)
         #expect(numbered.string == "3. Drei\n4. ")
@@ -179,6 +185,152 @@ struct NotesEditorTests {
         #expect(!text.contains { $0.contains(NSPoint(x: 20, y: 200)) })
         // An empty field still offers its first line.
         #expect(editor("").textCursorRects.count == 1)
+    }
+
+    @Test func anOpenCardShowsTheTextCursorOnlyOverItsText() throws {
+        let id = UUID()
+        let view = editor("Vor \(CommentLinks.token(for: id)) nach")
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 400, height: 500), styleMask: [.titled], backing: .buffered, defer: true)
+        window.contentView = view
+        view.comments = CommentContext(comments: [id: SlideComment(rects: [CGRect(x: 0, y: 0, width: 10, height: 10)], quote: "Stelle",
+                                                                   text: "Ein Kommentar")],
+                                       expanded: id, update: { _, _ in }, delete: { _ in }, jump: { _ in }, toggle: { _ in })
+        view.restyle()
+        view.layoutCard()
+        let card = try #require(view.subviews.first { $0 is CardHostingView })
+        card.layoutSubtreeIfNeeded()
+        func notesView(in view: NSView) -> NotesTextView? {
+            view.subviews.lazy.compactMap { $0 as? NotesTextView ?? notesView(in: $0) }.first
+        }
+        let inner = try #require(notesView(in: card))
+        let text = try #require(inner.textCursorRects.first)
+        // Over the comment's text: the text cursor; over the card's head and its empty space: the pointer.
+        #expect(view.isOverEditableText(view.convert(NSPoint(x: text.minX + 4, y: text.midY), from: inner)))
+        #expect(!view.isOverEditableText(NSPoint(x: card.frame.midX, y: card.frame.minY + 4)))
+        #expect(!view.isOverEditableText(view.convert(NSPoint(x: text.maxX + 30, y: text.midY), from: inner)))
+        // The notes' own text keeps it.
+        #expect(view.isOverEditableText(NSPoint(x: (view.textCursorRects.first?.minX ?? 0) + 4, y: view.textCursorRects.first?.midY ?? 0)))
+    }
+
+    private func isHidden(_ view: NotesTextView, at location: Int) -> Bool {
+        view.textStorage?.attribute(NSAttributedString.Key("UniPDFHiddenMarker"), at: location, effectiveRange: nil) != nil
+    }
+
+    @Test func markersShowOnlyOnTheLineBeingWritten() {
+        let text = "# Titel\nDas ist **fett**\n[Moodle](https://example.de)"
+        let view = editor(text, caret: 3)
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 400, height: 300), styleMask: [.titled], backing: .buffered, defer: true)
+        window.contentView = view
+        // Not being written: everything finished.
+        view.restyle()
+        #expect(isHidden(view, at: 0))
+        #expect(isHidden(view, at: (text as NSString).range(of: "**").location))
+        // The caret in the title: its marker shows, the others stay hidden.
+        window.makeFirstResponder(view)
+        view.setSelectedRange(NSRange(location: 3, length: 0))
+        view.restyle()
+        #expect(!isHidden(view, at: 0))
+        #expect(isHidden(view, at: (text as NSString).range(of: "**").location))
+        #expect(isHidden(view, at: (text as NSString).range(of: "](").location))
+        // On the next line, the bold markers show and the title's hide.
+        view.setSelectedRange(NSRange(location: (text as NSString).range(of: "fett").location, length: 0))
+        #expect(isHidden(view, at: 0))
+        #expect(!isHidden(view, at: (text as NSString).range(of: "**").location))
+    }
+
+    @Test func aClickOnATasksBoxTicksIt() throws {
+        let view = editor("- [ ] Übung rechnen\nText", caret: 22)
+        view.display()
+        let box = try #require(view.layoutManager.map { _ in view.checkboxRects.first } ?? nil)
+        #expect(view.toggleCheckbox(at: NSPoint(x: box.midX, y: box.midY)))
+        #expect(view.string == "- [x] Übung rechnen\nText")
+        #expect(view.selectedRange() == NSRange(location: 22, length: 0))
+        #expect(view.toggleCheckbox(at: NSPoint(x: box.midX, y: box.midY)))
+        #expect(view.string == "- [ ] Übung rechnen\nText")
+        #expect(!view.toggleCheckbox(at: NSPoint(x: box.maxX + 80, y: box.midY)))
+    }
+
+    @Test func theFormatButtonsPutTheirElementAtTheCaret() {
+        // A box on an empty line takes it; after text it comes on the next line, the caret inside.
+        let empty = editor("")
+        empty.insertCallout(.remember)
+        #expect(empty.string == "> [!MERKE]\n> ")
+        #expect(empty.selectedRange().location == ("> [!MERKE]\n> " as NSString).length)
+        let after = editor("Text", caret: 2)
+        after.insertCallout(.exam)
+        #expect(after.string == "Text\n> [!PRÜFUNG]\n> ")
+        // Around a selection: the selection is the box's text.
+        let selected = editor("A\nZwei Zeilen\nB")
+        selected.setSelectedRange(NSRange(location: 2, length: 11))
+        selected.insertCallout(.definition)
+        #expect(selected.string == "A\n> [!DEFINITION]\n> Zwei Zeilen\nB")
+
+        let code = editor("Text")
+        code.insertCodeBlock()
+        #expect(code.string == "Text\n```\n\n```")
+        #expect(code.selectedRange().location == ("Text\n```\n" as NSString).length)
+
+        let rule = editor("Teil 1")
+        rule.insertRule()
+        #expect(rule.string == "Teil 1\n---\n")
+
+        let link = editor("Moodle")
+        link.setSelectedRange(NSRange(location: 0, length: 6))
+        link.insertLink()
+        #expect(link.string == "[Moodle](https://)")
+        #expect(link.selectedRange().location == 17)
+
+        let lines = editor("- Erstens\nZweitens", caret: 3)
+        lines.setSelectedRange(NSRange(location: 3, length: 9))
+        lines.toggleTask()
+        #expect(lines.string == "- [ ] Erstens\n- [ ] Zweitens")
+        lines.setSelectedRange(NSRange(location: 0, length: 5))
+        lines.toggleTask()
+        #expect(lines.string == "Erstens\n- [ ] Zweitens")
+
+        let heading = editor("Titel", caret: 2)
+        heading.toggleHeading()
+        #expect(heading.string == "## Titel")
+        heading.toggleHeading()
+        #expect(heading.string == "Titel")
+    }
+
+    @Test func theButtonRowScrollsSideways() {
+        let scroll = WheelScrollView(frame: NSRect(x: 0, y: 0, width: 100, height: 28))
+        scroll.documentView = NSView(frame: NSRect(x: 0, y: 0, width: 300, height: 28))
+        #expect(scroll.scrollSideways(by: 50))
+        #expect(scroll.contentView.bounds.origin.x == 50)
+        scroll.scrollSideways(by: 1000)
+        #expect(scroll.contentView.bounds.origin.x == 200)
+        scroll.scrollSideways(by: -1000)
+        #expect(scroll.contentView.bounds.origin.x == 0)
+        // Nothing to scroll when everything fits.
+        scroll.documentView = NSView(frame: NSRect(x: 0, y: 0, width: 80, height: 28))
+        #expect(!scroll.scrollSideways(by: 50))
+    }
+
+    @Test func boxesKeepTheirPaddingAtTheStartAndEndOfTheNotes() throws {
+        let padding = NotesMarkup.blockPadding(for: 15)
+        // The notes, the first and the last text shown in the block.
+        let cases = [("> [!MERKE]\n> Nur ein Kasten", "[!MERKE]", "Kasten"), ("Davor\n> [!MERKE]\n> Am Ende", "[!MERKE]", "Ende"),
+                     ("> [!MERKE]\n> Am Anfang\nDanach", "[!MERKE]", "Anfang"), ("```\ncode\n```", "code", "code"),
+                     ("Davor\n```\ncode\n```", "code", "code")]
+        for (text, first, last) in cases {
+            let view = editor(text)
+            view.fontSize = 15
+            view.restyle()
+            let layoutManager = try #require(view.layoutManager), container = try #require(view.textContainer)
+            layoutManager.ensureLayout(for: container)
+            func rect(_ word: String) -> NSRect {
+                let glyphs = layoutManager.glyphRange(forCharacterRange: (text as NSString).range(of: word), actualCharacterRange: nil)
+                return layoutManager.boundingRect(forGlyphRange: glyphs, in: container).offsetBy(dx: 0, dy: view.textContainerOrigin.y)
+            }
+            let box = try #require(view.blockBoxes.first?.rect, "\(text)")
+            #expect(box.minY >= 0, "\(text)")
+            #expect(box.minY <= rect(first).minY - padding * 0.5, "top of \(text)")
+            #expect(box.maxY >= rect(last).maxY + padding * 0.5, "bottom of \(text)")
+            #expect(view.height(forWidth: 400) >= box.maxY)
+        }
     }
 
     @Test func boldWrapsTheSelectionAndUnwrapsIt() {

@@ -51,6 +51,38 @@ struct CommentTests {
         #expect(CommentLinks.reconcile(typed, previous: before) == typed)
     }
 
+    @Test func aTagThatComesBackBringsItsComment() {
+        let a = UUID(), b = UUID()
+        let kept = CommentLinks.Removed()
+        let before = notes(comments: [(a, "erst"), (b, "dann")]) { ids in "Eins \(CommentLinks.token(for: ids[0]))\nZwei \(CommentLinks.token(for: ids[1]))" }
+
+        // ⌘X takes the tag and the comment; ⌘V elsewhere brings both back.
+        var cut = before
+        cut.text = "Eins \nZwei \(CommentLinks.token(for: b))"
+        let afterCut = CommentLinks.reconcile(cut, previous: before, kept: kept)
+        #expect(afterCut.annotations.map(\.id) == [b])
+        var pasted = afterCut
+        pasted.text += "\nDrei \(CommentLinks.token(for: a))"
+        let afterPaste = CommentLinks.reconcile(pasted, previous: afterCut, kept: kept)
+        #expect(afterPaste.annotations.map(\.id) == [b, a])
+        guard case .comment(let comment) = afterPaste.annotations.last?.content else { Issue.record("No comment"); return }
+        #expect(comment.text == "erst" && comment.color == .mint)
+
+        // Deleted with its card, the comment returns with its tag when the notes undo the deletion.
+        var deleted = before
+        deleted.annotations.removeAll { $0.id == b }
+        let afterDelete = CommentLinks.reconcile(deleted, previous: before, kept: kept)
+        #expect(!afterDelete.text.contains(CommentLinks.token(for: b)))
+        var undone = afterDelete
+        undone.text = before.text
+        #expect(CommentLinks.reconcile(undone, previous: afterDelete, kept: kept).annotations.map(\.id) == [a, b])
+
+        // A tag nobody knows stays a tag without a comment.
+        var unknown = before
+        unknown.text += " " + CommentLinks.token(for: UUID())
+        #expect(CommentLinks.reconcile(unknown, previous: before, kept: kept).annotations.count == 2)
+    }
+
     @Test func commentsSurviveSavingAndAreSearchable() throws {
         let id = UUID()
         let page = notes(comments: [(id, "Prüfungsrelevant: **Formel** merken")])

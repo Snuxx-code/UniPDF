@@ -93,13 +93,36 @@ public enum CommentLinks {
         }
     }
 
+    /// Comments taken out with their tag, for as long as the app runs. Their ids are unique, so one store serves every document.
+    public final class Removed: @unchecked Sendable {
+        private var kept: [UUID: SlideAnnotation] = [:]
+        private let lock = NSLock()
+        public init() {}
+        func keep(_ annotation: SlideAnnotation) { lock.withLock { kept[annotation.id] = annotation } }
+        func annotation(_ id: UUID) -> SlideAnnotation? { lock.withLock { kept[id] } }
+    }
+
+    public static let removed = Removed()
+
     /// Removing a comment's tag from the notes removes the comment from the slide, and the other way round.
-    public static func reconcile(_ new: PageNotes, previous: PageNotes) -> PageNotes {
+    /// Removed comments go into `kept`, so that their tag brings them back when it returns:
+    /// pasted after ⌘X, or restored by undo in the notes.
+    public static func reconcile(_ new: PageNotes, previous: PageNotes, kept: Removed = removed) -> PageNotes {
         var result = new
         let oldTags = Set(tokens(in: previous.text).map(\.id)), newTags = Set(tokens(in: new.text).map(\.id))
         let oldComments = Set(comments(in: previous).map(\.id)), newComments = Set(comments(in: new).map(\.id))
         let tagsRemoved = oldTags.subtracting(newTags)
         let commentsRemoved = oldComments.subtracting(newComments)
+        for annotation in previous.annotations {
+            guard case .comment = annotation.content, tagsRemoved.contains(annotation.id) || commentsRemoved.contains(annotation.id) else { continue }
+            kept.keep(annotation)
+        }
+        // A tag that comes back without its comment brings the comment back, where it is still known.
+        for id in tokens(in: new.text).map(\.id) where !oldTags.contains(id) && !newComments.contains(id) {
+            if let annotation = kept.annotation(id), !result.annotations.contains(where: { $0.id == id }) {
+                result.annotations.append(annotation)
+            }
+        }
         if !tagsRemoved.isEmpty {
             result.annotations.removeAll { annotation in
                 guard case .comment = annotation.content else { return false }

@@ -7,6 +7,13 @@ import UniPDFCore
 @main
 struct UniPDFLauncher {
     static func main() {
+        if CommandLine.arguments.contains("--mcp") {
+            // Started by Claude: no window, only the Model Context Protocol on standard input and output,
+            // handed to the running UniPDF.
+            let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
+            MCPServer(version: version) { tool, arguments in ClaudeLink.call(tool, arguments: arguments) }.run()
+            exit(0)
+        }
         if CommandLine.arguments.contains("--preview") {
             do { try PreviewHarness.run() }
             catch { fputs("Preview failed: \(error.localizedDescription)\n", stderr); exit(1) }

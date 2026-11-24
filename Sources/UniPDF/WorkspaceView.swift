@@ -12,6 +12,11 @@ struct WorkspaceView: View {
     @State private var fileTree = FileTreeModel()
     @State private var showsToolSettings = false
     @State private var hasUnsavedChanges = false
+    @State private var autoSaving = false
+    /// Counts the document's changes, for saving by itself.
+    @State private var revision = 0
+    /// This lecture as Claude's tools reach it, while it is open.
+    @State private var claude: ClaudeWorkspace?
     @State private var importing = false
     @State private var importSourceWindow: NSWindow?
     @State private var errorMessage: String?
@@ -100,9 +105,19 @@ struct WorkspaceView: View {
                 notesCollapsed = false
                 notesEditor.expand(id)
             }
+            connectClaude()
         }
+        .onDisappear {
+            if let claude { ClaudeBridge.shared.unregister(claude) }
+            claude = nil
+        }
+        .onChange(of: fileURL) { connectClaude() }
         .onChange(of: search.query) { updateSearch() }
-        .onChange(of: document.project.pages) { if search.isSearching { updateSearch() } }
+        .onChange(of: document.project.pages) {
+            revision += 1
+            if search.isSearching { updateSearch() }
+        }
+        .onChange(of: document.project.title) { revision += 1 }
         .onChange(of: session.selection) {
             // A card stays open only on its own slide, such as one a search hit opened.
             if let id = notesEditor.expandedComment, !notes.wrappedValue.annotations.contains(where: { $0.id == id }) {
@@ -272,6 +287,34 @@ struct WorkspaceView: View {
         }
         if case .comment(let id) = hit.source { notesEditor.expand(id) }
         session.pendingReveal = SearchReveal(page: hit.page, source: hit.source, range: hit.range)
+    }
+
+    // MARK: Claude
+
+    /// Lets Claude's tools read and change this lecture; every change goes through the document, like one by hand.
+    private func connectClaude() {
+        if let claude { ClaudeBridge.shared.unregister(claude) }
+        let session = session, editor = notesEditor, url = fileURL
+        let workspace = ClaudeWorkspace(
+            title: { document.project.title },
+            fileURL: { url },
+            pdf: { session.document },
+            currentSlide: { session.selection },
+            showSlide: { index in session.selection = index },
+            notes: { index in document.project.pages[index] ?? PageNotes() },
+            setNotes: { index, value in notes(for: index).wrappedValue = value },
+            slideSelection: { session.view?.currentSelection?.string },
+            notesSelection: {
+                guard let view = editor.notesView, view.selectedRange().length > 0 else { return nil }
+                return (view.string as NSString).substring(with: view.selectedRange())
+            },
+            window: { session.view?.window },
+            showComment: { _, id in
+                notesCollapsed = false
+                editor.expand(id)
+            })
+        ClaudeBridge.shared.register(workspace)
+        claude = workspace
     }
 
     // MARK: Comments
@@ -449,10 +492,7 @@ struct WorkspaceView: View {
                         sectionHeader("Sketch", symbol: "pencil.tip")
                         DrawingEditor(elements: notes.drawing).id(session.selection)
                     }
-                    if !showFormula && !showDrawing && notes.wrappedValue.drawing.isEmpty {
-                        Text(verbatim: String(localized: "Format like in a chat: **bold**, _italic_, ~strikethrough~, - bullets. Formulas go between $ … $ or come from “Formula”, sketches from “Sketch”."))
-                            .font(.callout).foregroundStyle(.secondary).lineSpacing(4)
-                    }
+                    FormatBar(controller: notesEditor) { showFormula.toggle() }
                 }.padding(24)
             }
             Divider()
@@ -548,14 +588,18 @@ struct WorkspaceView: View {
                 .padding(.leading, 10).padding(.trailing, 6)
                 .background(HiddenWindowTitle())
                 .background(DocumentEditedObserver { hasUnsavedChanges = $0 })
+                .background(AutoSaver(revision: { revision }) { autoSaving = $0 })
             } else { Text("UniPDF").font(.headline) }
         }
     }
 
-    /// A quiet mark beside the lecture's name: a grey dot while changes are unsaved, a green check once all is saved.
+    /// A quiet mark beside the lecture's name: a grey dot while changes are unsaved, a green check once all is saved,
+    /// and while it saves by itself a short bar in the brand gradient.
     private var saveStatus: some View {
         Group {
-            if hasUnsavedChanges {
+            if autoSaving {
+                AutoSaveBar()
+            } else if hasUnsavedChanges {
                 Circle().fill(.secondary.opacity(0.6)).frame(width: 7, height: 7)
             } else {
                 Image(systemName: "checkmark.circle.fill")
@@ -563,10 +607,11 @@ struct WorkspaceView: View {
                     .foregroundStyle(.white, accent)
             }
         }
-        .frame(width: 14, height: 14)
-        .help(hasUnsavedChanges ? String(localized: "Unsaved changes – save with ⌘S") : String(localized: "Everything saved"))
+        // The dot and the check keep their place; only the bar while saving takes a little more room.
+        .frame(width: autoSaving ? 30 : 14, height: 14)
+        .help(autoSaving ? String(localized: "Saving automatically") : hasUnsavedChanges ? String(localized: "Unsaved changes – save with ⌘S") : String(localized: "Everything saved"))
         .accessibilityElement()
-        .accessibilityLabel(hasUnsavedChanges ? String(localized: "Unsaved Changes") : String(localized: "Everything Saved"))
+        .accessibilityLabel(autoSaving ? String(localized: "Saving Automatically") : hasUnsavedChanges ? String(localized: "Unsaved Changes") : String(localized: "Everything Saved"))
     }
 
     @ToolbarContentBuilder private var saveItems: some ToolbarContent {
