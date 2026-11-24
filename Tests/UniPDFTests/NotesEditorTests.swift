@@ -309,6 +309,30 @@ struct NotesEditorTests {
         #expect(!scroll.scrollSideways(by: 50))
     }
 
+    @Test func boxesKeepTheirPaddingAtTheStartAndEndOfTheNotes() throws {
+        let padding = NotesMarkup.blockPadding(for: 15)
+        // The notes, the first and the last text shown in the block.
+        let cases = [("> [!MERKE]\n> Nur ein Kasten", "[!MERKE]", "Kasten"), ("Davor\n> [!MERKE]\n> Am Ende", "[!MERKE]", "Ende"),
+                     ("> [!MERKE]\n> Am Anfang\nDanach", "[!MERKE]", "Anfang"), ("```\ncode\n```", "code", "code"),
+                     ("Davor\n```\ncode\n```", "code", "code")]
+        for (text, first, last) in cases {
+            let view = editor(text)
+            view.fontSize = 15
+            view.restyle()
+            let layoutManager = try #require(view.layoutManager), container = try #require(view.textContainer)
+            layoutManager.ensureLayout(for: container)
+            func rect(_ word: String) -> NSRect {
+                let glyphs = layoutManager.glyphRange(forCharacterRange: (text as NSString).range(of: word), actualCharacterRange: nil)
+                return layoutManager.boundingRect(forGlyphRange: glyphs, in: container).offsetBy(dx: 0, dy: view.textContainerOrigin.y)
+            }
+            let box = try #require(view.blockBoxes.first?.rect, "\(text)")
+            #expect(box.minY >= 0, "\(text)")
+            #expect(box.minY <= rect(first).minY - padding * 0.5, "top of \(text)")
+            #expect(box.maxY >= rect(last).maxY + padding * 0.5, "bottom of \(text)")
+            #expect(view.height(forWidth: 400) >= box.maxY)
+        }
+    }
+
     @Test func boldWrapsTheSelectionAndUnwrapsIt() {
         let view = editor("ganz wichtig")
         view.setSelectedRange(NSRange(location: 5, length: 7))

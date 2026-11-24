@@ -694,6 +694,11 @@ final class NotesTextView: NSTextView, NSLayoutManagerDelegate {
         }
         storage.endEditing()
 
+        // A box on the first line needs room above it, which the layout does not keep there.
+        let roomAbove = parsed.callouts.contains { $0.range.location == 0 }
+            ? NotesMarkup.blockGap(for: fontSize) + NotesMarkup.blockPadding(for: fontSize) : 0
+        if textContainerInset.height != roomAbove { textContainerInset = NSSize(width: 0, height: roomAbove) }
+
         let base = NSMutableParagraphStyle()
         base.lineSpacing = 5
         typingAttributes = [.font: NSFont.systemFont(ofSize: fontSize), .foregroundColor: NSColor.textColor, .paragraphStyle: base]
@@ -918,18 +923,29 @@ final class NotesTextView: NSTextView, NSLayoutManagerDelegate {
                       width: max(bounds.width - 2 * (textContainerOrigin.x + inset), 0), height: union.height)
     }
 
+    /// Where the fills of boxes and code blocks go.
+    var blockBoxes: [(rect: NSRect, block: NotesMarkup.Block)] {
+        guard let layoutManager, let storage = textStorage else { return [] }
+        let gap = NotesMarkup.blockGap(for: fontSize), padding = NotesMarkup.blockPadding(for: fontSize)
+        let ranges = parsed.codeBlocks.map(\.range) + parsed.callouts.map(\.range)
+        return ranges.compactMap { range in
+            guard range.length > 0, NSMaxRange(range) <= storage.length,
+                  let block = storage.attribute(NotesMarkup.blockKey, at: range.location, effectiveRange: nil) as? NotesMarkup.Block,
+                  var box = blockRect(range, layoutManager: layoutManager) else { return nil }
+            // The layout keeps no spacing above the first paragraph and below the last: the padding goes outside the lines there.
+            let top = block.callout != nil && range.location == 0 ? box.minY - padding : box.minY + gap
+            let bottom = NSMaxRange(range) >= storage.length ? box.maxY + padding : box.maxY - gap
+            box.origin.y = top
+            box.size.height = bottom - top
+            return box.height > 0 ? (box, block) : nil
+        }
+    }
+
     /// The fills of boxes and code blocks, beneath the text.
     override func drawBackground(in rect: NSRect) {
         super.drawBackground(in: rect)
         guard let layoutManager, let storage = textStorage else { return }
-        let gap = NotesMarkup.blockGap(for: fontSize)
-        let ranges = parsed.codeBlocks.map(\.range) + parsed.callouts.map(\.range)
-        for range in ranges where range.length > 0 && NSMaxRange(range) <= storage.length {
-            guard let block = storage.attribute(NotesMarkup.blockKey, at: range.location, effectiveRange: nil) as? NotesMarkup.Block,
-                  var box = blockRect(range, layoutManager: layoutManager) else { continue }
-            box.origin.y += gap
-            box.size.height -= 2 * gap
-            guard box.intersects(rect), box.height > 0 else { continue }
+        for (box, block) in blockBoxes where box.intersects(rect) {
             block.fill.setFill()
             NSBezierPath(roundedRect: box, xRadius: 8, yRadius: 8).fill()
         }
@@ -1107,6 +1123,11 @@ final class NotesTextView: NSTextView, NSLayoutManagerDelegate {
         }
         layoutManager.ensureLayout(for: textContainer)
         var used = layoutManager.usedRect(for: textContainer).height + layoutManager.extraLineFragmentRect.height
+            + 2 * textContainerInset.height
+        // A block at the very end keeps its padding beneath the last line.
+        if let storage = textStorage, (parsed.codeBlocks.map(\.range) + parsed.callouts.map(\.range)).contains(where: { NSMaxRange($0) >= storage.length }) {
+            used += NotesMarkup.blockPadding(for: fontSize)
+        }
         // A card under the last line lies below the used rect.
         if let card { used = max(used, card.view.frame.maxY - textContainerOrigin.y + 8) }
         // A preview beneath the last line lies outside the used rect.
